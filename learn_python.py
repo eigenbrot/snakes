@@ -80,10 +80,10 @@ def loop_test():
 
     """
     # define the list, let's put multiple types in it
-    l = [1,'yes',1e4,True,False]
+    lst = [1,'yes',1e4,True,False]
 
     # now loop over that list
-    for element in l:
+    for element in lst:
         print element
 
     return
@@ -123,11 +123,122 @@ listtup = fib(5)
 # listtup is what we call a tuple (don't ask how to pronounce it) Tuples are a
 # lot like lists, but they defined with paranthesis rather than brackets, e.g.
 
-l = [1,2,3] # a list
-t = (1,2,3) # a tuple
+lst = [1,2,3] # a list
+tup = (1,2,3) # a tuple
 
-l[1] == t[1] # True!
+lst[1] == tup[1] # True!
 
 # There are some subtlties between lists and tuples that are not important
 # right now. In general you should be using lists beacuse they have more
-# features than tuples.
+# features than tuples. A lot of numpy functions take tuples as arguments.
+
+
+# Let's talk about namespaces and related ilk for a while.
+#
+# The Zen of Python states:
+# "Namespaces are one honking great idea -- let's do more of those!"
+# 
+# The way I think of it is that every variable in Python (remember, EVERYTHING
+# is a variable in Python) is scoped as narrowly as possible unless to
+# explicitly decided to change that. For example, you might notice that I've
+# defined a list called "lst" twice in this code; one within the function
+# loop_test() and one outside of any function. This is totally OK (although
+# maybe not the best practice) because they are in different
+# namespaces. Variables assignment inside a function will never leave that
+# function and variables defined within a module stay associated with that
+# module.
+#
+# For example: To run the functions in this module (called learn_python.py)
+# you will need to import this module into your Python session:
+#
+# >>>import learn_python as lp
+#
+# now everything in this file is contained in the lp namespace. Check it out:
+# 
+# --------
+# >>>lst = ['not','the same list', 'as defined above']
+# >>>lp.lst
+# [1,2,3]
+# >>>lst
+# ['not','the same list', 'as defined above']
+# lst == lp.lst
+# False
+# lp.loop_test()
+# 1
+# yes
+# 10000.0
+# True
+# False
+# >>>lp.loop_test.lst
+# AttributeError: 'function' object has no attribute 'lst'
+# ---------
+#
+# Notice how the lst defined in this module stays in this module. This is
+# nice.  
+# 
+# IMPORTANT NOTE: It is possible to import individual items from a module into
+# the CURRENT namespace and it is almost always a bad idea. For example, you
+# could say:
+# 
+# >>>from learn_python import *
+# 
+# and now everything (functions, variables, etc.) in learn_python is in your
+# namespace this means you don't need to prepend the functions with anything:
+# 
+# >>>fib(5)
+#
+# would work just fine. This is not good practice, however, because there
+# could be anything in that module you're importing and who knows what
+# functions and variables it might overload (redefine). In general you should
+# only ever import modules.
+#
+# There are however, some acceptable exceptions that exist mostly for
+# convienience and conformation with the community. For example, at the start
+# of this module we imported the pyplot Class from the matplotlib
+# Module. Importing a Class from a module is generally OK because Classes are
+# their own separate namespaces (as we'll se later). Another type of exception
+# is when you need only one function from a module. For example, I use the
+# glob() function a lot to get lists of files and whatnot. The glob() function
+# lives inside the glob module, but I don't want to type glob.glob() everytime
+# I use the function so I import it with:
+from glob import glob
+
+# If you want to be a strict follower of the "only import modules" camp (not a
+# bad idea) but still want to have concise code you can just assign whatever
+# function/class you want to use to a variable. For example:
+#
+# import matplotlib
+# plt = matplotlib.pyplot
+# 
+# will result in the exact same usage of plt for the programmer, but is a
+# little more correct regarding namespaces and the like.
+#
+#
+# One more (important) note. As we saw above, variables defined in a function
+# stay in that function, but a function can still modify existing variables
+# that are passed to it:
+
+def inplace_demo(LL):
+    """Designed to show how functions can modify variables outside of their
+    namespace.
+
+    Inputs: And python list
+    Output: None
+    
+    """
+        
+    LL[-1] == 'poop'
+
+
+# wow, now that is a concise program. It doesn't even need a return statement;
+# the whitespace takes care of that. Let's try it out
+
+lst1 = [4,5,6]
+inplace_demo(lst1)
+print lst1
+
+# will give us [4,5,'poop']. This is a potentially very usefull but dangerous
+# feature. Know about it. (I think IDL might do this too?)
+
+
+
