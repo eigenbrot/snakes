@@ -1,0 +1,122 @@
+plot_FRD 1 #This is a comment
+	erase
+	expand 0.6	
+
+	ctype default
+	ticksize 0 0 0 0
+	ltype 0	
+	
+	#Grab the data
+	data $1
+	lines 27 500
+	read {Dr 1 Fr 2 Df 3 Ff 4 Dr_c 5 Fr_c 6 Df_c 7 Ff_c 8  EED 9 EEF 10 feD 11 feF 12 feD_c 13 feF_c 14}
+
+	#Grab the names and values to be used for labels
+	read row ratio_vec 6.s
+	read row direct_vec 3.s
+	read row fiber_vec 4.s
+	read row filter 7.s
+
+	#The first plot, just EE vs radius
+	window 1 3 1 3
+	limits Dr EED
+	box
+	ylabel Normalized Curve of Growth (EE)
+	xlabel Radius (mm)
+
+	ctype red
+	connect Dr_c EED
+	ltype 2
+	connect Dr EED
+
+	ltype 0
+	ctype blue
+	connect Fr_c EEF
+	ltype 2 
+	connect Fr EEF
+
+	ctype default
+	ltype 0
+	define TeX_strings delete
+	relocate 0 1.2
+	label Direct beam: "$!(direct_vec[5])"
+	relocate 8 1.2
+	label Fiber beam: "$!(fiber_vec[5])"
+	relocate 0 1.1
+	label f/"$!(ratio_vec[7])"
+	relocate 8 1.1
+	label "$!(filter[2])" band
+	relocate 15 1.2
+	label $date
+	
+	define TeX_strings 1
+	#Now the plot of EE vs log(f-ratio)
+	window 1 3 1 2
+	ctype default
+	ltype 0
+	ylabel Normalized Curve of Growth (EE)
+	xlabel f-ratio
+
+	set Dlgf = lg(Df)
+	set Flgf = lg(Ff)
+	set Dlgf_c = lg(Df_c)
+	set Flgf_c = lg(Ff_c)
+	limits 0 2 EED
+	ticksize -1 0 0 0
+	box
+	
+	ctype red
+	connect Dlgf_c EED
+	ltype 2
+	connect Dlgf EED
+	ctype blue
+	connect Flgf EEF
+	ltype 0 
+	connect Flgf_c EEF
+
+	ctype red
+	relocate 1.3 0.35
+	draw 1.5 0.35
+	relocate 1.3 0.3
+	ltype 2
+	draw 1.5 0.3
+	relocate 1.3 0.2
+	ctype blue
+	draw 1.5 0.2
+	relocate 1.3 0.25
+	ltype 0
+	draw 1.5 0.25
+	ctype default
+	relocate 1.58 0.33
+	label direct, corrected
+	relocate 1.58 0.28
+	label direct
+	relocate 1.58 0.23
+	label fiber, corrected
+	relocate 1.58 0.18
+	label fiber
+
+	#Finally, the best one, f-ratio vs EE
+	window 1 3 1 1
+	ctype default
+	ltype 0
+	ylabel Effective f-ratio
+	xlabel Normalized Curve of Growth (EE)
+
+	set ylimvec = feD_c concat feD concat feF concat feF_c
+	stats ylimvec mean sig kurt
+
+	limits EED $($mean - 1.5*$sig) $($mean + 2*$sig)
+	ticksize 0 0 0 0
+	box
+	
+	ctype red
+	connect EED feD_c
+	ltype 2
+	connect EED feD
+	ctype blue
+	connect EEF feF
+	ltype 0
+	connect EEF feF_c
+
+end

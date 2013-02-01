@@ -1,0 +1,718 @@
+#! /usr/bin/env python
+
+import pyfits
+import numpy as np
+import numpy.ma as ma
+import sys
+import os
+from scipy.interpolate import interp1d
+import pyspeckit as psk
+import matplotlib.pyplot as plt
+import scipy.optimize as spo
+from datetime import datetime
+from matplotlib.backends.backend_pdf import PdfPages as PDF
+import time
+import ADEUtils as ADE
+
+centlambda = [4901.416,5048.126]
+tau = np.pi*2.
+
+def apextract(filename, errorimage, apcenters, nrows):
+    '''extracts apertures from a rectified SALT image. This is designed to
+    perform the same function as IRAF's apextract routine but without all
+    the fluff of tracing etc. because a rectified SALT image should not
+    need to be traced (that's what recitification is for).
+
+    Inputs:
+        filename - the name of the rectified SALT image (or any image) you want
+        to extract apertures from
+
+        errorimage - an image the same size as the data image that contains
+        error estimates for each pixel. See mkerr for for info
+
+        apcenters - a python list containing the rows corresponding to the
+        center of each aperture. The number of apertures extracted will be
+        equal to len(apcenters).
+
+        nrows - int. The number of rows to sum over when extracting apertures
+
+    Output:
+        A FITS file that _should_ be identical to IRAF's own .ms.fits files.
+    '''
+    
+    hdu = pyfits.open(filename)[0]
+    head = hdu.header
+    data = hdu.data
+    error = pyfits.open(errorimage)[0].data
+
+    apertures = []
+
+    apnum = 1
+    for r in apcenters:
+        r1 = r - int(nrows/2.0)
+        r2 = r1 + nrows
+
+        print "Extracing from rows %i to %i" % (r1,r2)
+        
+        head.update('APNUM'+str(apnum),'%i %i %i %i' % (apnum, apnum, r1, r2))
+        apnum += 1
+
+        apertures.append(np.mean(data[r1:r2+1,:],axis=0))
+        apertures.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
+
+    outname = filename.split('.fits')[0]+'.ms.fits'
+    pyfits.PrimaryHDU(np.vstack(apertures),head).writeto(outname,clobber=True)
+
+
+def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
+    '''Takes a multi-spectrum fits file (.ms.fits, probably produced by
+    apextract) and fits emission lines to each spectrum in the file. This is
+    really an interactive wrapper to PySpecKit's specfit functions. 
+
+    Inputs:
+        specfile - the multi-spectrum fits file you want to fit
+        
+        inguess - a python list that has initial guesses for the parameters
+        you want to fit. Each line has three parameters corresponding to
+        increasing moments:
+            0 - amplitude
+            1 - centroid
+            2 - width
+        For example, if you want to fit two lines then your inguess should look
+        something like:
+            [amp1,cent1,sig1,amp2,cent2,sig2]
+
+        tied - None or a python list. If you want any parameters to depend on
+        each other you need to put a STRING CONTAINING THE DEPENDENCY as an
+        element in this list. Use p[x] to describe the x'th parameter.
+        i.e. if amp2 should be 1/3 amp1 (like [OIII]) then tied will be 
+        (assuming you're fitting only two lines):
+            ['','','','p[0]/3.','','']
+
+        interact - boolean. If True you will have an opportunity to fine tune
+        the fit for each aperture.
+
+        figpath - path to directory where the fit for each individual aperture
+        is saved. This directory MUST already exist.
+    '''
+    
+    guesses = inguess[:]
+
+    if tied==None: tied = ['']*len(guesses)
+
+    fitmin = min(guesses[1::3]) - 30.
+    fitmax = max(guesses[1::3]) + 30.
+
+    hdus = pyfits.open(specfile)[0]
+
+    header = hdus.header
+    numspec = hdus.data.shape[0]/2
+
+    fit_pars = np.zeros((numspec,len(inguess)))
+    fit_errs = np.zeros(fit_pars.shape)
+    moments = np.zeros((numspec,3))
+
+    for i in np.arange(numspec)*2:
+        spec = psk.Spectrum(specfile,specnum=i,errspecnum=i+1)
+        
+        infostr = header['APNUM'+str(i/2+1)].split(' ')
+        print "\n  Fitting aperture {0} (lines {1} to {2})".format(infostr[0],infostr[2],infostr[3])
+        fig_name = fig_path+'/{:02n}'.format(int(infostr[0]))+'_'+str(guesses[1])[0:7]+'.pdf'
+        pp = PDF(fig_name)
+
+        #changed this as of 12.7 to baselineorder = 2
+        spec.plotter(figure=0,xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='-')
+        spec.plotter.figure.show()
+        spec.baseline(order=2,fit_plotted_area=True)
+        spec.specfit(guesses=guesses,tied=tied,negamp=False,fit_plotted_area=True)
+        spec.plotter(xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='')
+#        spec.specfit(guesses=guesses,tied=tied,negamp=False)
+        spec.specfit.plot_fit(linestyle='-')
+
+        
+        if np.abs(np.average(np.array(guesses[1::3]) - np.array(spec.specfit.modelpars[1::3]))) > 2.0:
+            scratch = 'd'
+            print 'BAD!'
+        else:
+            scratch = ''
+
+        if interact:
+            scratch = raw_input("'q' moves to next line\n'g' redefines guesses\n")
+            
+            while scratch != 'q':
+                if scratch == 'g': 
+                    while True:
+                        print "Guesses are:\n"+''.join('{:^9n}'.format(j) for j in range(len(guesses)))
+                        print '-'*9*len(guesses)
+                        print ''.join("{:^9n}".format(k) for k in guesses)+'\n'
+                        cidx = raw_input("Change guess # ('r' to refit):  ")
+                        if cidx == 'r': break
+                        cval = float(raw_input("To:  "))
+                        guesses[int(cidx)] = cval
+                            
+                spec.specfit(guesses=guesses,tied=tied,negamp=False,fit_plotted_area=True)
+                            
+                if scratch == 'd':
+                    break
+                    
+                if scratch == 'Q':
+                    interact=False
+                    break
+
+                scratch = raw_input("'q' moves to next line\n'g' redefines guesses\n")
+
+        if scratch != 'd': guesses = spec.specfit.modelpars
+
+        fit_pars[i/2] = spec.specfit.modelpars
+        fit_errs[i/2] = spec.specfit.modelerrs
+        
+        center = spec.specfit.modelpars[1]
+        std = spec.specfit.modelpars[2]
+        
+        spec_moments = meat_moment(spec)
+        moments[i/2] = spec_moments
+       
+        ax = spec.plotter.figure.gca()
+        ax.set_title('Aperture {0:n} in {1} on\n'.format(int(infostr[0]),specfile)+datetime.now().isoformat(' '))
+        ax.set_xlim(center-10.*std,center+10.*std)
+        ax.text(0.05,0.95,
+                '$\mu$= {1:4.4f}\n$\mu_2$= {2:4.4f} $\Rightarrow\sigma$= {0:4.4f}\n$\mu_3$= {3:4.4f}'\
+                    .format(spec_moments[1]**0.5,*spec_moments),transform=ax.transAxes,ha='left',va='top')
+
+        pp.savefig(spec.plotter.figure)
+        pp.close()
+
+    return (fit_pars, fit_errs, moments)
+
+def meat_moment(spec):
+    
+    center = spec.specfit.modelpars[1]
+    std = spec.specfit.modelpars[2]
+
+    cdf_minidx = spec.xarr.x_to_pix(center - 10.*std)
+    cdf_maxidx = spec.xarr.x_to_pix(center + 10.*std) + 1 #b/c we want to include this point
+    
+    cropped_spec = spec.specfit.spectofit[cdf_minidx:cdf_maxidx]
+    speccdf = np.cumsum(cropped_spec)
+    speccdf /= speccdf.max()
+    
+    try:
+        moment_minidx = np.where(speccdf <= 0.05)[0][-1]
+        moment_maxidx = np.where(speccdf >= 0.95)[0][0]
+    # moment_minidx = int(np.interp(0.05,speccdf,np.arange(speccdf.size)))
+    # moment_maxidx = int(np.interp(0.95,speccdf,np.arange(speccdf.size))) + 1
+    except IndexError:
+        return np.array([0,0,0])
+
+    ax = spec.plotter.figure.gca()
+    ax.axvline(x=spec.xarr[cdf_minidx:cdf_maxidx][moment_minidx],linestyle=':')
+    ax.axvline(x=spec.xarr[cdf_minidx:cdf_maxidx][moment_maxidx],linestyle=':')
+
+    moment_spec = cropped_spec[moment_minidx:moment_maxidx]
+    moment_lambda = np.array(spec.xarr[cdf_minidx:cdf_maxidx][moment_minidx:moment_maxidx])
+    return ADE.ADE_moments(moment_lambda,moment_spec,threshold=np.inf)
+    
+
+def make_curve(specimage, radii,guesses,outputfile,tied=[],\
+                   interact=False):
+    '''Takes a rectified SALT image and extracts some apertures and fits
+    some lines. It will try to fit all lines you give it simultaneously and
+    so should be used cautiously.
+    It has been largely replaced by slayer (see below).
+    '''
+    
+
+    apextract(specimage,radii,radii[1] - radii[0])
+
+    specfile = specimage.split('.fits')[0]+'.ms.fits'
+
+    fit_pars, fit_errs = meatspin(specfile,guesses,tied=tied,interact=interact)
+    
+    phead = pyfits.PrimaryHDU(None)
+    datahead = pyfits.ImageHDU(fit_pars)
+    errorhead = pyfits.ImageHDU(fit_errs)
+    datahead.header.update('EXTNAME','FIT')
+    errorhead.header.update('EXTNAME','ERROR')
+    
+    pyfits.HDUList([phead,datahead,errorhead]).writeto(outputfile,clobber=True)
+
+    return
+
+def slayer(specimage,errimage,radii,guesses,outputfile,nrows=False,interact=False):
+    '''Takes a rectified SALT image and extracts some apertures and fits some
+    lines. Unlike make_curve, each line is fit seperately which is nice when
+    some of you lines suck. This is currently the perfered method.
+    '''
+
+    specfile = specimage.split('.fits')[0]+'.ms.fits'
+
+    if not nrows: nrows = radii[1] - radii[0]
+
+    apextract(specimage,errimage,radii,nrows)
+
+    total_results = []
+    total_errs = []
+    total_moments = []
+
+    numlines = len(guesses)/3
+
+    for l in range(numlines):
+
+        lineguess = guesses[l*3:(l+1)*3]
+        print lineguess
+
+        linepars, lineerrs, linemoments = meatspin(specfile,lineguess,interact=interact,tied=['','',''])
+
+        total_results.append(linepars)
+        total_errs.append(lineerrs)
+        total_moments.append(linemoments)
+
+    phead = pyfits.PrimaryHDU(None)
+    datahead = pyfits.ImageHDU(np.hstack(total_results))
+    errorhead = pyfits.ImageHDU(np.hstack(total_errs))
+    momenthead = pyfits.ImageHDU(np.hstack(total_moments))
+    radiihead = pyfits.ImageHDU(np.array(radii))
+    phead.header.update('SLAYDATE',datetime.now().isoformat(' '))
+    datahead.header.update('EXTNAME','FIT')
+    errorhead.header.update('EXTNAME','ERROR')
+    momenthead.header.update('EXTNAME','MOMENTS')
+    radiihead.header.update('EXTNAME','RADII')
+    pyfits.HDUList([phead,datahead,errorhead,radiihead,momenthead]).writeto(outputfile,clobber=True)
+
+    return
+
+def gravity_gun(specimage,errimage,template_image,outputfile,combinedfile,interact=False,addonly=False):
+
+    thdus = pyfits.open(template_image)
+    tradii = thdus['RADII'].data.tolist()
+    tfit = thdus['FIT'].data
+    tguess = thdus['FIT'].data[int(len(tradii)/2)].tolist()
+    terr = thdus['ERROR'].data
+
+    if not addonly: slayer(specimage,errimage,tradii,tguess,outputfile,interact=interact)
+    
+    nhdus = pyfits.open(outputfile)
+    nfit = nhdus['FIT'].data
+    nerr = nhdus['ERROR'].data
+
+    phead = pyfits.PrimaryHDU(None)
+    fithead = pyfits.ImageHDU(np.mean(np.dstack((nfit,tfit)),axis=2))
+    comberr = ((nerr/2.)**2 + (terr/2.)**2)**0.5
+    errhead = pyfits.ImageHDU(comberr)
+    radiihead = pyfits.ImageHDU(np.array(tradii))
+    phead.header.update('SLAYDATE',datetime.now().isoformat(' '))
+    phead.header.update('URIMAGE',template_image.split('/')[-1])
+    phead.header.update('NEWIMAGE',specimage)
+    fithead.header.update('EXTNAME','FIT')
+    errhead.header.update('EXTNAME','ERROR')
+    radiihead.header.update('EXTNAME','RADII')
+    pyfits.HDUList([phead,fithead,errhead,radiihead]).writeto(combinedfile,clobber=True)
+
+    return
+
+def plot_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label=None,hr=1):
+    '''Takes a slayer output file and plots the rotation curve associated with
+    the lines that were fit. Has lots of neat options for plotting.
+    '''
+
+    kpcradii, avg_centers, std_centers = openslay(datafile,central_lambda=central_lambda,flip=flip)    
+
+    if not ax:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    else: fig = False
+
+    # ax2 = ax.twiny()
+    # ax2.set_xlim(arcsecradii[0],arcsecradii[-1])
+    # ax2.set_xlabel('Arcsec from center of galaxy')
+    if hr == 1: ax.set_xlabel('Radius [kpc]')
+    else: ax.set_ylabel('Radius [$r/h_r$]')
+    ax.set_ylabel('LOS velocity [km/s]')
+
+    ax.errorbar(kpcradii/hr,avg_centers,yerr=std_centers,fmt='.',label=label)
+
+    ax.axvline(x=0,ls='--',color='k',alpha=0.3)
+    ax.axhline(y=0,ls='--',color='k',alpha=0.3)
+
+    ax.set_xlim(-50,50)
+    ax.set_ylim(-500,500)
+
+    ax.set_title(datafile+'\n'+datetime.now().isoformat(' '))
+    
+    if fig: fig.show()
+    
+
+def mkerr(image,stdimg):
+    
+    data = ma.array(pyfits.open(stdimg)[0].data)
+    signal = pyfits.open(image)[0].data
+
+    for i in range(10):
+        std = np.array([np.std(data,axis=1)]).T
+        badidx = np.where(np.abs(data) > 3*std)
+        
+        data[badidx] = ma.masked
+
+    std = np.array([np.std(data,axis=1)]).T
+
+    error = np.sqrt(signal + std**2)
+    error[np.isnan(error)] = 999.
+
+    pyfits.PrimaryHDU(error).writeto('error.fits',clobber=True)
+
+def dirtydown(img,outimg,HDU=0,axis=0):
+    
+    hdus = pyfits.open(img)
+    data = hdus[HDU].data
+    means = np.mean(data,axis=axis)
+    data /= means
+    pyfits.PrimaryHDU(data,hdus[HDU].header).writeto(outimg)
+
+
+def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=False):
+
+    hdus = pyfits.open(datafile)
+
+    pars = hdus[1].data
+    errs = hdus[2].data
+    pxradii = hdus[3].data
+
+    centers = pars[:,1::3]
+    amps = pars[:,::3]
+    centerr = errs[:,1::3]
+
+    velocenters = (centers-central_lambda)/central_lambda*3e5
+    veloerrors = centerr/central_lambda*3e5
+
+    avg_centers = np.sum(amps*velocenters,axis=1)/np.sum(amps,axis=1)
+    std_centers = np.std(velocenters,axis=1)
+
+    #offset = helpoff(pxradii,avg_centers)
+    offset = 271.750855446
+    print "Offset is "+str(offset)
+    
+    kpcradii = pxradii - offset
+    kpcradii *= 0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
+    kpcradii *= 34.1e3/206265. # distance (34.1Mpc) / 206265"
+    
+    if flip: kpcradii *= -1.
+    badidx = np.where(std_centers > 500.)
+    kpcradii = np.delete(kpcradii,badidx)
+    avg_centers = np.delete(avg_centers,badidx)
+    std_centers = np.delete(std_centers,badidx)
+    
+    if moments:
+        all_moments = hdus[4].data
+        m1 = (all_moments[:,::3] - central_lambda)/central_lambda*3e5
+        m2 = all_moments[:,1::3]
+        m3 = all_moments[:,2::3]
+#        m1 = np.delete(m1,badidx)
+#        m2 = np.delete(m2,badidx)
+#        m3 = np.delete(m3,badidx)
+        return (kpcradii,avg_centers,std_centers,m1,m2,m3)
+
+    else: return (kpcradii,avg_centers,std_centers)
+
+def helpoff(radii,centers):
+
+    x0 = np.array([np.median(radii)])
+    
+    xf = spo.fmin(offunc,x0,args=(radii,centers),disp=False)
+    
+    radii = radii.copy() - xf[0]
+    pidx = np.where(radii >= 0.0)
+    nidx = np.where(radii < 0.0)
+    
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.plot(radii[pidx],np.abs(centers[pidx]))
+    # ax.plot(np.abs(radii[nidx]),np.abs(centers[nidx]))
+    # fig.show()
+
+    return xf[0]
+
+def offunc(x,radii,centers):
+    
+    radii = radii.copy() - x[0]
+    pidx = np.where(radii >= 0.0)
+    nidx = np.where(radii < 0.0)
+
+    if pidx[0].size <= 1 or nidx[0].size <= 1: return 999.
+    
+    pcent = centers[pidx]
+    ncent = centers[nidx]
+
+    pcoef = np.polyfit(radii[pidx],np.abs(centers[pidx]),4)
+    ncoef = np.polyfit(np.abs(radii[nidx][::-1]),np.abs(centers[nidx][::-1]),4)
+
+    pf = np.poly1d(pcoef)
+    nf = np.poly1d(ncoef)
+
+    minr = max(radii[pidx].min(),np.abs(radii[nidx]).min())
+    maxr = min(radii[pidx].max(),np.abs(radii[nidx]).max())
+
+    r = np.linspace(minr,maxr,100)
+
+    chisq = np.sum((pf(r) - nf(r))**2)
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.plot(r,pf(r))
+    # ax.plot(r,nf(r))
+    # fig.show()
+    # raw_input('ssds')
+
+#    print chisq
+    
+    return chisq
+
+
+# def dosims(filename,fitfix):
+#     '''to be run in /d/monk/eigenbrot/SALT/2011-3-UW_002/rotation'''
+
+#     pp = PDF(filename)
+
+#     print "Getting UrPars..."
+#     fig09 = plt.figure()
+#     ax09 = fig09.add_subplot(111)
+#     plot_curve('tiESO_z05_MgI.slay.fits',flip=True,ax=ax09)
+#     urpars = fit_curve('tiESO_z05_MgI.slay.fits',flip=True,ax=ax09,pars=[0.965*0.43,242.992,5.45,1.0,5,0.5,tau/4.,1.358],fixed=fitfix,p=True,rot_label='Ur-rotation curve',label='Urfit')[0]
+#     ax09.legend(loc=0)
+# #    fig09.show()
+    
+#     fig19 = plt.figure()
+#     ax19 = fig19.add_subplot(111)
+#     plot_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True)
+#     print "Running z=1.93 step 1...",
+#     fit_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True,pars=[1.93*0.43] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
+#     print "2..."
+#     pars19 = fit_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True,pars=[1.93*0.43,238.512] + urpars[2:7] + [1.374],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
+#     ax19.legend(loc=0)
+# #    fig19.show()
+
+#     fig38 = plt.figure()
+#     ax38 = fig38.add_subplot(111)
+#     plot_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True)
+#     print "Running z=3.98 step 1...",
+#     fit_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True,pars=[3.86*0.43] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
+#     print "2..."
+#     pars38 = fit_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True,pars=[3.86*0.43,286.819] + urpars[2:7] + [11.240],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
+#     ax38.legend(loc=0)
+# #    fig38.show()
+
+#     fig0 = plt.figure()
+#     ax0 = fig0.add_subplot(111)
+#     plot_curve('tiESO_z0_MgI.slay.fits',ax=ax0)
+#     print "Running z=3.86 step 1...",
+#     fit_curve('tiESO_z0_MgI.slay.fits',ax=ax0,pars=[0] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
+#     print "2..."
+#     pars0 = fit_curve('tiESO_z0_MgI.slay.fits',ax=ax0,pars=[0,256.641] + urpars[2:7] + [1.731],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
+#     ax0.legend(loc=0)
+# #    fig0.show()
+    
+#     pp.savefig(fig0)
+#     pp.savefig(fig09)
+#     pp.savefig(fig19)
+#     pp.savefig(fig38)
+#     pp.close()
+
+#     return (pars0,urpars,pars19,pars38)
+
+# def uberfit(filename,pars=[0.000,254.389,5.45,
+#                            0.965*0.43,244.635,5.45,
+#                            1.930*0.43,241.189,5.45,
+#                            3.860*0.43,237.407,5.45,
+#                            0.0,5,0.5,tau/4,1.642,0.245],fixed=[]):
+
+#     r0, v0, e0 = openslay('tiESO_z0_MgI.slay.gg.fits')
+#     r09, v09, e09 = openslay('tiESO_z05_MgI.slay.fits',flip=True)
+#     r19, v19, e19 = openslay('tiESO_z1_MgI.slay.fits',flip=True)
+#     r38, v38, e38 = openslay('tiESO_z2_MgI.slay.fits',flip=True)
+
+#     data = dict((('r0',r0),('v0',v0),('e0',e0),
+#                  ('r09',r09),('v09',v09),('e09',e09),
+#                  ('r19',r19),('v19',v19),('e19',e19),
+#                  ('r38',r38),('v38',v38),('e38',e38)))
+
+#     x0 = [pars[i] for i in range(len(pars)) if i not in fixed]
+
+#     print x0
+
+#     print "fitting"
+#     t1 = time.time()
+#     xf = spo.fmin(uberfunc,x0,args=(data,fixed,pars))#,epsfcn=1)[0]
+#     t2 = time.time()
+#     print "fitting took {} seconds".format(t2-t1)
+    
+#     print "pre-plot"
+#     pid = [i for i in range(len(pars)) if i not in fixed]
+#     k = 0
+#     for j in pid:
+#         pars[j] = xf[k]
+#         k += 1
+
+#     pp=PDF(filename)
+
+#     pf0 = [0,1,2,12,13,14,15,16,17]
+#     pf09 = [3,4,5,12,13,14,15,16,17]
+#     pf19 = [6,7,8,12,13,14,15,16,17]
+#     pf38 = [9,10,11,12,13,14,15,16,17]
+
+#     print "plotting"
+#     ###########
+#     fig0 = plt.figure()
+#     ax0 = fig0.add_subplot(111)
+#     rw0 = r0.max() - r0.min()
+#     f0 = [i for i in fixed if i in pf0]
+#     plot_curve('tiESO_z0_MgI.slay.gg.fits',ax=ax0)
+#     mr0, mv0, _ = simcurve(1001,pars[0],pars[1],pars[2],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
+#                            z_d=pars[17],scale=rw0/1001.,ax=ax0,p=True,label='Global fit',rot_label='Rotation curve')
+#     ax0.text(12,-30,('{}\n'*9).format(*['$*$' if i in f0 else '' for i in pf0]),color='r',
+#             horizontalalignment='left',va='top',fontsize=12)
+#     ax0.text(15,-450,'$*$ = fixed',color='r')
+#     ax0.legend(loc=0)
+#     iv0 = np.interp(r0, mr0, mv0)
+
+#     ###########
+#     # fig0_1 = plt.figure()
+#     # ax0_1 = fig0_1.add_subplot(111)
+#     # rw0_1 = r0_1.max() - r0_1.min()
+#     # f0_1 = [i for i in fixed if i in pf0_1]
+#     # plot_curve('tiESO_z0_MgI.slay.2_16.fits',ax=ax0_1)
+#     # _, _, _ = simcurve(1001,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
+#     #                        z_d=pars[20],scale=rw0_1/1001.,ax=ax0_1,p=True,label='Global fit',rot_label='Rotation curve')
+#     # ax0_1.text(12,-30,('{}\n'*9).format(*['$*$' if i in f0_1 else '' for i in pf0_1]),color='r',
+#     #         horizontalalignment='left',va='top',fontsize=12)
+#     # ax0_1.text(15,-450,'$*$ = fixed',color='r')
+#     # ax0_1.legend(loc=0)
+
+#     ###########
+#     fig09 = plt.figure()
+#     rw09 = r09.max() - r09.min()
+#     f09 = [i for i in fixed if i in pf09]
+#     ax09 = fig09.add_subplot(111)
+#     plot_curve('tiESO_z05_MgI.slay.fits',ax=ax09,flip=True)
+#     mr09, mv09, _ = simcurve(1001,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
+#                        scale=rw09/1001.,z_d=pars[17],ax=ax09,p=True,label='Global fit',rot_label='Rotation curve')
+#     ax09.text(12,-30,('{}\n'*9).format(*['$*$' if i in f09 else '' for i in pf09]),color='r', 
+#               horizontalalignment='left',va='top',fontsize=12)
+#     ax09.text(15,-450,'$*$ = fixed',color='r')
+#     ax09.legend(loc=0)
+#     iv09 = np.interp(r09, mr09, mv09)
+
+#     ###########
+#     fig19 = plt.figure()
+#     rw19 = r19.max() - r19.min()
+#     f19 = [i for i in fixed if i in pf19]
+#     ax19 = fig19.add_subplot(111)
+#     plot_curve('tiESO_z1_MgI.slay.fits',flip=True,ax=ax19)
+#     mr19, mv19, _ = simcurve(1001,pars[6],pars[7],pars[8],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
+#                            scale=rw19/1001.,z_d=pars[17],ax=ax19,p=True,label='Global fit',rot_label='Rotation curve')
+#     ax19.text(12,-30,('{}\n'*9).format(*['$*$' if i in f19 else '' for i in pf19]),color='r', 
+#               horizontalalignment='left',va='top',fontsize=12)
+#     ax19.text(15,-450,'$*$ = fixed',color='r')
+#     ax19.legend(loc=0)
+#     iv19 = np.interp(r19, mr19, mv19)
+
+#     ############
+#     fig38 = plt.figure()
+#     rw38 = r38.max() - r38.min()
+#     f38 = [i for i in fixed if i in pf38]
+#     ax38 = fig38.add_subplot(111)
+#     plot_curve('tiESO_z2_MgI.slay.fits',flip=True,ax=ax38)
+#     mr38, mv38, _ = simcurve(1001,pars[9],pars[10],pars[11],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
+#                            scale=rw38/1001.,z_d=pars[17],ax=ax38,p=True,label='Global fit',rot_label='Rotation curve')
+#     ax38.text(12,-30,('{}\n'*9).format(*['$*$' if i in f38 else '' for i in pf38]),color='r', 
+#               horizontalalignment='left',va='top',fontsize=12)
+#     ax38.text(15,-450,'$*$ = fixed',color='r')
+#     ax38.legend(loc=0)
+#     iv38 = np.interp(r38, mr38, mv38)
+    
+#     #############
+    
+#     bigr = np.concatenate((r0,r09,r19,r38))
+#     bigiv = np.concatenate((iv0,iv09,iv19,iv38))
+#     bigv = np.concatenate((v0,v09,v19,v38))
+#     bige = np.concatenate((e0,e09,e19,e38))
+    
+#     chisq = np.sum((bigv - bigiv)**2/bige**2)/(bigr.size - xf.size - 1)
+
+#     ax0.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
+#     ax09.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
+#     ax19.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
+#     ax38.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
+
+#     pp.savefig(fig0)
+#     pp.savefig(fig09)
+#     pp.savefig(fig19)
+#     pp.savefig(fig38)
+#     pp.close()
+
+#     return pars
+
+# def uberfunc(x,data,fixed,par0):
+    
+#     print x
+#     xl = list(x)
+#     pars = [par0[j] if j in fixed else xl.pop(0) for j in range(len(par0))]
+    
+#     if pars[2] != 5.45: print x,pars
+#     if pars[17] < 0 or pars[14] > 4: return np.zeros(10) + 9e9
+
+#     ##z=0
+#     r0 = data['r0']
+#     v0 = data['v0']
+#     e0 = data['e0']
+#     rw0 = r0.max() - r0.min()
+#     mr0, mv0, _ = simcurve(501,pars[0],pars[1],pars[2],pars[12],pars[13],pars[14],pars[15],\
+#                                kappa_0=pars[16],z_d=pars[17],scale=rw0/501.)
+#     iv0 = np.interp(r0, mr0, mv0)
+    
+#     # ##z=0, part 2
+#     # r0_1 = data['r0_1']
+#     # v0_1 = data['v0_1']
+#     # e0_1 = data['e0_1']
+#     # rw0_1 = r0_1.max() - r0_1.min()
+#     # mr0_1, mv0_1, _ = simcurve(501,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],\
+#     #                            kappa_0=pars[19],z_d=pars[20],scale=rw0/501.)
+#     # iv0_1 = np.interp(r0_1, mr0_1, mv0_1)
+
+#     ##z=0.96
+#     r09 = data['r09']
+#     v09 = data['v09']
+#     e09 = data['e09']
+#     rw09 = r09.max() - r09.min()
+#     mr09, mv09, _ = simcurve(501,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],\
+#                                  kappa_0=pars[16],z_d=pars[17],scale=rw09/501.)
+#     iv09 = np.interp(r09, mr09, mv09)
+
+#     ##z=1.98
+#     r19 = data['r19']
+#     v19 = data['v19']
+#     e19 = data['e19']
+#     rw19 = r19.max() - r19.min()
+#     mr19, mv19, _ = simcurve(501,pars[6],pars[7],pars[8],pars[12],pars[13],pars[14],pars[15],\
+#                                  kappa_0=pars[16],z_d=pars[17],scale=rw19/501.)
+#     iv19 = np.interp(r19, mr19, mv19)
+
+#     ##z=3.86
+#     r38 = data['r38']
+#     v38 = data['v38']
+#     e38 = data['e38']
+#     rw38 = r38.max() - r38.min()
+#     mr38, mv38, _ = simcurve(501,pars[9],pars[10],pars[11],pars[12],pars[13],pars[14],pars[15],\
+#                                  kappa_0=pars[16],z_d=pars[17],scale=rw38/501.)
+#     iv38 = np.interp(r38, mr38, mv38)
+
+#     bigr = np.concatenate((r0,r09,r19,r38))
+#     bigiv = np.concatenate((iv0,iv09,iv19,iv38))
+#     bigv = np.concatenate((v0,v09,v19,v38))
+#     bige = np.concatenate((e0,e09,e19,e38))
+
+#     chisq = np.sum((bigv - bigiv)**2/bige**2)/(bigr.size - x.size - 1)
+    
+#     print chisq
+# #    return (bigv - bigiv)/bige
+#     return chisq
+
+

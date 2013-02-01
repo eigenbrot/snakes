@@ -1,0 +1,342 @@
+import numpy as np
+import glob
+import pyfits
+import ADEUtils as ADE
+import matplotlib.pyplot as plt
+import scipy.misc.pilutil as pl
+
+debug=0
+
+def fat_angel(findstr, num_ap, EXTEN=0, OUTPUT=0, PIXELPITCH=1):
+    '''
+    Description:
+        Fat_angel is deisgned to process a large number of data from
+        the laser bench. It takes an input string, findstr, and computes
+        the width and radius of the ring in each data image. Surface brightness
+        profiles are found using Annulize in the ADEUtils package with
+        the number of annuli specfied in the num_ap input. Output can be
+        directed to a file for plotting bliss.
+    
+    Inputs:
+        findstr- Str
+                 A string containing the names of the data files to use.
+                 Wildcards are allowed so you can chose a single file or
+                 as many as want. Files are assumed to be FITS files.
+        num_ap - Int
+                 The number of annuli to use when constructing the surface
+                 brightness profile.
+        EXTEN  - Int
+                 The FITS extension where the primary data is stored. As of
+                 right now there is no way to specify different extensions
+                 for different files.
+        OUTPUT - Str
+                 Name of output file. Output contains angle, ring radius, and
+                 ring width in column form
+        PIXELPITCH - Float
+                 Size of the camera pixels in micrometers. This is only used to 
+                 get the correct scale on the debug plots.
+    
+    Output:
+        Output is a tuple of Numpy vectors containing angle, ring radius, and
+        ring width.
+    
+    Example:
+        Assume you have a bunch of data called X_red.fits where X is some
+        data iterator.
+
+        >>lb.fat_angel('*_red.fits',150,EXTEN=1,OUTPUT='my_data.dat')
+    '''
+
+
+    file_list = glob.glob(findstr)
+    numfiles = len(file_list)
+
+    'initialize some data arrays'
+    widths = np.zeros(numfiles)
+    radii = np.zeros(numfiles)
+    angles = np.zeros(numfiles)
+    r1_vec = np.zeros(numfiles)
+    r2_vec = np.zeros(numfiles)
+
+    for i in range(numfiles):
+        print(file_list[i])
+
+        huds = pyfits.open(file_list[i])
+        data = huds[EXTEN].data
+        
+        'get the angle from the FITS header. MUCH easier in python than IDL!'
+        angles[i] = huds[EXTEN].header['ANGLE']
+
+        '''poor man's background subtraction'''
+        mode = ADE.mode(data)[0][0]
+        if debug: print('Mode = ', mode)
+ 
+        'Annulize!'
+        if debug:
+            fig0 = plt.figure(0)
+            plt.clf()
+            (r_vec,fluxes) = ADE.annulize(data,num_ap,NOREAD=1,MODE=mode)
+            plt.plot(r_vec*PIXELPITCH,fluxes)
+            fig0.show()
+        else:
+            (r_vec,fluxes) = ADE.annulize(data,num_ap,NOREAD=1,MODE=mode) 
+
+        '''Compute the cdf from the pdf (fluxes). Working with the CDF
+        allows us to assume that the annulus is gaussian-ish without 
+        having to worry about the particulars'''
+        CDF = np.cumsum(fluxes)
+        CDF /= np.max(CDF)
+
+        '''First find the peak (0.5 in the CDF) and then find the
+        limits of the fwhm'''
+        rm_idx = np.where(CDF >= 0.50)[0][0]
+        r1_idx = np.where(fluxes >= 0.5*fluxes[rm_idx])[0][0]
+        r2_idx = np.where(fluxes >= 0.5*fluxes[rm_idx])[0][-1]
+        
+        rm = r_vec[rm_idx]
+        r1 = r_vec[r1_idx]
+        r2 = r_vec[r2_idx]
+
+        if debug:
+            fig1 = plt.figure(1)
+            plt.clf()
+            plt.plot(r_vec*PIXELPITCH, CDF)
+            plt.axvline(x=rm*PIXELPITCH,ls='--',lw=0.3)
+            plt.axvline(x=r1*PIXELPITCH,ls='--',lw=0.3)
+            plt.axvline(x=r2*PIXELPITCH,ls='--',lw=0.3)
+            fig1.show()
+            plt.figure(0)
+            plt.axvline(x=rm*PIXELPITCH,ls='--',lw=0.3)
+            plt.axvline(x=r1*PIXELPITCH,ls='--',lw=0.3)
+            plt.axvline(x=r2*PIXELPITCH,ls='--',lw=0.3)
+
+
+        widths[i] = r2 - r1
+        radii[i] = rm
+        r1_vec[i] = r1
+        r2_vec[i] = r2
+
+    'We sort the data just make the output a little more readable'
+    sort_idx = np.argsort(angles)
+    
+    if OUTPUT:
+        f = open(OUTPUT, 'w')
+        f.write('#angle       radius      width      r1      r2\n')
+        for i in range(angles.shape[0]):
+            np.array([angles[sort_idx][i],
+                      radii[sort_idx][i],
+                      widths[sort_idx][i],
+                      r1_vec[sort_idx][i],
+                      r2_vec[sort_idx][i]]).tofile(f, sep='   ',format='%3.4f')
+            f.write('\n')
+        
+    return (angles[sort_idx],
+            radii[sort_idx],
+            widths[sort_idx],
+            r1_vec[sort_idx],
+            r2_vec[sort_idx])
+
+
+def rapture(datalist,output):
+    '''
+    Calling:
+        rapture(datalist, output)
+    
+    Description:
+        Rapture is designed to bring together multiple data ranges
+        from the laser bench and modify them to all be on the same scale.
+        It then outputs one master file (bringing all the angels together)
+        that has all the data for one laser over multiple data ranges.
+
+    Inputs:
+        datalist - Str
+            A pointer to the data files to combine. Wildcards are
+            allowed and indeed necessary because you need to have at
+            least two data files for Rapture to be of any use. The 
+            files are expected to be output files from fat_angel.
+        output   - Str
+            Filename where output is directed. Format is columns with angle,
+            ring radius, and ring width.
+
+    Output:
+        None. Output is directed to the file specified by output.
+
+    Example:
+        First create the data files to be used
+        
+        >>lb.fat_angel('7.0*.fits',100,OUTPUT='7.0.dat')
+        >>lb.fat_angel('7.2*.fits',100,OUTPUT='7.2.dat')
+        
+        Now bring the rapture
+
+        >>lb.rapture('7.*.dat','my_rapture.cat')
+    '''
+
+    file_list=glob.glob(datalist)
+    
+    '''We have to sort the file names because only consecutive data ranges
+     will have overlapping data. This means that the whole program is
+     highly dependent on you not fucking up the naming'''
+    file_list.sort()
+        
+    f = open(output, 'w')
+    f.write('# angle   radius     width     old r       old width\n')
+    
+    '''Read in the first file and write it to disk. All other data will be
+    shifted to have the same scale as the first file'''
+    data1 = np.loadtxt(file_list[0],skiprows=1)
+    print(file_list[0])
+    for j in range(data1[:,0].shape[0]):
+        np.append(data1[j][0:3],data1[j][1:3]).tofile(f,sep='   ', format='%3.4f')
+        f.write('\n')
+
+
+    '''Now go through the other files and shift them. Shifts are made
+     assuming a linear pixel scale where a pixel Y on data2 maps to pixel
+     X on data1 by Y = mX + b'''
+    for i in range(len(file_list)-1):
+        data2 = np.loadtxt(file_list[i+1],skiprows=1)
+        print(file_list[i+1])
+        oldData = np.copy(data2[:,1:3])
+        
+        m1 = get_slope(data1, data2, 1)
+        data2[:,1] *= m1
+        print(m1)
+#        b1 = get_shift(data1, data2, 1)
+#        data2[:,1] += b1
+
+#        data2[:,2] =  m1*data2[:,2]
+
+#        m2 = get_slope(data1, data2, 2)
+#        data2[:,2] *= m1
+ #       b2 = get_shift(data1, data2, 2)
+ #       data2[:,2] += b2
+
+#        print(m1,m2,"hello")
+        
+        for j in range(data2[:,0].shape[0]):
+            np.append(data2[j][0:3],oldData[j]).tofile(f, sep='   ', format='%3.4f')
+            f.write('\n')
+        
+        '''As data2 has been modified we are essentially extending the scale 
+         of the first data through the other data files one by one.'''
+        data1 = data2
+    return
+
+def zion(findstr, catfile, outstr, EXTEN=0):
+    
+    file_list = glob.glob(findstr)
+    catData = np.loadtxt(catfile, skiprows=1)
+
+    sort_idx = np.argsort(catData[:,0])
+    catData = catData[sort_idx]
+
+    for i in range(len(file_list)):
+        print(file_list[i])
+        hdu = pyfits.open(file_list[i])
+        image = hdu[EXTEN].data
+        imAngle = hdu[EXTEN].header['ANGLE']
+
+        idx = np.where(catData[:,0] == imAngle)[0]
+        radius = np.average(catData[:,3][idx])
+        width = np.average(catData[:,4][idx])
+
+        cent = ADE.centroid(image)
+        dims = image.shape
+
+        imRad = radius + width
+
+        cutIm = image[cent[0] - imRad:cent[0] + imRad,cent[1] - imRad:cent[1] + imRad]
+
+        bigIm = pl.imresize(cutIm, (1028,1028))
+
+        frameNumber = idx[0]
+ 
+        name = str(frameNumber).zfill(3)+'_'+str(imAngle)+outstr+'.fits'
+
+        if len(glob.glob(name)) == 0: pyfits.PrimaryHDU(bigIm).writeto(name)
+
+qqq    return
+
+
+def get_slope(data1, data2, dim):
+    '''
+    get_slope takes in two data arrays that contain data with different
+    slopes and returns m such that Y = mX + b where Y represents points
+    in data1 and X represents points in data2
+    '''
+    
+
+    (GT,LT) = format_data(data1, data2, dim)
+    vec1GT = GT[0]
+    vec2GT = GT[1]
+    
+    vec1LT = LT[0]
+    vec2LT = LT[1]
+    
+    '''    m1GT = []
+    m2GT = []
+    for i in range(vec1GT.shape[0]-1):
+        m1GT.append(vec1GT[i+1] - vec1GT[i])
+        m2GT.append(vec2GT[i+1] - vec2GT[i])
+
+    m1LT = []
+    m2LT = []
+    for i in range(vec1LT.shape[0]-1):
+        m1LT.append(vec1LT[i+1] - vec1LT[i])
+        m2LT.append(vec2LT[i+1] - vec2LT[i])
+
+    mGT = (sum(m1GT)/len(m1GT))/(sum(m2GT)/len(m2GT))
+    mLT = (sum(m1LT)/len(m1LT))/(sum(m2LT)/len(m2LT))
+    '''
+    
+    mGT = np.average(vec1GT/vec2GT)
+    mLT = np.average(vec1LT/vec2LT)
+
+    return (mGT + mLT)/2
+
+def get_shift(data1, data2, dim):
+    '''
+    get_shit takes in two sets of data THAT ARE ASSUMED TO HAVE THE SAME
+    SLOPE and returns the offset between them.
+    '''
+    
+    (GT,LT) = format_data(data1, data2, dim)
+    vec1GT = GT[0]
+    vec2GT = GT[1]
+    
+    vec1LT = LT[0]
+    vec2LT = LT[1]
+
+    GT_diffs = vec1GT - vec2GT
+    LT_diffs = vec1LT - vec2LT
+
+    return (np.average(GT_diffs) + np.average(LT_diffs))/2
+
+def format_data(data1, data2, dim):
+    '''
+    format_data is used to take data from the laser bench and return specially
+    formatted data for use by get_slope and get_shift. This program assumes
+    that the [:,1] dimension of the data corresponds to ring radius and that
+    the data contains both negative and positive angles.
+    '''
+    
+    (OneInTwo, TwoInOne) = ADE.multi_where(data1[:,0], data2[:,0])
+
+    data1Overlap = data1[OneInTwo]
+    data2Overlap = data2[TwoInOne]
+
+    data1GT = data1Overlap[:,dim][np.where(data1Overlap[:,0] >= 0)]
+    data1LT = data1Overlap[:,dim][np.where(data1Overlap[:,0] < 0)]
+    
+    data2GT = data2Overlap[:,dim][np.where(data2Overlap[:,0] >= 0)]
+    data2LT = data2Overlap[:,dim][np.where(data2Overlap[:,0] < 0)]
+
+    data1GT.sort()
+    data1LT.sort()
+    
+    data2GT.sort()
+    data2LT.sort()
+
+    return (np.array([data1GT, data2GT]), np.array([data1LT,data2LT]))
+

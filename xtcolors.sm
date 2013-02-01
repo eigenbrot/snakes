@@ -1,0 +1,49 @@
+xtcolors	#adds extra colors to the default set
+		xtcolours
+xtcolours	#adds extra colors to the default set
+		# Contributed by Christopher Homes (homes@bnl.gov)
+		add_ctype cornsilk       255 248 220
+		add_ctype seashell       255 245 238
+		add_ctype azure          240 255 255
+		add_ctype lavender       230 230 250
+		add_ctype midnightblue    25  25 112
+		add_ctype navyblue         0   0 128
+		add_ctype cornflowerblue 100 149 237
+		add_ctype slateblue      106  90 205
+		add_ctype royalblue       65 105 225
+		add_ctype dodgerblue      30 144 255
+		add_ctype skyblue        135 206 235
+		add_ctype steelblue       70 130 180
+		add_ctype powerblue      176 224 230
+		add_ctype turquoise       64 224 208
+		add_ctype darkturquoise    0 206 209
+		add_ctype cadetblue       95 158 160
+		add_ctype acquamarine    127 255 212
+		add_ctype darkgreen        0 100   0
+		add_ctype seagreen        46 139  87
+		add_ctype palegreen      152 251 152
+		add_ctype chartreuse     127 255   0
+		add_ctype forestgreen     34 139  34
+		add_ctype olivedrab      107 142  35
+		add_ctype khaki          240 230 140
+		add_ctype gold           255 215   0
+		add_ctype indianred      205  92  92
+		add_ctype sienna         160  82  45
+		add_ctype tan            210 180 140
+		add_ctype chocolate      210 105  30
+		add_ctype firebrick      178  34  34
+		add_ctype brown          165  42  42
+		add_ctype salmon         250 128 114
+		add_ctype orange         255 165   0
+		add_ctype darkorange     255 140   0
+		add_ctype coral          255 127  80
+		add_ctype tomato         255  99  71
+		add_ctype orangered      255  69   0
+		add_ctype maroon         176  48  96
+		add_ctype violet         238 130 238
+		add_ctype plum           221 160 221
+		add_ctype orchid         218 112 214
+		add_ctype darkviolet     148   0 211
+		add_ctype blueviolet     138  43 226
+		add_ctype purple         160  32 240
+		add_ctype thistle        216 191 216

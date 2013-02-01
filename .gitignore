@@ -1,0 +1,13 @@
+*_
+*#*
+*~*
+*.py[co]
+*.zip
+*.tar
+*.fits
+*.bmp
+pyspeckit
+pyfits
+aipy
+andrew_WHIRC
+scratch*
