@@ -92,33 +92,27 @@ def loop_test():
 # sense? Easy! Use the range() function to generate a list and then loop over
 # it:
 
-def fib(n):
-    """generates the first n fibbboonnaacci (sp?) numbers while teach about
-    loops and lists! Any fibboonnnnnnnnaci program worth it's salt should be
-    recursive, but w/e.
-
-    Returns: a list containing the first n fibbonaciii (sp?) numbers and list
-    with the output of range(n)
+def range_demo(n):
+    """Returns the sum of the first n integers
 
     """
     
-    outlist = [0,1] # we have to cheat a little bit
+    output = 0
     countlist = [] # we'll use this one to illustrate how range() works
     
-    for i in range(n-2): # the n-2 is because we start with the first 2
-                         # elements already
-        
-        countlist.append(i)
-        outlist.append(outlist[-1] + outlist[-2])
+    for i in range(n):
 
-    return outlist, countlist
+        countlist.append(i)
+        output += i
+
+    return output, countlist
 
 # what's up with that return statement? It's True! You can return as many
 # things as you want. There are few different ways to capture this output:
 
-fiblist, rangelist = fib(5)
+result, rangelist = range_demo(5)
 
-listtup = fib(5)
+result_tup = fib(5)
 
 # listtup is what we call a tuple (don't ask how to pronounce it) Tuples are a
 # lot like lists, but they defined with paranthesis rather than brackets, e.g.
@@ -226,8 +220,7 @@ def inplace_demo(LL):
     Output: None
     
     """
-        
-    LL[-1] == 'poop'
+    LL[-1] = 'poop'
 
 
 # wow, now that is a concise program. It doesn't even need a return statement;
