@@ -233,5 +233,50 @@ print lst1
 # will give us [4,5,'poop']. This is a potentially very usefull but dangerous
 # feature. Know about it. (I think IDL might do this too?)
 
+# OK. That was a nice little digression into some Python nuts and bolts, but we
+# still haven't talked about how to apply our great_function() over a whole
+# list!. The purely Python way should be fairly obvious at this point, just loop
+# over the list:
+
+def python_func(LL, power, inverse=False):
+    """Same as great_function, but with the ability to operate on lists of
+    numbers.
+    
+    Input: 
+        LL - python list of numbers
+        power - number
+        inverse - If True then LL will be rasied to 1/power
+        
+    Output:
+        LL ** power (unless inverse=True)
+        
+    """
+    
+    # This function will not operate on LL inplace, so we need an output list
+    
+    output = []
+    
+    for elem in LL:
+        if inverse:
+            output.append(elem**(1/power))
+        else:
+            output.append(elem**power)
+            
+    return output
+
+# Alright, that works fine, but for long lists, or multi-dimensional lists it
+# will take a long time. This is why Numpy was invented, it allows us to operate
+# on every element in an array with single commands, and it happens much faster
+# than it would if we used Python lists.
+#
+# 
+# The central component of Numpy is the ndarray type. These ndarrays (I'll call
+# them arrays for short) act a lot like Python lists, except they let you use all
+# of Numpy's power. Let's take a look:
+# 
+# The most basic way to make an array is to pass a Python list to np.array
+array = np.array(lst)
+# or make one up on the fly:
+array2 = np.array([56,78,13])
 
 
