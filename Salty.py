@@ -493,7 +493,8 @@ def uberfit(filename,pars=[0.000,256.292,5.45,
                            0.965*0.43,244.636,5.45,
                            1.930*0.43,241.189,5.45,
                            3.860*0.43,237.407,5.45,
-                           0.0,5,0.5,tau/4,1.62,0.1225],fixed=[]):
+                           0.0,5,0.5,tau/4,
+                           1.62,0.1225],fixed=[]):
 
     r0, v0, e0 = openslay('tiESO_z0_MgI.slay.gg.fits')
     r09, v09, e09 = openslay('tiESO_z05_MgI.slay.fits',flip=True)

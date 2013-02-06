@@ -316,6 +316,8 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
     return radii, velos, fitvelos, fitsig
 
 def line_profile(fitsfile,radius,Iwidth=17.,plot=True):
+    """ Radius is in kpc"""
+
 
     hdus = pyfits.open(fitsfile)
     vs = hdus['V_S'].data

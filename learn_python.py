@@ -265,18 +265,85 @@ def python_func(LL, power, inverse=False):
     return output
 
 # Alright, that works fine, but for long lists, or multi-dimensional lists it
-# will take a long time. This is why Numpy was invented, it allows us to operate
-# on every element in an array with single commands, and it happens much faster
-# than it would if we used Python lists.
+# will take a long time. This is why Numpy was invented, it allows us to
+# operate on every element in an array with single commands, and it happens
+# much faster than it would if we used Python lists.
 #
 # 
-# The central component of Numpy is the ndarray type. These ndarrays (I'll call
-# them arrays for short) act a lot like Python lists, except they let you use all
-# of Numpy's power. Let's take a look:
+# The central component of Numpy is the ndarray type. These ndarrays (I'll
+# call them arrays for short) act a lot like Python lists, except they let you
+# use all of Numpy's power. Let's take a look:
 # 
 # The most basic way to make an array is to pass a Python list to np.array
 array = np.array(lst)
 # or make one up on the fly:
 array2 = np.array([56,78,13])
 
+# and now we don't even need that python_func()!
 
+funcdarray = array**3 # this will cube every element of the array
+
+# THIS IS IMPORTANT! In general, if you find yourself looping over every
+# element in an array (like python_func() ) then you are probably doing
+# something wrong!
+
+# There many many Numpy functions that use ndarray operations to make your
+# lives easier. I'll mention the few that I use the most below:
+
+r = np.arange(9) # just like Python's range(), but produces a ndarray
+print r.size # ndarray.size will tell you how many elements are in that array
+r2d = r.reshape((3,3)) # creates a 3x3 array from r
+print r2d.shape # this returns a tuple with the size of each dimension
+idx = np.where(r > 3) # much like IDL's where
+idx2 = np.where((r > 2) & (r < 7)) # note the slightly strange syntax. All of
+                                   # those parenthesis are necessary. Also
+                                   # note the use of & ranther than the Python
+                                   # 'and'
+rmax = np.max(r) # np.min() also exists
+rmax2 = r.max() # ndarry has min/max built in
+rmean = np.mean(r)
+rmedian = np.median(r)
+rstd = np.std(r)
+rsum = np.sum(r)
+r2sum1 = np.sum(r2,axis=0) # most of these commands have the axis keyword,
+                           # which will collapse the array down along that
+                           # axis
+
+# Note that r.size = r2d.size, but r.shape != r2d.shape
+#
+# Remember N_ELEMENTS() in IDL? If you've ever written:
+#
+# FOR i=0, N_ELEMENTS(data) - 1 DO BEGIN
+#
+# FUCK THAT!
+#
+# you can use:
+for i in range(r.size):
+    print r[i]
+
+# but that also sucks! Remember, ndarrays are a lot like Python lists, and in
+# Python for loops just iterate over any list. So try this:
+for i in r:
+    print i
+#
+# nice!
+
+# There a few important differences between ndarrays and Python lists.
+# Probably the most obvious one from a coding standpoint is that very few
+# Numpy functions operate on ndarrys in place. For example:
+#
+# >>> mylist.append(1)
+#
+# will actually change mylist. There are no functions in Numpy that do
+# this. Instead, each function returns something, so if you want to change an
+# array in place you need to redifine it. For example:
+#
+# >>> myarray = np.append(myarray, 1)
+#
+# This is not a concise as pure Python, but it does make it harder for you to
+# unknowingly fuck up your data.
+
+
+# OK! We've learned the basics of ndarrays and the basics of how we can use
+# them to manipulate our data. But how do we get our data into these arrays?
+#

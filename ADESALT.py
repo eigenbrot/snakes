@@ -282,6 +282,10 @@ def slayer(specimage,errimage,radii,guesses,outputfile,nrows=False,interact=Fals
     return
 
 def gravity_gun(specimage,errimage,template_image,outputfile,combinedfile,interact=False,addonly=False):
+    '''for combining multiple frames of the same data. I.e. the same scale
+    height taken on different nights.  As of now it does not support rising
+    and setting tracks being combined. Sorry!
+    '''
 
     thdus = pyfits.open(template_image)
     tradii = thdus['RADII'].data.tolist()
@@ -387,8 +391,8 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     avg_centers = np.sum(amps*velocenters,axis=1)/np.sum(amps,axis=1)
     std_centers = np.std(velocenters,axis=1)
 
-    #offset = helpoff(pxradii,avg_centers)
-    offset = 271.750855446
+    offset = helpoff(pxradii,avg_centers)
+    #offset = 271.750855446
     print "Offset is "+str(offset)
     
     kpcradii = pxradii - offset
@@ -466,253 +470,15 @@ def offunc(x,radii,centers):
     
     return chisq
 
+def plot_line(datafile,radius,wavelength=5048.126,central_lambda=[4901.416,5048.126],flip=False):
+    """ Plots a single line from a .ms file. Radius is in kpc """
 
-# def dosims(filename,fitfix):
-#     '''to be run in /d/monk/eigenbrot/SALT/2011-3-UW_002/rotation'''
+    if '.slay.' in datafile:
+        datafile = ''.join(datafile.split('.')[:-2] + ['.ms.fits'])
 
-#     pp = PDF(filename)
+    slayfile = ''.join(datafile.split('.')[:-2] + ['.slay.fits'])
 
-#     print "Getting UrPars..."
-#     fig09 = plt.figure()
-#     ax09 = fig09.add_subplot(111)
-#     plot_curve('tiESO_z05_MgI.slay.fits',flip=True,ax=ax09)
-#     urpars = fit_curve('tiESO_z05_MgI.slay.fits',flip=True,ax=ax09,pars=[0.965*0.43,242.992,5.45,1.0,5,0.5,tau/4.,1.358],fixed=fitfix,p=True,rot_label='Ur-rotation curve',label='Urfit')[0]
-#     ax09.legend(loc=0)
-# #    fig09.show()
+    kpcradii, _, _ = openslay(slayfile)
+
     
-#     fig19 = plt.figure()
-#     ax19 = fig19.add_subplot(111)
-#     plot_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True)
-#     print "Running z=1.93 step 1...",
-#     fit_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True,pars=[1.93*0.43] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
-#     print "2..."
-#     pars19 = fit_curve('tiESO_z1_MgI.slay.fits',ax=ax19,flip=True,pars=[1.93*0.43,238.512] + urpars[2:7] + [1.374],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
-#     ax19.legend(loc=0)
-# #    fig19.show()
-
-#     fig38 = plt.figure()
-#     ax38 = fig38.add_subplot(111)
-#     plot_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True)
-#     print "Running z=3.98 step 1...",
-#     fit_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True,pars=[3.86*0.43] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
-#     print "2..."
-#     pars38 = fit_curve('tiESO_z2_MgI.slay.fits',ax=ax38,flip=True,pars=[3.86*0.43,286.819] + urpars[2:7] + [11.240],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
-#     ax38.legend(loc=0)
-# #    fig38.show()
-
-#     fig0 = plt.figure()
-#     ax0 = fig0.add_subplot(111)
-#     plot_curve('tiESO_z0_MgI.slay.fits',ax=ax0)
-#     print "Running z=3.86 step 1...",
-#     fit_curve('tiESO_z0_MgI.slay.fits',ax=ax0,pars=[0] + urpars[1:],fixed=[0,1,2,3,4,5,6,7],label='Urfit extrapolation',rot_label='Ur-rotation curve')
-#     print "2..."
-#     pars0 = fit_curve('tiESO_z0_MgI.slay.fits',ax=ax0,pars=[0,256.641] + urpars[2:7] + [1.731],fixed=fitfix,label='Rotation curve fit to data',p=True,rot_label='Fit rotation curve')[0]
-#     ax0.legend(loc=0)
-# #    fig0.show()
     
-#     pp.savefig(fig0)
-#     pp.savefig(fig09)
-#     pp.savefig(fig19)
-#     pp.savefig(fig38)
-#     pp.close()
-
-#     return (pars0,urpars,pars19,pars38)
-
-# def uberfit(filename,pars=[0.000,254.389,5.45,
-#                            0.965*0.43,244.635,5.45,
-#                            1.930*0.43,241.189,5.45,
-#                            3.860*0.43,237.407,5.45,
-#                            0.0,5,0.5,tau/4,1.642,0.245],fixed=[]):
-
-#     r0, v0, e0 = openslay('tiESO_z0_MgI.slay.gg.fits')
-#     r09, v09, e09 = openslay('tiESO_z05_MgI.slay.fits',flip=True)
-#     r19, v19, e19 = openslay('tiESO_z1_MgI.slay.fits',flip=True)
-#     r38, v38, e38 = openslay('tiESO_z2_MgI.slay.fits',flip=True)
-
-#     data = dict((('r0',r0),('v0',v0),('e0',e0),
-#                  ('r09',r09),('v09',v09),('e09',e09),
-#                  ('r19',r19),('v19',v19),('e19',e19),
-#                  ('r38',r38),('v38',v38),('e38',e38)))
-
-#     x0 = [pars[i] for i in range(len(pars)) if i not in fixed]
-
-#     print x0
-
-#     print "fitting"
-#     t1 = time.time()
-#     xf = spo.fmin(uberfunc,x0,args=(data,fixed,pars))#,epsfcn=1)[0]
-#     t2 = time.time()
-#     print "fitting took {} seconds".format(t2-t1)
-    
-#     print "pre-plot"
-#     pid = [i for i in range(len(pars)) if i not in fixed]
-#     k = 0
-#     for j in pid:
-#         pars[j] = xf[k]
-#         k += 1
-
-#     pp=PDF(filename)
-
-#     pf0 = [0,1,2,12,13,14,15,16,17]
-#     pf09 = [3,4,5,12,13,14,15,16,17]
-#     pf19 = [6,7,8,12,13,14,15,16,17]
-#     pf38 = [9,10,11,12,13,14,15,16,17]
-
-#     print "plotting"
-#     ###########
-#     fig0 = plt.figure()
-#     ax0 = fig0.add_subplot(111)
-#     rw0 = r0.max() - r0.min()
-#     f0 = [i for i in fixed if i in pf0]
-#     plot_curve('tiESO_z0_MgI.slay.gg.fits',ax=ax0)
-#     mr0, mv0, _ = simcurve(1001,pars[0],pars[1],pars[2],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
-#                            z_d=pars[17],scale=rw0/1001.,ax=ax0,p=True,label='Global fit',rot_label='Rotation curve')
-#     ax0.text(12,-30,('{}\n'*9).format(*['$*$' if i in f0 else '' for i in pf0]),color='r',
-#             horizontalalignment='left',va='top',fontsize=12)
-#     ax0.text(15,-450,'$*$ = fixed',color='r')
-#     ax0.legend(loc=0)
-#     iv0 = np.interp(r0, mr0, mv0)
-
-#     ###########
-#     # fig0_1 = plt.figure()
-#     # ax0_1 = fig0_1.add_subplot(111)
-#     # rw0_1 = r0_1.max() - r0_1.min()
-#     # f0_1 = [i for i in fixed if i in pf0_1]
-#     # plot_curve('tiESO_z0_MgI.slay.2_16.fits',ax=ax0_1)
-#     # _, _, _ = simcurve(1001,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
-#     #                        z_d=pars[20],scale=rw0_1/1001.,ax=ax0_1,p=True,label='Global fit',rot_label='Rotation curve')
-#     # ax0_1.text(12,-30,('{}\n'*9).format(*['$*$' if i in f0_1 else '' for i in pf0_1]),color='r',
-#     #         horizontalalignment='left',va='top',fontsize=12)
-#     # ax0_1.text(15,-450,'$*$ = fixed',color='r')
-#     # ax0_1.legend(loc=0)
-
-#     ###########
-#     fig09 = plt.figure()
-#     rw09 = r09.max() - r09.min()
-#     f09 = [i for i in fixed if i in pf09]
-#     ax09 = fig09.add_subplot(111)
-#     plot_curve('tiESO_z05_MgI.slay.fits',ax=ax09,flip=True)
-#     mr09, mv09, _ = simcurve(1001,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
-#                        scale=rw09/1001.,z_d=pars[17],ax=ax09,p=True,label='Global fit',rot_label='Rotation curve')
-#     ax09.text(12,-30,('{}\n'*9).format(*['$*$' if i in f09 else '' for i in pf09]),color='r', 
-#               horizontalalignment='left',va='top',fontsize=12)
-#     ax09.text(15,-450,'$*$ = fixed',color='r')
-#     ax09.legend(loc=0)
-#     iv09 = np.interp(r09, mr09, mv09)
-
-#     ###########
-#     fig19 = plt.figure()
-#     rw19 = r19.max() - r19.min()
-#     f19 = [i for i in fixed if i in pf19]
-#     ax19 = fig19.add_subplot(111)
-#     plot_curve('tiESO_z1_MgI.slay.fits',flip=True,ax=ax19)
-#     mr19, mv19, _ = simcurve(1001,pars[6],pars[7],pars[8],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
-#                            scale=rw19/1001.,z_d=pars[17],ax=ax19,p=True,label='Global fit',rot_label='Rotation curve')
-#     ax19.text(12,-30,('{}\n'*9).format(*['$*$' if i in f19 else '' for i in pf19]),color='r', 
-#               horizontalalignment='left',va='top',fontsize=12)
-#     ax19.text(15,-450,'$*$ = fixed',color='r')
-#     ax19.legend(loc=0)
-#     iv19 = np.interp(r19, mr19, mv19)
-
-#     ############
-#     fig38 = plt.figure()
-#     rw38 = r38.max() - r38.min()
-#     f38 = [i for i in fixed if i in pf38]
-#     ax38 = fig38.add_subplot(111)
-#     plot_curve('tiESO_z2_MgI.slay.fits',flip=True,ax=ax38)
-#     mr38, mv38, _ = simcurve(1001,pars[9],pars[10],pars[11],pars[12],pars[13],pars[14],pars[15],kappa_0=pars[16],\
-#                            scale=rw38/1001.,z_d=pars[17],ax=ax38,p=True,label='Global fit',rot_label='Rotation curve')
-#     ax38.text(12,-30,('{}\n'*9).format(*['$*$' if i in f38 else '' for i in pf38]),color='r', 
-#               horizontalalignment='left',va='top',fontsize=12)
-#     ax38.text(15,-450,'$*$ = fixed',color='r')
-#     ax38.legend(loc=0)
-#     iv38 = np.interp(r38, mr38, mv38)
-    
-#     #############
-    
-#     bigr = np.concatenate((r0,r09,r19,r38))
-#     bigiv = np.concatenate((iv0,iv09,iv19,iv38))
-#     bigv = np.concatenate((v0,v09,v19,v38))
-#     bige = np.concatenate((e0,e09,e19,e38))
-    
-#     chisq = np.sum((bigv - bigiv)**2/bige**2)/(bigr.size - xf.size - 1)
-
-#     ax0.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
-#     ax09.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
-#     ax19.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
-#     ax38.text(-40,200,'Red. $\chi^2$: {:4.3f}'.format(chisq))
-
-#     pp.savefig(fig0)
-#     pp.savefig(fig09)
-#     pp.savefig(fig19)
-#     pp.savefig(fig38)
-#     pp.close()
-
-#     return pars
-
-# def uberfunc(x,data,fixed,par0):
-    
-#     print x
-#     xl = list(x)
-#     pars = [par0[j] if j in fixed else xl.pop(0) for j in range(len(par0))]
-    
-#     if pars[2] != 5.45: print x,pars
-#     if pars[17] < 0 or pars[14] > 4: return np.zeros(10) + 9e9
-
-#     ##z=0
-#     r0 = data['r0']
-#     v0 = data['v0']
-#     e0 = data['e0']
-#     rw0 = r0.max() - r0.min()
-#     mr0, mv0, _ = simcurve(501,pars[0],pars[1],pars[2],pars[12],pars[13],pars[14],pars[15],\
-#                                kappa_0=pars[16],z_d=pars[17],scale=rw0/501.)
-#     iv0 = np.interp(r0, mr0, mv0)
-    
-#     # ##z=0, part 2
-#     # r0_1 = data['r0_1']
-#     # v0_1 = data['v0_1']
-#     # e0_1 = data['e0_1']
-#     # rw0_1 = r0_1.max() - r0_1.min()
-#     # mr0_1, mv0_1, _ = simcurve(501,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],\
-#     #                            kappa_0=pars[19],z_d=pars[20],scale=rw0/501.)
-#     # iv0_1 = np.interp(r0_1, mr0_1, mv0_1)
-
-#     ##z=0.96
-#     r09 = data['r09']
-#     v09 = data['v09']
-#     e09 = data['e09']
-#     rw09 = r09.max() - r09.min()
-#     mr09, mv09, _ = simcurve(501,pars[3],pars[4],pars[5],pars[12],pars[13],pars[14],pars[15],\
-#                                  kappa_0=pars[16],z_d=pars[17],scale=rw09/501.)
-#     iv09 = np.interp(r09, mr09, mv09)
-
-#     ##z=1.98
-#     r19 = data['r19']
-#     v19 = data['v19']
-#     e19 = data['e19']
-#     rw19 = r19.max() - r19.min()
-#     mr19, mv19, _ = simcurve(501,pars[6],pars[7],pars[8],pars[12],pars[13],pars[14],pars[15],\
-#                                  kappa_0=pars[16],z_d=pars[17],scale=rw19/501.)
-#     iv19 = np.interp(r19, mr19, mv19)
-
-#     ##z=3.86
-#     r38 = data['r38']
-#     v38 = data['v38']
-#     e38 = data['e38']
-#     rw38 = r38.max() - r38.min()
-#     mr38, mv38, _ = simcurve(501,pars[9],pars[10],pars[11],pars[12],pars[13],pars[14],pars[15],\
-#                                  kappa_0=pars[16],z_d=pars[17],scale=rw38/501.)
-#     iv38 = np.interp(r38, mr38, mv38)
-
-#     bigr = np.concatenate((r0,r09,r19,r38))
-#     bigiv = np.concatenate((iv0,iv09,iv19,iv38))
-#     bigv = np.concatenate((v0,v09,v19,v38))
-#     bige = np.concatenate((e0,e09,e19,e38))
-
-#     chisq = np.sum((bigv - bigiv)**2/bige**2)/(bigr.size - x.size - 1)
-    
-#     print chisq
-# #    return (bigv - bigiv)/bige
-#     return chisq
-
-

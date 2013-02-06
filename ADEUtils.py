@@ -303,7 +303,7 @@ def appetize(image, num_ap, OUTPUT=0, NOREAD=0, DRAW=0, EXTEN=0):
    
     if debug: print('appetizing...')
  
-    if NOREAD: data = np.flat64(image)
+    if NOREAD: data = np.float64(image)
     else: data = np.float64(pyfits.open(image)[EXTEN].data)
 
     center = centroid(data)
