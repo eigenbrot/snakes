@@ -6,8 +6,8 @@ import time
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def make_galaxy(disk_frac,rot_curve=()):
-    '''Makes a two-component galaxy where the stellar disk contributes disk_frac
-    of the total rotation curve at 2.2h_r'''
+    '''Makes a two-component galaxy where the stellar disk contributes
+    disk_frac of the total rotation curve at 2.2h_r'''
 
     '''first, find the disk that matches what we want'''
     print "Finding disk..."

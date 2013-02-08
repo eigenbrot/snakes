@@ -52,8 +52,10 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
         ax.set_ylabel('$V_r$ [km/s]')
         for galaxy, diskfraction in zip(frac_results,fraclist):
             zr, zv = galaxy.get_TVC(height)
-            xvr, xvv, _ = simcurve(1001,height,zv[-1],hrot,0.0,5,0.5,np.pi,kappa_0=1.652,z_d=0.245,\
-                                      scale=(SALTr.max()-SALTr.min())/1001.,rot_curve=(zr,zv))
+            xvr, xvv, _ = simcurve(1001,height,zv[-1],hrot,0.0,5,0.5,np.pi,
+                                   kappa_0=1.652,z_d=0.245,
+                                   scale=(SALTr.max()-SALTr.min())/1001.,
+                                   rot_curve=(zr,zv))
             ax.plot(xvr,xvv,label=str(diskfraction))
             ax.plot(zr,zv,'b:')
             ax.plot(modelr,modelv,'k:')
@@ -637,7 +639,7 @@ def dust_or_nodust():
 
 def make_sims0():
 
-    SALTr, SALTv, SALTerr = openslay('tiESO_z0_MgI.slay.fits')
+    SALTr, SALTv, SALTerr = openslay('tiESO_z0_MgI.slay.fits') # should be .slay.gg.fits ??
 
     V_c = find_Vc(SALTr, SALTv, SALTerr)
 

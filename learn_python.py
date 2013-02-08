@@ -1,4 +1,4 @@
-# Great! You've already learned something: comments in Python are made with a
+# Great! You've already learned something: comments in Python are made with the
 # '#' character.
 # I'll try to write this to be as general as possible, but there will be geared
 # a bit towards people who are used to IDL.
@@ -10,8 +10,9 @@
 import pyfits
 # you can also import them and give them a different name, as is commonly done 
 # with Numpy:
-import numpy as np # I could just have easily said: "import numpy as poop"
-# You can also import only specific portions of a module:
+import numpy as np # I could just have easily said: "import numpy as poop" You
+# can also import only specific portions of a module although this is
+# generally Very Bad:
 import matplotlib.pyplot as plt # pyplot is a class within the matplotlib module
 
 
@@ -88,7 +89,7 @@ def loop_test():
 
     return
 
-# Ok, that's cool, but what if you want to loop in the more "traditional
+# Ok, that's cool, but what if you want to loop in the more "traditional"
 # sense? Easy! Use the range() function to generate a list and then loop over
 # it:
 
@@ -114,8 +115,9 @@ result, rangelist = range_demo(5)
 
 result_tup = fib(5)
 
-# listtup is what we call a tuple (don't ask how to pronounce it) Tuples are a
-# lot like lists, but they defined with paranthesis rather than brackets, e.g.
+# result_tup is what we call a tuple (don't ask how to pronounce it). Tuples
+# are a lot like lists, but they defined with paranthesis rather than
+# brackets, e.g.
 
 lst = [1,2,3] # a list
 tup = (1,2,3) # a tuple
@@ -133,7 +135,7 @@ lst[1] == tup[1] # True!
 # "Namespaces are one honking great idea -- let's do more of those!"
 # 
 # The way I think of it is that every variable in Python (remember, EVERYTHING
-# is a variable in Python) is scoped as narrowly as possible unless to
+# is a variable in Python) is scoped as narrowly as possible unless you
 # explicitly decided to change that. For example, you might notice that I've
 # defined a list called "lst" twice in this code; one within the function
 # loop_test() and one outside of any function. This is totally OK (although
@@ -177,13 +179,14 @@ lst[1] == tup[1] # True!
 # >>>from learn_python import *
 # 
 # and now everything (functions, variables, etc.) in learn_python is in your
-# namespace this means you don't need to prepend the functions with anything:
+# "working" namespace. This means you don't need to prepend the functions with
+# anything:
 # 
-# >>>fib(5)
+# >>>range_demo(5)
 #
 # would work just fine. This is not good practice, however, because there
 # could be anything in that module you're importing and who knows what
-# functions and variables it might overload (redefine). In general you should
+# functions and variables it might overload (re-define). In general you should
 # only ever import modules.
 #
 # There are however, some acceptable exceptions that exist mostly for
@@ -201,10 +204,10 @@ from glob import glob
 # bad idea) but still want to have concise code you can just assign whatever
 # function/class you want to use to a variable. For example:
 #
-# import matplotlib
-# plt = matplotlib.pyplot
-# 
-# will result in the exact same usage of plt for the programmer, but is a
+# import glob
+# glob = glob.glob
+#
+# will result in the exact same usage of glob for the programmer, but is a
 # little more correct regarding namespaces and the like.
 #
 #
@@ -235,7 +238,7 @@ print lst1
 
 # OK. That was a nice little digression into some Python nuts and bolts, but we
 # still haven't talked about how to apply our great_function() over a whole
-# list!. The purely Python way should be fairly obvious at this point, just loop
+# list!. The purely Python way might be fairly obvious at this point, just loop
 # over the list:
 
 def python_func(LL, power, inverse=False):
@@ -258,7 +261,7 @@ def python_func(LL, power, inverse=False):
     
     for elem in LL:
         if inverse:
-            output.append(elem**(1/power))
+            output.append(elem**(1./power))
         else:
             output.append(elem**power)
             
@@ -332,9 +335,9 @@ for i in r:
 # Probably the most obvious one from a coding standpoint is that very few
 # Numpy functions operate on ndarrys in place. For example:
 #
-# >>> mylist.append(1)
+# >>> pythonlist.append(1)
 #
-# will actually change mylist. There are no functions in Numpy that do
+# will actually change pythonlist. There are no functions in Numpy that do
 # this. Instead, each function returns something, so if you want to change an
 # array in place you need to redifine it. For example:
 #
@@ -346,4 +349,42 @@ for i in r:
 
 # OK! We've learned the basics of ndarrays and the basics of how we can use
 # them to manipulate our data. But how do we get our data into these arrays?
+# Let's look at the two that are (probably?) the most common:
 #
+# From txt files (csv)
+# --------------------
+#
+# np.loadtxt is your friend. Check >>>help(np.loadtxt) for more info but
+# here's a basic primer:
+#
+# Most basic usage:
+data = np.loadtxt('my_awesome_data.dat')
+
+# Note that data is a 2D array, so that the first column in your data is
+# accessed by data[0,:].
+#
+# By default, lines that start with '#' will be ignored and columns are
+# separated by any whitespace. But maybe your data file's format uses
+# something besides '#' as a comment and something besides whitespace as a
+# delimiter. No worries:
+data = np.loadtxt('my_unusual_data.poop',comments='>',delimiter=',')
+
+# The final few features that I use often are selecting which columns you want
+# to import and importing each column as a separate variable. The latter is
+# particularly useful.
+col1, col4, col5 = np.loadtxt('my_data.txt',usecols=(1,4,5),unpack=True)
+
+# The unpack keyword is what allows us to assign multiple variables. Notice
+# that usecols is a tuple! Tuples can be very useful when you want to allow
+# the user to pass an arbitrary number of arguments to a function. In this
+# case, the author of loadtxt had no idea how many columns a user might want
+# to import, so she made that keyword a tuple, and tuples can be any length.
+
+
+# From a FITS file
+# ----------------
+#
+# The more an more I learn about FITS files and pyfits, the more and more I
+# store my data in FITS files. Maybe you will too!
+#
+# 
