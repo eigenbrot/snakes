@@ -13,6 +13,7 @@ from datetime import datetime
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 import time
 import ADEUtils as ADE
+import bottleneck as bn
 
 centlambda = [4901.416,5048.126]
 tau = np.pi*2.
@@ -346,7 +347,7 @@ def plot_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,l
     if fig: fig.show()
     
 
-def mkerr(image,stdimg):
+def mkerr(image,stdimg,outimage):
     
     data = ma.array(pyfits.open(stdimg)[0].data)
     signal = pyfits.open(image)[0].data
@@ -362,7 +363,7 @@ def mkerr(image,stdimg):
     error = np.sqrt(signal + std**2)
     error[np.isnan(error)] = 999.
 
-    pyfits.PrimaryHDU(error).writeto('error.fits',clobber=True)
+    pyfits.PrimaryHDU(error).writeto(outimage,clobber=True)
 
 def dirtydown(img,outimg,HDU=0,axis=0):
     
@@ -470,7 +471,8 @@ def offunc(x,radii,centers):
     
     return chisq
 
-def plot_line(datafile,radius,wavelength=5048.126,central_lambda=[4901.416,5048.126],flip=False):
+def plot_line(datafile,radius,wavelength=5048.126,
+              central_lambda=[4901.416,5048.126],flip=False,moments=False):
     """ Plots a single line from a .ms file. Radius is in kpc """
 
     if '.slay.' in datafile:
@@ -478,7 +480,60 @@ def plot_line(datafile,radius,wavelength=5048.126,central_lambda=[4901.416,5048.
 
     slayfile = ''.join(datafile.split('.')[:-2] + ['.slay.fits'])
 
-    kpcradii, _, _ = openslay(slayfile)
+    kpcradii, _, _ = openslay(slayfile,central_lambda=central_lambda,
+                              flip=flip,moments=moments)
+    pxradii = pyfits.open(slayfile)[3].data
 
+    row = np.where(kpcradii >= radius)[0][0]
+    "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
+
+    hdu = pyfits.open(datafile)[0]
+    CRVAL = hdu.header['CRVAL1']
+    Cdelt = hdu.header['CDELT1']
     
+    # We use '=f8' to force the endianess to be the same as the local
+    # machine. This is so the precompiled bottleneck (bn) functions don't
+    # complain
+    spectrum = np.array(hdu.data[row],dtype='=f8')
+    error = hdu.data[row + 1]
+    wave = np.arange(spectrum.size)*Cdelt + CRVAL
     
+    ### incomplete....
+
+def plot_row(msfile,rownum,smooth=False,ax=False):
+    """
+    A very simple function to plot a single row (aperture) from a .ms.fits
+    file. It also allows you to do a moving-median smooth on the data to make
+    plots look a little nicer. msfile is the file in question and rownum is
+    whatever row you want. rownum + 1 is assumed to be the error.
+
+    """
+
+    hdu = pyfits.open(msfile)[0]
+    exptime = hdu.header['EXPTIME']
+    CRVAL = hdu.header['CRVAL1']
+    Cdelt = hdu.header['CDELT1']
+    
+    # We use '=f8' to force the endianess to be the same as the local
+    # machine. This is so the precompiled bottleneck (bn) functions don't
+    # complain
+    spectrum = np.array(hdu.data[rownum],dtype='=f8')
+    error = hdu.data[rownum + 1]
+    wave = np.arange(spectrum.size)*Cdelt + CRVAL
+
+    if smooth:
+        spectrum = bn.move_median(spectrum,smooth)
+
+    if not ax:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('Wavelength [Angstroms]')
+        ax.set_ylabel('ADU/s')
+        ax.set_title(datetime.now().isoformat(' '))
+
+    ax.errorbar(wave,spectrum,yerr=error)
+    fig = ax.figure
+    
+    fig.show()
+
+    return ax
