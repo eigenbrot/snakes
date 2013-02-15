@@ -247,7 +247,8 @@ def slayer(specimage,errimage,radii,guesses,outputfile,nrows=False,interact=Fals
 
     specfile = specimage.split('.fits')[0]+'.ms.fits'
 
-    if not nrows: nrows = radii[1] - radii[0]
+    if not nrows: 
+        nrows = radii[1] - radii[0]
 
     apextract(specimage,errimage,radii,nrows)
 
@@ -471,9 +472,39 @@ def offunc(x,radii,centers):
     
     return chisq
 
-def plot_line(datafile,radius,wavelength=5048.126,
-              central_lambda=[4901.416,5048.126],flip=False,moments=False):
-    """ Plots a single line from a .ms file. Radius is in kpc """
+def plot_line(datafile,radius,wavelength=5048.126,ax=False,
+              central_lambda=[4901.416,5048.126],flip=False,
+              plot=True,window=20):
+    """ Plots a single line from a .ms file. It also needs a corresponding
+    .slay file to get the pixel -> kpc radius conversion.
+
+    datafile - str. can be the name either of a .slay or .ms file. This
+    function requires both files to be present in the current dirctory. If you
+    extracted lines with slayer() then everything should be good automatically
+
+    Radius - in kpc. The distance from the center of the galaxy where you want
+    to plot a spectrum. Can be negative or positve (for different sides of the galaxy)
+
+    wavelength - in Angstroms, the central wavelength of the plotted region
+
+    window - in Angstroms, the range of the plotted region
+
+    ax - a matplotlilb.axes.AcesSubplot object that will be plotted on if
+    provided. If ax is provided then no additional labels or titles will be
+    added to it
+    
+    central_lambda - python list. The rest-frame wavelengths of the line
+    centers that are contained in the .slay file. Used by openslay()
+
+    plot - boolean. Set to True to actually plot something. This is here so
+    that this function can be called as a helper to just return the output
+    arrays
+
+    flip - boolean. Passed to openslay(). Do you want to flip the galaxy
+    around r=0? Changing this will change the positive/negative convention of
+    the radius input
+
+    """
 
     if '.slay.' in datafile:
         datafile = ''.join(datafile.split('.')[:-2] + ['.ms.fits'])
@@ -481,11 +512,11 @@ def plot_line(datafile,radius,wavelength=5048.126,
     slayfile = ''.join(datafile.split('.')[:-2] + ['.slay.fits'])
 
     kpcradii, _, _ = openslay(slayfile,central_lambda=central_lambda,
-                              flip=flip,moments=moments)
+                              flip=flip,moments=False)
     pxradii = pyfits.open(slayfile)[3].data
 
-    row = np.where(kpcradii >= radius)[0][0]
-    "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
+    row = np.where(np.abs(kpcradii-radius) == np.min(np.abs(kpcradii-radius)))[0][0]
+    print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
 
     hdu = pyfits.open(datafile)[0]
     CRVAL = hdu.header['CRVAL1']
@@ -494,11 +525,26 @@ def plot_line(datafile,radius,wavelength=5048.126,
     # We use '=f8' to force the endianess to be the same as the local
     # machine. This is so the precompiled bottleneck (bn) functions don't
     # complain
-    spectrum = np.array(hdu.data[row],dtype='=f8')
-    error = hdu.data[row + 1]
+    spectrum = np.array(hdu.data[row*2],dtype='=f8')
+    error = hdu.data[row*2 + 1]
     wave = np.arange(spectrum.size)*Cdelt + CRVAL
     
-    ### incomplete....
+    idx = np.where((wave >= wavelength - window/2.) & (wave <= wavelength + window/2.))
+
+    if not ax:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('Wavelength [Angstroms]')
+        ax.set_ylabel('ADU/s')
+        ax.set_title(datetime.now().isoformat(' '))
+    
+    ax.errorbar(wave[idx],spectrum[idx],yerr=error[idx])
+    fig = ax.figure
+    
+    if plot:
+        fig.show()
+
+    return wave[idx], spectrum[idx], error[idx]
 
 def plot_row(msfile,rownum,smooth=False,ax=False):
     """

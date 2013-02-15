@@ -105,11 +105,11 @@ def find_Vc(r, v, err):
 
 
 def simcurve(size,Z,v_r,h_rot,
-             w=0,N=0,pitch=np.pi,view_ang=np.pi,ax=False,scale=1.,
-             kappa_0=0.652,z_d=0.23,label='',rot_label=False,
+             w=0,N=6,pitch=np.pi/4.,view_ang=np.pi,ax=False,scale=1.,
+             kappa_0=1.62,z_d=0.245,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits'):
 
-    #Z should be in kpc, not scale heights
+    #Z is in kpc, not scale heights
 
 
     #first generate the radial distance array. Taken from ADEUtils
@@ -132,13 +132,13 @@ def simcurve(size,Z,v_r,h_rot,
     else: N = 6
 
     #This array holds the opacity of each bin
-    kaparray = np.exp(-1*(distances/h_d))#*LSP(distances, angles, w*0.8,N,pitch,view_ang + np.pi/6)
+    kaparray = np.exp(-1*(distances/h_d))*LSP(distances, angles, w*0.8,N,pitch,view_ang + np.pi/6)
     kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray.max()
 
     #And this one has the surface brightness of each bin, assuming a doubly-exp disc
     # total normalization is irrelevant
     Iarray = np.exp(-1*(distances/h_d))
-    lumpy = 1 #LSP(distances, angles, w,N,pitch,view_ang)
+    lumpy = LSP(distances, angles, w,N,pitch,view_ang)
     Iarray *= lumpy*np.exp(-1*(Z/h_z))/Iarray.max()
 
 
@@ -190,12 +190,15 @@ def simcurve(size,Z,v_r,h_rot,
     rothdu = pyfits.ImageHDU(TVC)
     
     frachdu.header.update('Z',Z)
-    frachdu.header.update('h_rot',h_rot)
-    frachdu.header.update('kappa_0',kappa_0)
-    frachdu.header.update('z_d',z_d,comment='Dust scale height')
-    frachdu.header.update('h_z',h_z,comment='Gas scale height')
-    frachdu.header.update('h_d',h_d,comment='Gas and dust scale length')
-    frachdu.header.update('scale',scale)
+    frachdu.header.update('h_rot',h_rot,comment='kpc')
+    frachdu.header.update('w',w)
+    frachdu.header.update('N',N)
+    frachdu.header.update('pitch',pitch)
+    frachdu.header.update('VIEWANG',view_ang)
+    frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
+    frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
+    frachdu.header.update('h_d',h_d,comment='Gas and dust scale length in kpc')
+    frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
     if rot_curve: frachdu.header.update('rotcurve','yes')
     else: frachdu.header.update('rotcurve','False')
 

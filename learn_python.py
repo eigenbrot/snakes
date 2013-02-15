@@ -387,4 +387,48 @@ col1, col4, col5 = np.loadtxt('my_data.txt',usecols=(1,4,5),unpack=True)
 # The more an more I learn about FITS files and pyfits, the more and more I
 # store my data in FITS files. Maybe you will too!
 #
-# 
+# First, let's just open a FITS file:
+hdus = pyfits.open('my_great_fits_file.fits')
+
+# hmm, what exactly have we got here?
+print "pyfits generates data of type"+type(hdus)
+
+# it's a pyfits.HDUlist!, which is really just a python list of individual
+# Header Data Units (HDU). An HDU is the same as a FITS "extension" if you're
+# familiar with IRAF. They always have two things, a header and some data. We
+# can access either easily enough:
+header = hdus[0].header
+fitsdata = hdus[0].data # notice how we index the HDUList just like a python
+                        # list
+
+print "the data in that hdu is of type"+type(fitsdata)
+
+# great, and now we've some normal Numpy data that we can use
+#
+# The header can also be useful. It acts a lot like a python dictionary. We
+# haven't covered dictionaries yet, but in short they are like python lists
+# that can be indexed with anything (not just integers that range from 0 to
+# one less than the length of the list). The header is a dictionary of all the
+# FITS header keywords that is indexed by those keywords. For example, let's
+# say you have a keyword in your FITS header called 'EXPTIME' that tells you
+# the integration time for that image. You can access this information via:
+exptime = header['EXPTIME']
+
+# Neat! Ok, those are the most basic things you might want to do with a FITS
+# file in python. STSCI maintains Pyfits and they have a great document called
+# "The_PyFITS_Handbook.pdf" if you want more info.
+#
+# A final note: Sometimes you just want that FITS data RIGHT NOW! and don't
+# want to deal with HDULists and that other shit. Easy, just put all that
+# stuff together:
+fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
+
+# Final note v2: pyfits.open() ALWAYS returns an HDUList. Even when there is
+# only one extension. So you will ALWAYS have to index the output of
+# pyfits.open(). i.e. pyfits.open('foo.fits').data will NEVER work, use
+# pyfits.open('foo.fits')[0].data.
+
+# Final note v3: For reasons that I'm sure are very smart and complicated,
+# Pyfits and DS9 disagree about row/column order. For example, if you are
+# looking at a FITS file in DS9 and find a cool feature at (x,y) = (100,200)
+# you access that pixel in Python via fitsdata[200,100].
