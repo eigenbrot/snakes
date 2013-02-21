@@ -396,5 +396,8 @@ master = dict([('MIFU001',MIFU001),
                ('MIFU003',MIFU003),
                ('MIFU008',MIFU008),
                ('int19',int19),
+               ('19int',int19),
                ('t19',t19),
-               ('int127',int127)])
+               ('19t',t19),
+               ('int127',int127),
+               ('127int',int127)])

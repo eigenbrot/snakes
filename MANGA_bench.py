@@ -8,6 +8,10 @@ if os.popen('echo $DISPLAY').readline() == 'localhost:10.0\n':
     print 'Deactivating display...'
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+from mpl_toolkits.axes_grid1 import AxesGrid as AG
+from matplotlib import rc
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 print 'syncing mesh...'
 from pyraf import iraf
 import pyfits
@@ -498,8 +502,8 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
         if raw_input("Overwrite file 'plotdata.fits'?: (Y/n)").lower() in ['y','']:
             os.system('rm plotdata.fits')
             pyfits.HDUList([pyfits.PrimaryHDU(None)]+hdulist).writeto('plotdata.fits')
-            plot_helper('plotdata.fits','allfibers.pdf','')
-            os.system('convert -density 200 allfibers.pdf -quality 92 allfibers.jpg')
+            # plot_helper('plotdata.fits','allfibers.pdf','')
+            # os.system('convert -density 200 allfibers.pdf -quality 92 allfibers.jpg')
     f.close()
     return
 
@@ -921,9 +925,6 @@ def webit(name):
     m.close()
 
 def plot_helper(datafile,filename,title):
-    from mpl_toolkits.axes_grid1 import AxesGrid as AG
-    from matplotlib import rc
-    from matplotlib.backends.backend_pdf import PdfPages as PDF
     
     pp = PDF(filename)
 
@@ -988,8 +989,7 @@ def plot_helper(datafile,filename,title):
 #            ax.plot(plot_data[2],plot_data[5],'b:',lw=0.4)
 #            ax.plot(plot_data[0],plot_data[4],'r:',lw=0.4)
             ax.plot(plot_data[3],plot_data[6],linestyle='-.',color='b',lw=0.4)
-            ax.text(9            
-,0.7,'({0})\n{1:4.3f}'.format(fiber_pos,sloan_metric))
+            ax.text(9,0.7,'({0})\n{1:4.3f}'.format(fiber_pos,sloan_metric))
             ax.set_xlim(2,30)
             ax.set_ylim(0,1.1)
             ax.set_xscale('log')
@@ -1101,5 +1101,88 @@ def findring(pos):
     
     return int(np.ceil(((xpos**2. + ypos**2.)/2.)**0.5))
                  
+def hex_plot_helper(datafile,outputfile,title,numfibers):
+    
+    if numfibers == 127:
+        rank = 6
+    elif numfibers == 61:
+        rank = 4
+    elif numfibers == 19:
+        rank = 2
+
+    in_ax = plot_hex(rank)
+    out_ax = plot_hex(rank)
+
+    hdus = pyfits.open(datafile)[1:]
+    for h in hdus:
+        fiberpos = h.header['FIBERPOS']
+        outpos = h.header['OUTPOS']
+        sloan = h.header['SLOAN']
+        in_ax = shade_circle(in_ax,fiberpos,sloan)
+        out_ax = shade_circle(out_ax,outpos,sloan)
+
+    pp = PDF(outputfile)
+    in_ax.figure.suptitle(title+' - INPUT\n'+datetime.now().isoformat(' '))
+    out_ax.figure.suptitle(title+' - OUTPUT\n'+datetime.now().isoformat(' '))
+    pp.savefig(in_ax.figure)
+    pp.savefig(out_ax.figure)
+    pp.close()
+    return
+
+def plot_hex(rank):
+
+    offset = (rank % 2)*0.5
+    row_lengths = np.concatenate((
+        np.arange(rank) + rank + 1,
+        [rank*2 + 1],
+        (np.arange(rank) + rank + 1)[::-1]))
+    y_offsets = np.arange(rank*2 + 1)*2 - rank*2
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111,aspect='equal')
+    ax.set_axis_off()
+    theta = np.arange(0,2*np.pi,0.01)
+
+    for (row,y) in zip(row_lengths,y_offsets):
+         for x in (np.arange(row) - row/2 + offset)*2:
+            ax.plot(np.cos(theta)+x,np.sin(theta)+y,'k')
+
+         offset = abs(offset - 0.5)
+
+    return ax
+
+def shade_circle(ax,coords,tput):
+
+    low = 0.80
+    high = 1.0x
+    if tput < low:
+        circ_color = (1,0,0)
+    elif tput > high:
+        circ_color = (0,1,0)
+    else:
+        circ_color = (1 - ((np.exp(low**3) - np.exp(tput**3))/
+                           (np.exp(low**3) - np.exp(high**3))),
+                      0,
+                      (np.exp(low**2) - np.exp(tput**2))/
+                      (np.exp(low**2) - np.exp(high**2)))
+                   
+        # circ_color = (1 - (tput - low)/(high - low),
+        #               (tput - low)/(high - low),
+        #               0)
+
+    x_coord, y_coord = [int(i) for i in coords.split(',')[0:2]]
+    
+    x_coord = x_coord*2 + y_coord
+    y_coord *= 2
+
+    circ = Circle((x_coord,y_coord),radius=1,color=circ_color)
+    circ.set_alpha(0.4)
+    ax.add_artist(circ)
+    ax.text(x_coord,y_coord,'{:4.3f}'.format(tput),
+            fontsize=9,ha='center',va='center')
+
+    return ax
+
+
 if __name__ == '__main__':
     sys.exit(main())
