@@ -12,6 +12,7 @@ from matplotlib.patches import Circle
 from mpl_toolkits.axes_grid1 import AxesGrid as AG
 from matplotlib import rc
 from matplotlib.backends.backend_pdf import PdfPages as PDF
+from matplotlib.collections import PatchCollection
 print 'syncing mesh...'
 from pyraf import iraf
 import pyfits
@@ -1110,20 +1111,42 @@ def hex_plot_helper(datafile,outputfile,title,numfibers):
     elif numfibers == 19:
         rank = 2
 
+    low = 0.90
+    high = 0.96
+
     in_ax = plot_hex(rank)
     out_ax = plot_hex(rank)
+    in_plist = []
+    out_plist = []
+    in_tlist = []
+    out_tlist = []
 
     hdus = pyfits.open(datafile)[1:]
     for h in hdus:
         fiberpos = h.header['FIBERPOS']
         outpos = h.header['OUTPOS']
         sloan = h.header['SLOAN']
-        in_ax = shade_circle(in_ax,fiberpos,sloan)
-        out_ax = shade_circle(out_ax,outpos,sloan)
+        in_ax = shade_circle(in_ax,fiberpos,sloan,in_plist,in_tlist)
+        out_ax = shade_circle(out_ax,outpos,sloan,out_plist,out_tlist)
 
     pp = PDF(outputfile)
     in_ax.figure.suptitle(title+' - INPUT\n'+datetime.now().isoformat(' '))
+    in_p = PatchCollection(in_plist,cmap=plt.get_cmap('RdYlGn'),
+                           norm=matplotlib.colors.Normalize(vmin=low,vmax=high),
+                           alpha=0.3)
+    in_p.set_array(np.array(in_tlist))
+    in_ax.add_collection(in_p)
+    in_ax.figure.colorbar(in_p)
+
     out_ax.figure.suptitle(title+' - OUTPUT\n'+datetime.now().isoformat(' '))
+    out_p = PatchCollection(out_plist,cmap=plt.get_cmap('RdYlGn'),
+                            norm=matplotlib.colors.Normalize(vmin=low,
+                                                             vmax=high),
+                            alpha=0.3)
+    out_p.set_array(np.array(out_tlist))
+    out_ax.add_collection(out_p)
+    out_ax.figure.colorbar(out_p)
+
     pp.savefig(in_ax.figure)
     pp.savefig(out_ax.figure)
     pp.close()
@@ -1151,33 +1174,16 @@ def plot_hex(rank):
 
     return ax
 
-def shade_circle(ax,coords,tput):
-
-    low = 0.80
-    high = 1.0x
-    if tput < low:
-        circ_color = (1,0,0)
-    elif tput > high:
-        circ_color = (0,1,0)
-    else:
-        circ_color = (1 - ((np.exp(low**3) - np.exp(tput**3))/
-                           (np.exp(low**3) - np.exp(high**3))),
-                      0,
-                      (np.exp(low**2) - np.exp(tput**2))/
-                      (np.exp(low**2) - np.exp(high**2)))
-                   
-        # circ_color = (1 - (tput - low)/(high - low),
-        #               (tput - low)/(high - low),
-        #               0)
+def shade_circle(ax,coords,tput,plist,tlist):
 
     x_coord, y_coord = [int(i) for i in coords.split(',')[0:2]]
     
     x_coord = x_coord*2 + y_coord
     y_coord *= 2
 
-    circ = Circle((x_coord,y_coord),radius=1,color=circ_color)
-    circ.set_alpha(0.4)
-    ax.add_artist(circ)
+    circ = Circle((x_coord,y_coord),radius=1)
+    plist.append(circ)
+    tlist.append(tput)
     ax.text(x_coord,y_coord,'{:4.3f}'.format(tput),
             fontsize=9,ha='center',va='center')
 
