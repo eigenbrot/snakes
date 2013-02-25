@@ -88,14 +88,10 @@ def line_comp(simfile,slayfile,plotprefix,width=17):
         spec -= np.mean(spec[0:10])
         dvelo = (wave - cent_lambda)/cent_lambda*3.e5
 
-        data_peak = dvelo[np.where(spec == spec.max())]
-        model_peak = V[np.where(I == I.max())]
-        v_offset = data_peak - model_peak
-
         fig0 = plt.figure()
         ax0 = fig0.add_subplot(111)
         ax0.errorbar(dvelo,spec/np.max(spec),yerr=err/np.max(spec))
-        ax0.plot(V+v_offset,I/np.max(I))
+        ax0.plot(V,I/np.max(I))
         ax0.set_xlabel('Velocity [km/s]')
         ax0.set_ylabel('Signal')
         ax0.set_title(datetime.now().isoformat(' ')+'\nr = {} kpc'.format(dradii[i]))
