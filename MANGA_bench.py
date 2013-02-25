@@ -1159,8 +1159,9 @@ def plot_hex(rank):
         np.arange(rank) + rank + 1,
         [rank*2 + 1],
         (np.arange(rank) + rank + 1)[::-1]))
-    y_offsets = np.arange(rank*2 + 1)*2 - rank*2
+    y_offsets = np.arange(rank*2 + 1)*1.732 - rank*1.732
     
+
     fig = plt.figure()
     ax = fig.add_subplot(111,aspect='equal')
     ax.set_axis_off()
@@ -1179,13 +1180,13 @@ def shade_circle(ax,coords,tput,plist,tlist):
     x_coord, y_coord = [int(i) for i in coords.split(',')[0:2]]
     
     x_coord = x_coord*2 + y_coord
-    y_coord *= 2
+    y_coord *= 1.732
 
     circ = Circle((x_coord,y_coord),radius=1)
     plist.append(circ)
     tlist.append(tput)
     ax.text(x_coord,y_coord,'{:4.3f}'.format(tput),
-            fontsize=9,ha='center',va='center')
+            fontsize=6,ha='center',va='center')
 
     return ax
 

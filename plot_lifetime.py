@@ -108,3 +108,24 @@ def merge_data(fits_files,output):
     pyfits.HDUList([pyfits.PrimaryHDU(None)]+final_hdus).writeto(output)
 
     return
+
+def make_hex_plots():
+    ''' Should only be run in /d/monk/eigenbrot/MANGA/lifetime. Really more of
+    a script than an actual function.
+
+    '''
+
+    # import this in this function because it takes a while and dumps a lot of
+    # crap to the screen
+    import MANGA_bench as ma
+
+    ma.hex_plot_helper('19int_orig.fits','19int_hex_orig.pdf','19int_orig',19)
+    ma.hex_plot_helper('19int_life.fits','19int_hex_life.pdf','19int_life',19)
+    ma.hex_plot_helper('19int_AR.fits','19int_hex_AR.pdf','19int_AR',19)
+    ma.hex_plot_helper('19t_orig_3.fits','19t_hex_orig.pdf','19tight_orig',19)
+    ma.hex_plot_helper('19t_life.fits','19t_hex_life.pdf','19tight_life',19)
+    ma.hex_plot_helper('127_orig.fits','127_hex_orig.pdf','127int_orig',127)
+    ma.hex_plot_helper('127_life.fits','127_hex_life.pdf','127int_life',127)
+    ma.hex_plot_helper('127_AR.fits','127_hex_AR.pdf','127int_AR',127)
+
+    return

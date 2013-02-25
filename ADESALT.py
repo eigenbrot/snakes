@@ -483,7 +483,8 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     extracted lines with slayer() then everything should be good automatically
 
     Radius - in kpc. The distance from the center of the galaxy where you want
-    to plot a spectrum. Can be negative or positve (for different sides of the galaxy)
+    to plot a spectrum. Can be negative or positve (for different sides of the
+    galaxy)
 
     wavelength - in Angstroms, the central wavelength of the plotted region
 
