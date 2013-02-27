@@ -5,7 +5,7 @@ import math
 import os
 import scipy.optimize as spo
 import bottleneck as bn
-from numba.decorators import jit
+from numba.decorators import jit, autojit
 from numba import float32, int16
 
 debug=0
@@ -524,14 +524,15 @@ def fast_annulize(data, numan, distances=np.array([0])):
 
     return fast_helper(ddata, distances, rlimit, numan)
 
-@jit(argtypes=[float32[:,:],float32[:,:],float32,int16],restype=float32[:,:])
+@jit(argtypes=[float32[:,:],float32[:,:],float32,int16], restype=float32[:,:])
 def fast_helper(data, distances, rlimit, numan):
     
     size = data.shape
     rstep = rlimit / numan
 
     r1 = 0.0
-    r2 = rstep
+    r2 = float(rstep) # we need to cast this as a float so that numba doesn't
+                      # complain
 
     r_vec = np.zeros(numan,dtype=np.float32)
     mean_vec = np.zeros(numan,dtype=np.float32)

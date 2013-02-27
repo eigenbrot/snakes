@@ -26,7 +26,7 @@ from datetime import datetime
 import ConfigParser
 import pickle
 import MANGAmap as mmp
-print 'load complete!'
+print 'load complete!\n'
 
 debug = False
 
@@ -453,7 +453,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
 
     hdulist = []
 
-    for fiber_pos in nood.keys():
+    for fiber_pos in np.sort(nood.keys()):
 
         print 'Fiber ('+str(fiber_pos)+')'
         try: outpos = nood[fiber_pos]['outpos']
@@ -1195,4 +1195,4 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         sys.exit(main())
     else:
-        print "\nthe request was made but it was not good"
+        print "the request was made but it was not good"
