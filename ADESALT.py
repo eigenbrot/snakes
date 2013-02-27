@@ -47,6 +47,8 @@ def apextract(filename, errorimage, apcenters, nrows):
     error = pyfits.open(errorimage)[0].data
 
     apertures = []
+    erraps = []
+
 
     apnum = 1
     for r in apcenters:
@@ -59,11 +61,13 @@ def apextract(filename, errorimage, apcenters, nrows):
         apnum += 1
 
         apertures.append(np.mean(data[r1:r2+1,:],axis=0))
-        apertures.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
+        erraps.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
 
     outname = filename.split('.fits')[0]+'.ms.fits'
+    erroutput = filename.split('.fits')[0]+'_error.ms.fits'
+    pyfits.PrimaryHDU(np.vstack(erraps),head).writeto(erroutput,clobber=True)
+    head.update('NOERR',True,comment='Error vectors are in a separate file')
     pyfits.PrimaryHDU(np.vstack(apertures),head).writeto(outname,clobber=True)
-
 
 def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
     '''Takes a multi-spectrum fits file (.ms.fits, probably produced by
@@ -107,18 +111,49 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
     hdus = pyfits.open(specfile)[0]
 
     header = hdus.header
-    numspec = hdus.data.shape[0]/2
+    try:
+        seperr = header['NOERR']
+        errorfile = specfile.split('.ms.fits')[0] + '_error.ms.fits'
+        print "taking errors from {}".format(errorfile)
+        ehdus = pyfits.open(errorfile)[0]
+    except KeyError:
+        seperr = False
+
+    print seperr
+    if seperr:
+        numspec = hdus.data.shape[0]
+    else:
+        numspec = hdus.data.shape[0]/2
 
     fit_pars = np.zeros((numspec,len(inguess)))
     fit_errs = np.zeros(fit_pars.shape)
     moments = np.zeros((numspec,3))
 
-    for i in np.arange(numspec)*2:
-        spec = psk.Spectrum(specfile,specnum=i,errspecnum=i+1)
+    for i in np.arange(numspec):
         
-        infostr = header['APNUM'+str(i/2+1)].split(' ')
-        print "\n  Fitting aperture {0} (lines {1} to {2})".format(infostr[0],infostr[2],infostr[3])
-        fig_name = fig_path+'/{:02n}'.format(int(infostr[0]))+'_'+str(guesses[1])[0:7]+'.pdf'
+        if seperr: 
+            # Dear authors of pyspeckit,
+            # I SHOULDN'T HAVE TO DO THIS!
+            #
+            # p.s. write some legible code
+            dv = header['CDELT1']
+            v0 = header['CRVAL1']
+            p3 = header['CRPIX1']
+            xarr = (np.arange(hdus.data.shape[1]) - p3 + 1)*dv + v0
+            spec = psk.Spectrum(xarr = xarr,
+                                data = hdus.data[i],
+                                error = ehdus.data[i],
+                                xarrkwargs = {'unit':'angstroms'},
+                                header = header)
+        else:
+            spec = psk.Spectrum(specfile,specnum=i*2,errspecnum=i*2+1)
+        
+        infostr = header['APNUM'+str(i+1)].split(' ')
+        print "\n  Fitting aperture {0} (lines {1} to {2})".format(infostr[0],
+                                                                   infostr[2],
+                                                                   infostr[3])
+        fig_name = fig_path+'/{:02n}'.format(int(infostr[0]))+'_'+\
+            str(guesses[1])[0:7]+'.pdf'
         pp = PDF(fig_name)
 
         #changed this as of 12.7 to baselineorder = 2
@@ -164,14 +199,14 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
 
         if scratch != 'd': guesses = spec.specfit.modelpars
 
-        fit_pars[i/2] = spec.specfit.modelpars
-        fit_errs[i/2] = spec.specfit.modelerrs
+        fit_pars[i] = spec.specfit.modelpars
+        fit_errs[i] = spec.specfit.modelerrs
         
         center = spec.specfit.modelpars[1]
         std = spec.specfit.modelpars[2]
         
         spec_moments = meat_moment(spec)
-        moments[i/2] = spec_moments
+        moments[i] = spec_moments
        
         ax = spec.plotter.figure.gca()
         ax.set_title('Aperture {0:n} in {1} on\n'.format(int(infostr[0]),specfile)+datetime.now().isoformat(' '))
