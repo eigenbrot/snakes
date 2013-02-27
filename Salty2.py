@@ -320,7 +320,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
     return radii, velos, fitvelos, fitsig
 
-def line_profile(fitsfile,radius,Iwidth=17.,plot=True):
+def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
     """ Radius is in kpc"""
 
 
@@ -333,7 +333,11 @@ def line_profile(fitsfile,radius,Iwidth=17.,plot=True):
 
     numsamp = 1000
 
-    vhist, bins = np.histogram(vs[:,column],bins=20,weights=frac[:,column],density=True)
+    vhist, bins = np.histogram(
+        np.mean(vs[:,column+1-pxbin/2.:column+1+pxbin/2.],axis=1),
+        bins=20,
+        weights=np.mean(frac[:,column+1-pxbin/2.:column+1+pxbin/2.],axis=1),
+        density=True)
     bincent = 0.5*(bins[1:]+bins[:-1])
 
     v = np.linspace(bincent.min()-200.,bincent.max()+200,numsamp)

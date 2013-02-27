@@ -1192,4 +1192,7 @@ def shade_circle(ax,coords,tput,plist,tlist):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    if len(sys.argv) >= 2:
+        sys.exit(main())
+    else:
+        print "\nthe request was made but it was not good"

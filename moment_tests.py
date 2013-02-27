@@ -9,7 +9,11 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17):
 
-    v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth)
+    v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
+                                 pxbin=16.) #Right now this is hard coded for
+                                            #a 10 px binning during aperture
+                                            #extraction
+
 #    v, I = ADE.ADE_gauss(1000,500,50)
     I *= peak_scale/I.max()
     
@@ -74,7 +78,11 @@ def line_comp(simfile,slayfile,plotprefix,width=17):
     print "{:^20} {:^20} {:^20}\n{:^10}{:^10}".format('m1','m2','m3','model','data')
     print ("-"*20+'    ')*3
     for i in range(dradii.size):
-        (mm1, mm2, mm3), V, I = do_line(simfile,dradii[i],1.,plot=False,Iwidth=width)
+        (mm1, mm2, mm3), V, I = do_line(simfile,dradii[i],1.,
+                                        plot=False,Iwidth=width)
+
+        (nm1,nm2,nm3), negV, negI = do_line(simfile,-1*dradii[i],1.,
+                               plot=False,Iwidth=width)
 
         # cent_lambda = central_lambda[np.where(
         #         np.abs(central_lambda - dm1[i,1]) == np.min(
@@ -92,9 +100,11 @@ def line_comp(simfile,slayfile,plotprefix,width=17):
         ax0 = fig0.add_subplot(111)
         ax0.errorbar(dvelo,spec/np.max(spec),yerr=err/np.max(spec))
         ax0.plot(V,I/np.max(I))
+        ax0.plot(negV+mm1-nm1,negI/np.max(negI))
         ax0.set_xlabel('Velocity [km/s]')
         ax0.set_ylabel('Signal')
-        ax0.set_title(datetime.now().isoformat(' ')+'\nr = {} kpc'.format(dradii[i]))
+        ax0.set_title(datetime.now().isoformat(' ')+'\nr = {:4.3f} kpc'.
+                      format(dradii[i]))
 
         tm1 = np.append(tm1,mm1)
         tm2 = np.append(tm2,mm2)
@@ -103,6 +113,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17):
             mm1,dm1[i,1],mm2,dm2[i,1],mm3,dm3[i,1])
 
         pp.savefig(fig0)
+        fig0.clf()
 
     pp.close()
 
