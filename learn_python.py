@@ -432,3 +432,62 @@ fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
 # Pyfits and DS9 disagree about row/column order. For example, if you are
 # looking at a FITS file in DS9 and find a cool feature at (x,y) = (100,200)
 # you access that pixel in Python via fitsdata[200,100].
+
+#### PLOTTING #### 
+#
+
+# Ok, last thing we should look at is how to plot all of that awesome
+# data you just imported. To do this we use matplotlib.pyplot. We
+# already imported this way at the beginning of this file as plt,
+# which is the pyplot Class. There are a few different ways to plot
+# things, and you will probably find examples that use all of
+# them. Trust me when I say that the way outlined below is absolutely
+# the best way to do it. It might seem like a lot of extra work now,
+# but it will save you many many headaches in the future if you keep
+# your plotting paradigm consistant, and this way allows for the most
+# flexibility. Don't be fooled by the apparent easiness of other
+# methods; they are the path to sin and frustration!
+
+# So what is The Plotting Way? First we make a figure:
+
+fig = plt.figure()
+# which is a pyplot Figure class. Now we're going to create a
+# pyplot.axis class that will be attached to fig:
+
+ax = fig.add_subplot(111)
+# add_subplot() adds, of all things, a subplot to fig. The 111 option
+# tells fig that this particular subplot will take up the entire
+# figure area, but this doesn't have to be the case. ax =
+# add_subplot(221) will make a 2x2 grid of subplots in fig and assign
+# ax to the first one (the upper left), ax = add_subplot(223) will
+# assign ax to the 3rd plot (lower left), etc.
+#
+# And now we're ready to plot!
+
+x = np.linspace(0,100,1000) # Kind of like arange. Give me 1000
+                            # numbers evenly spaced between 0 and 100
+y1 = np.exp((-1*(x-20)**2)/20)
+y2 = np.exp(x)
+
+ax.plot(x,y1)
+ax.plot(x,y2,'r:') # plot it in red (r) with a dotted line (:)
+
+fig.show() # This is what actually draws the plot
+#
+# See, that wasn't so bad. Some people might tell you to plot from a
+# figure with fig.plot(), and others might (gasp!) tell you to plot
+# straight from pyplot with plt.plot(). Both of these methods will
+# work, but I strongly discourage them because 1). they do not allow
+# for as many options as plotting from an axis, 2).  everything you
+# can do with plt.plot and fig.plot you can do with ax.plot, and
+# 3). keeping your plotting syntax the same will make your code easier
+# to write, easier to read, and totally sexy.
+#
+# There are a billion + 1 different options to all the plotting
+# methods called above, and a billion + 2 ways to customize your
+# plots. If you want to do something with a plot and don't know how to
+# do it, the first step is to check out the excellent Matplotlib
+# gallery at http://matplotlib.org/gallery.html They have a lot of
+# cool plots there with code showing you how they are produced (they
+# do use plt.plot and fig.plot a lot, though). After that, check Stack
+# Overflow or ask the UW Astro Python user's group.
