@@ -55,19 +55,26 @@ def apextract(filename, errorimage, apcenters, nrows):
         r1 = r - int(nrows/2.0)
         r2 = r1 + nrows
 
-        print "Extracing from rows %i to %i" % (r1,r2)
+        print "Extracing from rows {} to {}".format(r1,r2)
         
-        head.update('APNUM'+str(apnum),'%i %i %i %i' % (apnum, apnum, r1, r2))
+        head.update('APNUM'+str(apnum),'{} {} {} {}'.format(apnum, apnum, r1, r2))
         apnum += 1
 
         apertures.append(np.mean(data[r1:r2+1,:],axis=0))
         erraps.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
 
+    data_output_list = np.vstack(apertures)
+    error_output_list = np.vstack(erraps)
+
+    if data_output_list.shape[0] == 1:
+        data_output_list = np.squeeze(data_output_list)
+        error_output_list = np.squeeze(error_output_list)
+
     outname = filename.split('.fits')[0]+'.ms.fits'
     erroutput = filename.split('.fits')[0]+'_error.ms.fits'
-    pyfits.PrimaryHDU(np.vstack(erraps),head).writeto(erroutput,clobber=True)
+    pyfits.PrimaryHDU(data_output_list,head).writeto(erroutput,clobber=True)
     head.update('NOERR',True,comment='Error vectors are in a separate file')
-    pyfits.PrimaryHDU(np.vstack(apertures),head).writeto(outname,clobber=True)
+    pyfits.PrimaryHDU(error_output_list,head).writeto(outname,clobber=True)
 
 def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
     '''Takes a multi-spectrum fits file (.ms.fits, probably produced by
