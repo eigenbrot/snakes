@@ -47,6 +47,9 @@ def great_function(num, power, inverse=False): #keywords work just like IDL!
 
     return output
 
+print "According to great_function, 4 to the 3rd power is {}\n".\
+    format(great_function(4,3))
+# Note the use of str.format() and \ to break up a line
 
 # Ok. That was pretty fun, but what if we have a big groups of numbers we want
 # to do that to. Python Lists are one way to do this, so let's look at them.
@@ -64,11 +67,19 @@ xl = x[-1] # the last element of x
 x_sub = x[1:4] # another list that is [x[1],x[2],x[3]] NOTE the last slice
                # index is NOT included
 
+# Before we talk about what makes Python lists awesome, let's talk about what
+# they CAN'T do. The big one for us is that they can't be used like IDL
+# lists. For example, here's what happens if I multiply x by a number:
 
-# Lists can contain any variable type you want, and even a mix of them.
-# Here's a fun and important fact: EVERYTHING in Python can be assigned a
-# variable. This means that lists can contain numbers, strings, characters,
-# functions, classes, modules, lists, etc. This is very exciting.
+print "x is {}\nand x*2 is {}\n".format(x,x*2)
+# Hmm, maybe not what we expected. Don't worry, Numpy will save us from this
+# in a moment.
+#
+# OK. Now on to why lists are awesome. Lists can contain any variable type you
+# want, and even a mix of them.  Here's a fun and important fact: EVERYTHING
+# in Python can be assigned a variable. This means that lists can contain
+# numbers, strings, characters, functions, classes, modules, lists, etc. This
+# is very exciting.
 #
 # This is a good time to talk about loops in Python, which can be quite
 # differnt from loops in other languages. In the most basic sense, a Python
@@ -88,6 +99,10 @@ def loop_test():
         print element
 
     return
+
+print "loop_test() output:"
+loop_test()
+print # just a newline
 
 # Ok, that's cool, but what if you want to loop in the more "traditional"
 # sense? Easy! Use the range() function to generate a list and then loop over
@@ -113,7 +128,10 @@ def range_demo(n):
 
 result, rangelist = range_demo(5)
 
-result_tup = fib(5)
+result_tup = range_demo(5)
+print "the results of range_demo(5) are:\noutput: {}\ncountlist: {}\n".\
+    format(*result_tup) # you can pass a list of arguments as a list or tup
+                        # with a *
 
 # result_tup is what we call a tuple (don't ask how to pronounce it). Tuples
 # are a lot like lists, but they defined with paranthesis rather than
@@ -129,6 +147,8 @@ lst[1] == tup[1] # True!
 # features than tuples. A lot of numpy functions take tuples as arguments.
 
 
+########### A DIGRESSION: NAMESPACES #################
+#
 # Let's talk about namespaces and related ilk for a while.
 #
 # The Zen of Python states:
@@ -173,7 +193,7 @@ lst[1] == tup[1] # True!
 # nice.  
 # 
 # IMPORTANT NOTE: It is possible to import individual items from a module into
-# the CURRENT namespace and it is almost always a bad idea. For example, you
+# the CURRENT namespace and it is almost always a Bad Idea. For example, you
 # could say:
 # 
 # >>>from learn_python import *
@@ -230,12 +250,16 @@ def inplace_demo(LL):
 # the whitespace takes care of that. Let's try it out
 
 lst1 = [4,5,6]
+print "lst1 is now " + str(lst1) # another way to print things!
 inplace_demo(lst1)
-print lst1
+print "and after inplace_demo(lst1) lst1 is " + str(lst1) + '\n'
 
 # will give us [4,5,'poop']. This is a potentially very usefull but dangerous
 # feature. Know about it. (I think IDL might do this too?)
 
+###########################################
+#             ENTER NUMPY                 #
+###########################################
 # OK. That was a nice little digression into some Python nuts and bolts, but we
 # still haven't talked about how to apply our great_function() over a whole
 # list!. The purely Python way might be fairly obvious at this point, just loop
@@ -267,12 +291,14 @@ def python_func(LL, power, inverse=False):
             
     return output
 
+print "The output of our python_func(range(lst),3) is"
+print python_func(lst,3)
+
 # Alright, that works fine, but for long lists, or multi-dimensional lists it
 # will take a long time. This is why Numpy was invented, it allows us to
 # operate on every element in an array with single commands, and it happens
 # much faster than it would if we used Python lists.
 #
-# 
 # The central component of Numpy is the ndarray type. These ndarrays (I'll
 # call them arrays for short) act a lot like Python lists, except they let you
 # use all of Numpy's power. Let's take a look:
@@ -285,6 +311,8 @@ array2 = np.array([56,78,13])
 # and now we don't even need that python_func()!
 
 funcdarray = array**3 # this will cube every element of the array
+print "...compare to this much faster numpy version:"
+print funcdarray, '\n'
 
 # THIS IS IMPORTANT! In general, if you find yourself looping over every
 # element in an array (like python_func() ) then you are probably doing
@@ -293,10 +321,13 @@ funcdarray = array**3 # this will cube every element of the array
 # There many many Numpy functions that use ndarray operations to make your
 # lives easier. I'll mention the few that I use the most below:
 
-r = np.arange(9) # just like Python's range(), but produces a ndarray
-print r.size # ndarray.size will tell you how many elements are in that array
-r2d = r.reshape((3,3)) # creates a 3x3 array from r
-print r2d.shape # this returns a tuple with the size of each dimension
+r = np.arange(12) # just like Python's range(), but produces a ndarray
+print "the size of r is {}".format(r.size) # ndarray.size will tell you how
+                                           # many elements are in that array
+r2d = r.reshape((4,3)) # creates a 3x3 array from r
+print "and the shape of r2d is {}\n".format(r2d.shape) # this returns a tuple
+                                                     # with the size of each
+                                                     # dimension
 idx = np.where(r > 3) # much like IDL's where
 idx2 = np.where((r > 2) & (r < 7)) # note the slightly strange syntax. All of
                                    # those parenthesis are necessary. Also
@@ -308,9 +339,13 @@ rmean = np.mean(r)
 rmedian = np.median(r)
 rstd = np.std(r)
 rsum = np.sum(r)
-r2sum1 = np.sum(r2,axis=0) # most of these commands have the axis keyword,
-                           # which will collapse the array down along that
-                           # axis
+r2sum1 = np.sum(r2d,axis=0) # most of these commands have the axis keyword,
+                            # which will collapse the array down along that
+                            # axis
+
+print "r2d is:\n", r2d # another way to print!!
+print "the total sum is {}".format(np.sum(r2d))
+print "and the sum just along axis 0 is: {}\n".format(r2sum1)
 
 # Note that r.size = r2d.size, but r.shape != r2d.shape
 #
@@ -321,14 +356,16 @@ r2sum1 = np.sum(r2,axis=0) # most of these commands have the axis keyword,
 # FUCK THAT!
 #
 # you can use:
+print "with range:"
 for i in range(r.size):
     print r[i]
 
 # but that also sucks! Remember, ndarrays are a lot like Python lists, and in
 # Python for loops just iterate over any list. So try this:
+print "with straight iteration:"
 for i in r:
     print i
-#
+
 # nice!
 
 # There a few important differences between ndarrays and Python lists.
@@ -347,6 +384,10 @@ for i in r:
 # unknowingly fuck up your data.
 
 
+
+###################################
+#          READING DATA           #
+###################################
 # OK! We've learned the basics of ndarrays and the basics of how we can use
 # them to manipulate our data. But how do we get our data into these arrays?
 # Let's look at the two that are (probably?) the most common:
@@ -433,9 +474,11 @@ fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
 # looking at a FITS file in DS9 and find a cool feature at (x,y) = (100,200)
 # you access that pixel in Python via fitsdata[200,100].
 
-#### PLOTTING #### 
-#
 
+########################
+#       PLOTTING       #
+########################
+#
 # Ok, last thing we should look at is how to plot all of that awesome
 # data you just imported. To do this we use matplotlib.pyplot. We
 # already imported this way at the beginning of this file as plt,
@@ -467,7 +510,7 @@ ax = fig.add_subplot(111)
 x = np.linspace(0,100,1000) # Kind of like arange. Give me 1000
                             # numbers evenly spaced between 0 and 100
 y1 = np.exp((-1*(x-20)**2)/20)
-y2 = np.exp(x)
+y2 = x**0.5
 
 ax.plot(x,y1)
 ax.plot(x,y2,'r:') # plot it in red (r) with a dotted line (:)

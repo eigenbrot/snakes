@@ -60,6 +60,7 @@ def apextract(filename, errorimage, apcenters, nrows):
         head.update('APNUM'+str(apnum),'{} {} {} {}'.format(apnum, apnum, r1, r2))
         apnum += 1
 
+        print np.mean(data[r1:r2+1,:],axis=0)
         apertures.append(np.mean(data[r1:r2+1,:],axis=0))
         erraps.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
 
@@ -72,9 +73,10 @@ def apextract(filename, errorimage, apcenters, nrows):
 
     outname = filename.split('.fits')[0]+'.ms.fits'
     erroutput = filename.split('.fits')[0]+'_error.ms.fits'
-    pyfits.PrimaryHDU(data_output_list,head).writeto(erroutput,clobber=True)
-    head.update('NOERR',True,comment='Error vectors are in a separate file')
-    pyfits.PrimaryHDU(error_output_list,head).writeto(outname,clobber=True)
+    pyfits.PrimaryHDU(error_output_list,head).writeto(erroutput,clobber=True)
+
+    head.update('SEPERR',True,comment='Error vectors are in a separate file')
+    pyfits.PrimaryHDU(data_output_list,head).writeto(outname,clobber=True)
 
 def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
     '''Takes a multi-spectrum fits file (.ms.fits, probably produced by
@@ -119,7 +121,7 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
 
     header = hdus.header
     try:
-        seperr = header['NOERR']
+        seperr = header['SEPERR']
         errorfile = specfile.split('.ms.fits')[0] + '_error.ms.fits'
         print "taking errors from {}".format(errorfile)
         ehdus = pyfits.open(errorfile)[0]
