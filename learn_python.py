@@ -16,6 +16,10 @@ import numpy as np # I could just have easily said: "import numpy as poop" You
 import matplotlib.pyplot as plt # pyplot is a class within the matplotlib module
 
 
+
+#################################
+#         PYTHON BASICS         #
+#################################
 # Ok now let's define a function to do some cool stuff. We'll start with pure
 # Python code and add in the cool science-related stuff in a bit
 #
@@ -26,7 +30,7 @@ def great_function(num, power, inverse=False): #keywords work just like IDL!
     """Another way to comment python code is like this. It's useful for
     multi-line comments. 
 
-    It is good pratice to put a docstring like this at the start of every 
+    It is good practice to put a docstring like this at the start of every 
     function that explains inputs and outputs or w/e.
 
     This function takes in a number and raises it to some power. If inverse
@@ -42,7 +46,7 @@ def great_function(num, power, inverse=False): #keywords work just like IDL!
     
     else:
         output = num**power # this took me a long time to get used to. '^' is
-                            # bitwise XOR in python so using won't raise any
+                            # bit-wise XOR in python so using won't raise any
                             # errors
 
     return output
@@ -54,7 +58,7 @@ print "According to great_function, 4 to the 3rd power is {}\n".\
 # Ok. That was pretty fun, but what if we have a big groups of numbers we want
 # to do that to. Python Lists are one way to do this, so let's look at them.
 # The syntax is similar to IDL, but keep in mind that Python lists are VERY
-# DIFFERNET than IDL lists in some very important ways.
+# DIFFERENT than IDL lists in some very important ways.
 
 # define a list
 
@@ -82,9 +86,9 @@ print "x is {}\nand x*2 is {}\n".format(x,x*2)
 # is very exciting.
 #
 # This is a good time to talk about loops in Python, which can be quite
-# differnt from loops in other languages. In the most basic sense, a Python
+# different from loops in other languages. In the most basic sense, a Python
 # loops iterates over the elements in a list. Here's a very basic example that
-# also shows off the versitility of lists:
+# also shows off the versatility of lists:
 
 def loop_test():
     """a simple function to show how Python loops work. Returns the contents
@@ -134,7 +138,7 @@ print "the results of range_demo(5) are:\noutput: {}\ncountlist: {}\n".\
                         # with a *
 
 # result_tup is what we call a tuple (don't ask how to pronounce it). Tuples
-# are a lot like lists, but they defined with paranthesis rather than
+# are a lot like lists, but they defined with parenthesis rather than
 # brackets, e.g.
 
 lst = [1,2,3] # a list
@@ -142,13 +146,16 @@ tup = (1,2,3) # a tuple
 
 lst[1] == tup[1] # True!
 
-# There are some subtlties between lists and tuples that are not important
-# right now. In general you should be using lists beacuse they have more
+# There are some subtleties between lists and tuples that are not important
+# right now. In general you should be using lists because they have more
 # features than tuples. A lot of numpy functions take tuples as arguments.
 
 
-########### A DIGRESSION: NAMESPACES #################
-#
+
+
+######################################################
+#           A DIGRESSION: NAMESPACES                 #
+######################################################
 # Let's talk about namespaces and related ilk for a while.
 #
 # The Zen of Python states:
@@ -210,13 +217,13 @@ lst[1] == tup[1] # True!
 # only ever import modules.
 #
 # There are however, some acceptable exceptions that exist mostly for
-# convienience and conformation with the community. For example, at the start
+# convenience and conformation with the community. For example, at the start
 # of this module we imported the pyplot Class from the matplotlib
 # Module. Importing a Class from a module is generally OK because Classes are
-# their own separate namespaces (as we'll se later). Another type of exception
+# their own separate namespaces (as we'll see later). Another type of exception
 # is when you need only one function from a module. For example, I use the
 # glob() function a lot to get lists of files and whatnot. The glob() function
-# lives inside the glob module, but I don't want to type glob.glob() everytime
+# lives inside the glob module, but I don't want to type glob.glob() every time
 # I use the function so I import it with:
 from glob import glob
 
@@ -254,8 +261,10 @@ print "lst1 is now " + str(lst1) # another way to print things!
 inplace_demo(lst1)
 print "and after inplace_demo(lst1) lst1 is " + str(lst1) + '\n'
 
-# will give us [4,5,'poop']. This is a potentially very usefull but dangerous
+# will give us [4,5,'poop']. This is a potentially very useful but dangerous
 # feature. Know about it. (I think IDL might do this too?)
+
+
 
 ###########################################
 #             ENTER NUMPY                 #
@@ -272,7 +281,7 @@ def python_func(LL, power, inverse=False):
     Input: 
         LL - python list of numbers
         power - number
-        inverse - If True then LL will be rasied to 1/power
+        inverse - If True then LL will be raised to 1/power
         
     Output:
         LL ** power (unless inverse=True)
@@ -331,7 +340,7 @@ print "and the shape of r2d is {}\n".format(r2d.shape) # this returns a tuple
 idx = np.where(r > 3) # much like IDL's where
 idx2 = np.where((r > 2) & (r < 7)) # note the slightly strange syntax. All of
                                    # those parenthesis are necessary. Also
-                                   # note the use of & ranther than the Python
+                                   # note the use of & rather than the Python
                                    # 'and'
 rmax = np.max(r) # np.min() also exists
 rmax2 = r.max() # ndarry has min/max built in
@@ -376,7 +385,7 @@ for i in r:
 #
 # will actually change pythonlist. There are no functions in Numpy that do
 # this. Instead, each function returns something, so if you want to change an
-# array in place you need to redifine it. For example:
+# array in place you need to redefine it. For example:
 #
 # >>> myarray = np.append(myarray, 1)
 #
@@ -386,7 +395,7 @@ for i in r:
 
 
 ###################################
-#          READING DATA           #
+#      READING/WRITING DATA       #
 ###################################
 # OK! We've learned the basics of ndarrays and the basics of how we can use
 # them to manipulate our data. But how do we get our data into these arrays?
@@ -394,6 +403,8 @@ for i in r:
 #
 # From txt files (csv)
 # --------------------
+#
+############### Reading
 #
 # np.loadtxt is your friend. Check >>>help(np.loadtxt) for more info but
 # here's a basic primer:
@@ -420,10 +431,51 @@ col1, col4, col5 = np.loadtxt('my_data.txt',usecols=(1,4,5),unpack=True)
 # the user to pass an arbitrary number of arguments to a function. In this
 # case, the author of loadtxt had no idea how many columns a user might want
 # to import, so she made that keyword a tuple, and tuples can be any length.
+#
+########### Writing
+#
+# To write to a csv file we essentially print each row of our columns to a
+# file one at a time. There are few different ways to do this, but both first
+# involve opening a file object:
+
+f = open('writeout.txt','w') # The 'w' is for write
+# First let's write some comments:
+
+f.write('# This is a comment line\n'
+        +'#\n'
+        +'# {:6}= '.format('c1')+'column 1\n'
+        +'# {:6}= '.format('c4')+'column 4\n'
+        +'# {:6}= '.format('c5')+'column 5\n'
+        +'#\n'
+        +'#{:>10}{:>10}{:>10}\n'.format('c1','c4','c5')
+        +'#{:>10}{:>10}{:>10}\n'.format(*(np.arange(3)+1))
+        )
+
+# Now we can actually write our data in two different ways. With Numpy's
+# ndarray.tofile() method, or with python's str.format() method.
+#
+# Here's Numpy's way:
+
+for i in range(col1.size):
+    np.array([col1[i],
+              col4[i],
+              col5[i]]).tofile(f,sep='  ',format='%4.3f')
+
+# and python's
+
+for i in range(col1.size):
+    f.write('{:4.3f}{:4.3f}{:4.3f}\n'.format(col1[i],
+                                             col4[i],
+                                             col5[i]))
+
+# both are fine.
 
 
+#
 # From a FITS file
 # ----------------
+#
+########### Reading
 #
 # The more an more I learn about FITS files and pyfits, the more and more I
 # store my data in FITS files. Maybe you will too!
@@ -473,6 +525,26 @@ fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
 # Pyfits and DS9 disagree about row/column order. For example, if you are
 # looking at a FITS file in DS9 and find a cool feature at (x,y) = (100,200)
 # you access that pixel in Python via fitsdata[200,100].
+#
+############ Writing
+#
+# Just like Pyfits reads in lists of HDUs, it also writes lists of HDUs. If
+# all you want to do is just dump some data to a fits file, the easiest way is:
+
+pyfits.PrimaryHDU(fitsdata2).writeto('fitsoutput.fits')
+
+# What you're actually doing here is first creating a HDU with
+# pyfits.PrimaryHDU() and then calling its writeto() method. You can break up
+# these steps if you want to, for example, add some header values:
+
+out_HDU = pyfits.PrimaryHDU(fitsdata2)
+out_HDU.header.update('DANK',True,comment='Is this file dank or not?')
+out_HDU.writeto('fitsoutput.fits',clobber=True)
+
+# There are a lot more you can do with fits files, and the Pyfits Handbook
+# gives a clear description of most of them. Keep in mind that the newest
+# version of pyfits is v.3.x and has some very significant changes over the UW
+# astro dept's v.2.x.
 
 
 ########################
@@ -487,7 +559,7 @@ fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
 # them. Trust me when I say that the way outlined below is absolutely
 # the best way to do it. It might seem like a lot of extra work now,
 # but it will save you many many headaches in the future if you keep
-# your plotting paradigm consistant, and this way allows for the most
+# your plotting paradigm consistent, and this way allows for the most
 # flexibility. Don't be fooled by the apparent easiness of other
 # methods; they are the path to sin and frustration!
 
@@ -534,3 +606,7 @@ fig.show() # This is what actually draws the plot
 # cool plots there with code showing you how they are produced (they
 # do use plt.plot and fig.plot a lot, though). After that, check Stack
 # Overflow or ask the UW Astro Python user's group.
+
+
+
+# A. Eigenbrot, Madison, 2013
