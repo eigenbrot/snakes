@@ -666,13 +666,16 @@ def polyclip(x, y0, deg, niter=20, clip_high=3., clip_low=3.):
 
     return np.poly1d(coef)
 
-def eplot(x,y):
+def eplot(x,y=None):
     '''a simple script for quickly plotting some data.
     It avoids all the tedious calls to create figures and axes, etc.
     '''
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(x,y)
+    if y is not None:
+        ax.plot(x,y)
+    else:
+        ax.plot(np.arange(x.size),x)
     fig.show()
     return
 

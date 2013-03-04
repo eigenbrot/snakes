@@ -15,3 +15,5 @@ _deconv
 vline.pro
 xtcolors.sm
 d[jf]*.pro
+my_*
+fitsoutput.fits

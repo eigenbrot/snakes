@@ -76,6 +76,10 @@ x_sub = x[1:4] # another list that is [x[1],x[2],x[3]] NOTE the last slice
 # lists. For example, here's what happens if I multiply x by a number:
 
 print "x is {}\nand x*2 is {}\n".format(x,x*2)
+
+_ = raw_input('') # This will just halt the execution until the user hits
+                  # 'return'
+
 # Hmm, maybe not what we expected. Don't worry, Numpy will save us from this
 # in a moment.
 #
@@ -107,6 +111,7 @@ def loop_test():
 print "loop_test() output:"
 loop_test()
 print # just a newline
+_ = raw_input('')
 
 # Ok, that's cool, but what if you want to loop in the more "traditional"
 # sense? Easy! Use the range() function to generate a list and then loop over
@@ -136,6 +141,7 @@ result_tup = range_demo(5)
 print "the results of range_demo(5) are:\noutput: {}\ncountlist: {}\n".\
     format(*result_tup) # you can pass a list of arguments as a list or tup
                         # with a *
+_ = raw_input('')
 
 # result_tup is what we call a tuple (don't ask how to pronounce it). Tuples
 # are a lot like lists, but they defined with parenthesis rather than
@@ -260,6 +266,7 @@ lst1 = [4,5,6]
 print "lst1 is now " + str(lst1) # another way to print things!
 inplace_demo(lst1)
 print "and after inplace_demo(lst1) lst1 is " + str(lst1) + '\n'
+_ = raw_input('')
 
 # will give us [4,5,'poop']. This is a potentially very useful but dangerous
 # feature. Know about it. (I think IDL might do this too?)
@@ -322,6 +329,7 @@ array2 = np.array([56,78,13])
 funcdarray = array**3 # this will cube every element of the array
 print "...compare to this much faster numpy version:"
 print funcdarray, '\n'
+_ = raw_input('')
 
 # THIS IS IMPORTANT! In general, if you find yourself looping over every
 # element in an array (like python_func() ) then you are probably doing
@@ -355,6 +363,7 @@ r2sum1 = np.sum(r2d,axis=0) # most of these commands have the axis keyword,
 print "r2d is:\n", r2d # another way to print!!
 print "the total sum is {}".format(np.sum(r2d))
 print "and the sum just along axis 0 is: {}\n".format(r2sum1)
+_ = raw_input('')
 
 # Note that r.size = r2d.size, but r.shape != r2d.shape
 #
@@ -411,6 +420,10 @@ for i in r:
 #
 # Most basic usage:
 data = np.loadtxt('my_awesome_data.dat')
+print '\ndata read from the csv file is:'
+print data
+print 'and has type {} with shape {}\n'.format(type(data),data.shape)
+_ = raw_input('')
 
 # Note that data is a 2D array, so that the first column in your data is
 # accessed by data[0,:].
@@ -424,7 +437,7 @@ data = np.loadtxt('my_unusual_data.poop',comments='>',delimiter=',')
 # The final few features that I use often are selecting which columns you want
 # to import and importing each column as a separate variable. The latter is
 # particularly useful.
-col1, col4, col5 = np.loadtxt('my_data.txt',usecols=(1,4,5),unpack=True)
+col1, col4, col5 = np.loadtxt('my_data.txt',usecols=(0,3,4),unpack=True)
 
 # The unpack keyword is what allows us to assign multiple variables. Notice
 # that usecols is a tuple! Tuples can be very useful when you want to allow
@@ -484,7 +497,7 @@ for i in range(col1.size):
 hdus = pyfits.open('my_great_fits_file.fits')
 
 # hmm, what exactly have we got here?
-print "pyfits generates data of type"+type(hdus)
+print "pyfits generates data of type "+str(type(hdus))
 
 # it's a pyfits.HDUlist!, which is really just a python list of individual
 # Header Data Units (HDU). An HDU is the same as a FITS "extension" if you're
@@ -494,7 +507,7 @@ header = hdus[0].header
 fitsdata = hdus[0].data # notice how we index the HDUList just like a python
                         # list
 
-print "the data in that hdu is of type"+type(fitsdata)
+print "and the data in that hdu is of type "+str(type(fitsdata))
 
 # great, and now we've some normal Numpy data that we can use
 #
@@ -531,7 +544,7 @@ fitsdata2 = pyfits.open('my_great_fits_file.fits')[0].data
 # Just like Pyfits reads in lists of HDUs, it also writes lists of HDUs. If
 # all you want to do is just dump some data to a fits file, the easiest way is:
 
-pyfits.PrimaryHDU(fitsdata2).writeto('fitsoutput.fits')
+pyfits.PrimaryHDU(fitsdata2).writeto('fitsoutput.fits',clobber=True)
 
 # What you're actually doing here is first creating a HDU with
 # pyfits.PrimaryHDU() and then calling its writeto() method. You can break up
@@ -545,7 +558,7 @@ out_HDU.writeto('fitsoutput.fits',clobber=True)
 # gives a clear description of most of them. Keep in mind that the newest
 # version of pyfits is v.3.x and has some very significant changes over the UW
 # astro dept's v.2.x.
-
+_ = raw_input('')
 
 ########################
 #       PLOTTING       #
@@ -586,6 +599,9 @@ y2 = x**0.5
 
 ax.plot(x,y1)
 ax.plot(x,y2,'r:') # plot it in red (r) with a dotted line (:)
+ax.set_xlabel('The X axis')
+ax.set_ylabel('The Y axis')
+ax.set_title('A title')
 
 fig.show() # This is what actually draws the plot
 #
