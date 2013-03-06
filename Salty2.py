@@ -127,15 +127,17 @@ def simcurve(size,Z,v_r,h_rot,
 #    z_d = 0.23 #kpc dust scale height
 
     #N needs to be an integer
-    if N > 7.0: N = 8
-    elif N < 5.0: N = 4
-    else: N = 6
+    # if N > 7.0: N = 8
+    # elif N < 5.0: N = 4
+    # else: N = 6
 
     #This array holds the opacity of each bin
-    kaparray = np.exp(-1*(distances/h_d))*LSP(distances, angles, w*0.8,N,pitch,view_ang + np.pi/6)
+    kaparray = np.exp(-1*(distances/h_d))*\
+        LSP(distances, angles, w*0.8,N,pitch,view_ang + np.pi/6)
     kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray.max()
 
-    #And this one has the surface brightness of each bin, assuming a doubly-exp disc
+    # And this one has the surface brightness of each bin, assuming a
+    # doubly-exp disc 
     # total normalization is irrelevant
     Iarray = np.exp(-1*(distances/h_d))
     lumpy = LSP(distances, angles, w,N,pitch,view_ang)
@@ -199,6 +201,16 @@ def simcurve(size,Z,v_r,h_rot,
     frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
     frachdu.header.update('h_d',h_d,comment='Gas and dust scale length in kpc')
     frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
+    frachdu.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
+    frachdu.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
+    frachdu.header.update('CRVAL1',0.0,
+                          comment='WCS: X reference coordinate value')
+    frachdu.header.update('CRVAL2',0.0,
+                          comment='WCS: Y reference coordinate value')
+    frachdu.header.update('CDELT1',scale,comment='WCS: X pixel size')
+    frachdu.header.update('CDELT2',scale,comment='WCS: Y pixel size')
+    frachdu.header.update('CTYPE1','LINEAR',comment='X type')
+    frachdu.header.update('CTYPE2','LINEAR',comment='Y type')
     if rot_curve: frachdu.header.update('rotcurve','yes')
     else: frachdu.header.update('rotcurve','False')
 
@@ -212,7 +224,15 @@ def simcurve(size,Z,v_r,h_rot,
     ahdu.header.update('EXTNAME','ANG')
     rothdu.header.update('EXTNAME','ROT')
 
-    pyfits.HDUList([frachdu,tauhdu,kaphdu,Ihdu,vshdu,LOShdu,dhdu,ahdu,rothdu]).writeto(output,clobber=True)
+    pyfits.HDUList([frachdu,
+                    tauhdu,
+                    kaphdu,
+                    Ihdu,
+                    vshdu,
+                    LOShdu,
+                    dhdu,
+                    ahdu,
+                    rothdu]).writeto(output,clobber=True)
 
     return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
 
@@ -221,7 +241,8 @@ def LSP(distances, angles, w, bigN, p, vtheta):
     prodlist = []
     
     for n in np.arange(2,bigN+1,2):
-        sinarray = (n*w)/(n-1) * np.sin( np.log(distances)/np.tan(p) - angles + vtheta)**bigN
+        sinarray = (n*w)/(n-1) * np.sin( np.log(distances)/np.tan(p) - angles +\
+                                             vtheta)**bigN
         prodlist.append(sinarray)
 
 
