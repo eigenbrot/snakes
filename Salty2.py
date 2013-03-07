@@ -10,7 +10,7 @@ import NaCl as na
 import ADEUtils as ADE
 from PyGalPot import PyGalPot as PGP
 from datetime import datetime
-from matplotlib.backends.backend_pdf import PdfPages as PDF
+#from matplotlib.backends.backend_pdf import PdfPages as PDF
 import time
 from ADESALT import openslay, plot_curve
 
@@ -113,7 +113,7 @@ def simcurve(size,Z,v_r,h_rot,
 
 
     #first generate the radial distance array. Taken from ADEUtils
-    vecvec = np.indices((size,size),dtype=np.float64)
+    vecvec = np.indices((size,size),dtype=np.float32)
     distances = scale*((size/2. - vecvec[0,:])**2 + (size/2. - vecvec[1,:])**2)**0.5
 
     #The angle array will be used to figure out the los velocity for each bin.

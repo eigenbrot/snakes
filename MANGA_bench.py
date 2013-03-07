@@ -1,32 +1,38 @@
 #! /usr/bin/env python
 
-print 'Loading module...'
-import numpy as np
-import os
-import matplotlib
-if os.popen('echo $DISPLAY').readline() == 'localhost:10.0\n': 
-    print 'Deactivating display...'
-    matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
-from mpl_toolkits.axes_grid1 import AxesGrid as AG
-from matplotlib import rc
-from matplotlib.backends.backend_pdf import PdfPages as PDF
-from matplotlib.collections import PatchCollection
-print 'syncing mesh...'
-from pyraf import iraf
-import pyfits
-print 'calculating splines...'
-import ADEUtils as ADE
-import time
-print 'initializing goodness...'
 import sys
-import glob
-from datetime import datetime
-import ConfigParser
-import pickle
-import MANGAmap as mmp
-print 'load complete!\n'
+def loader():
+    '''Import all of the necessary modules.  
+    This function exists so if the user gives bad arguments to a MANGA call
+    they don't have to wait for all these imports before an error is raised.
+
+    '''
+    print 'Loading module...'
+    import numpy as np
+    import os
+    import matplotlib
+    if os.popen('echo $DISPLAY').readline() == 'localhost:10.0\n': 
+        print 'Deactivating display...'
+        matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle
+    from mpl_toolkits.axes_grid1 import AxesGrid as AG
+    from matplotlib import rc
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    from matplotlib.collections import PatchCollection
+    print 'syncing mesh...'
+    from pyraf import iraf
+    import pyfits
+    print 'calculating splines...'
+    import ADEUtils as ADE
+    import time
+    print 'initializing goodness...'
+    import glob
+    from datetime import datetime
+    import ConfigParser
+    import pickle
+    import MANGAmap as mmp
+    print 'load complete!\n'
 
 debug = False
 
@@ -1193,6 +1199,9 @@ def shade_circle(ax,coords,tput,plist,tlist):
 
 if __name__ == '__main__':
     if len(sys.argv) >= 2:
+        loader()
         sys.exit(main())
     else:
         print "the request was made but it was not good"
+else:
+    loader()
