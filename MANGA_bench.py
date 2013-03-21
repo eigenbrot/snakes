@@ -7,6 +7,10 @@ def loader():
     they don't have to wait for all these imports before an error is raised.
 
     '''
+    global ConfigParser, np, os, matplotlib, plt, Circle, AG, rc, PDF,\
+        PatchCollection, iraf, pyfits, ADE, time, glob, datetime, pickle,\
+        mmp
+
     print 'Loading module...'
     import numpy as np
     import os
