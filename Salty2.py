@@ -49,7 +49,7 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
         ax = plotlist[-1].add_subplot(111)
         ax.set_title('Height = {:4.3f} kpc'.format(height))
         ax.set_xlabel('$r$ [kpc]')
-        ax.set_ylabel('$V_r$ [km/s]')
+        ax.set_ylabel('$V(r)$ [km/s]')
         for galaxy, diskfraction in zip(frac_results,fraclist):
             zr, zv = galaxy.get_TVC(height)
             xvr, xvv, _ = simcurve(1001,height,zv[-1],hrot,0.0,5,0.5,np.pi,
@@ -170,7 +170,7 @@ def simcurve(size,Z,v_r,h_rot,
     if ax:
         radii_vec = scale*(np.arange(size)-size/2)
         rot_curve_r = radii_vec[np.where(radii_vec > 0)]
-#        rot_curve_vec = v_r*np.tanh(TVC/h_rot) ## this isn't right
+        rot_curve_vec = v_r*np.tanh(rot_curve_r/h_rot) ## this isn't right
         ax.plot(radii_vec,np.sum(LOSfracarray,axis=0),label=label)
         ax.plot(rot_curve_r,rot_curve_vec,':',label=rot_label)
         ax.set_xlim(-50,50)
