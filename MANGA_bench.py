@@ -471,6 +471,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
         print 'Output position is ('+outpos+')'
         focal_length = nood[fiber_pos]['focal_length']
         focal_ratio = nood[fiber_pos]['focal_ratio']
+#        focal_length = 53.2988
         print 'Camera focal length = '+str(focal_length)+' mm'
         print 'Fiber fed at f/{}'.format(int(focal_ratio))
     

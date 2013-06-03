@@ -195,12 +195,13 @@ def yaki(ini):
     #for L2
     # return N.ratios[key]['data']['V']['direct']['final']
 
-def omnom(fitsfile,pp,EEcut=0.5):
+def omnom(fitsfile,pp,EEcut=0.5,fitsexten=0):
 
-    data = pyfits.open(fitsfile)[0].data
+    data = pyfits.open(fitsfile)[fitsexten].data
 
     r, sb, err = ADE.annulize(data,300)
-    r *= 0.024
+#    r *= 0.024
+    
     flux = np.cumsum(sb)
     EE = flux/flux.max()
 
@@ -234,12 +235,12 @@ def omnom(fitsfile,pp,EEcut=0.5):
 
 
 
-def nomlom(fitsfile,x):
+def nomlom(fitsfile,x,fitsexten=0):
 
     data = pyfits.open(fitsfile)[0].data
     
     r, sb, err = ADE.annulize(data,300)
-    r *= 0.024
+#    r *= 0.024
     flux = np.cumsum(sb)
     EE = flux/flux.max()
 

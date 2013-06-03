@@ -32,15 +32,19 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
     modelr = np.linspace(0,np.abs(SALTr).max(),100)
     modelv = V_c*np.tanh(modelr/hrot)
 
-    frac_results = []
-    print "Generating galaxies..."
-    for frac in fraclist:
+    if type(fraclist[0]) != float:
+        frac_results = fraclist[:]
+    
+    else:
+        frac_results = []
+        print "Generating galaxies..."
+        for frac in fraclist:
         
-        galpars = na.make_galaxy(frac,rot_curve=(modelr,modelv))
-#        galpars = [3.363e8, 7.171e6,22.759]
-        frac_results.append(PGP(galpars))
+            galpars = na.make_galaxy(frac,rot_curve=(modelr,modelv))
+        #        galpars = [3.363e8, 7.171e6,22.759]
+            frac_results.append(PGP(galpars))
 
-    print "done."
+            print "done."
     plotlist = []
     print 'Generating plots...'
     for height in zlist:
@@ -50,7 +54,7 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
         ax.set_title('Height = {:4.3f} kpc'.format(height))
         ax.set_xlabel('$r$ [kpc]')
         ax.set_ylabel('$V(r)$ [km/s]')
-        for galaxy, diskfraction in zip(frac_results,fraclist):
+        for galaxy, diskfraction in zip(frac_results,[0.4,0.6,0.8]):
             zr, zv = galaxy.get_TVC(height)
             xvr, xvv, _ = simcurve(1001,height,zv[-1],hrot,0.0,5,0.5,np.pi,
                                    kappa_0=1.652,z_d=0.245,
@@ -59,8 +63,9 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
             ax.plot(xvr,xvv,label=str(diskfraction))
             ax.plot(zr,zv,'b:')
             ax.plot(modelr,modelv,'k:')
-        ax.set_xlim(-40,40)
-        ax.legend(loc=0)
+        ax.set_xlim(0,35)
+        ax.set_ylim(0,270)
+        ax.legend(loc=0,title='Disk maximality')
 #        plotlist[-1].show()
     print 'done'
 
