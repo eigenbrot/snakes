@@ -341,7 +341,7 @@ _ = raw_input('')
 r = np.arange(12) # just like Python's range(), but produces a ndarray
 print "the size of r is {}".format(r.size) # ndarray.size will tell you how
                                            # many elements are in that array
-r2d = r.reshape((4,3)) # creates a 3x3 array from r
+r2d = r.reshape((4,3)) # creates a 4x3 array from r
 print "and the shape of r2d is {}\n".format(r2d.shape) # this returns a tuple
                                                      # with the size of each
                                                      # dimension
