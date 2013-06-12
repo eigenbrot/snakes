@@ -3,9 +3,12 @@
 import random, os, sys
         
 class Board:
-    '''The Board class holds all the information about a current game. It takes 
-    palyer moves and records them on the game field. It also displays the 
-    current state of the game field'''
+    '''
+    The Board class holds all the information about a current game. It takes 
+    player moves and records them on the game field. It also displays the 
+    current state of the game field
+
+    '''
     
     def __init__(self,numRows,numCols):
         """Initializes the data used in connect four"""
@@ -42,8 +45,10 @@ class Board:
         self.data[r][c]=ox
         
     def allowsMove(self,c):
-        """Czechs to see if moving in column c is legal. Illegalities
-            arise when the column is full or non-existant.
+        """
+        Czechs to see if moving in column c is legal. Illegalities arise when
+        the column is full or non-existant.
+        
         """
         if c not in range(self.cols) or self.data[0][c] != ' ':
             return False
@@ -51,8 +56,10 @@ class Board:
             return True
             
     def isFull(self):
-        """Czechs to see if the board is full of czechers. Returns true
-            if the board is full.
+        """
+        Czechs to see if the board is full of czechers. Returns true if the
+        board is full.
+        
         """
         for i in range(self.cols):
             if self.allowsMove(i) == True:
@@ -68,8 +75,10 @@ class Board:
         self.data[r][c]=' '
         
     def winsFor(self,ox):
-        """Returns true if player ox (either 'O' or 'X') has four pieces
-            in a row.
+        """
+        Returns true if player ox (either 'O' or 'X') has four pieces in a
+        row.
+        
         """
         for i in range(self.rows):
             if self.horz(ox,i):return True
@@ -142,23 +151,29 @@ class Board:
         return False
     
     def gameOver(self):
-        """Returns true if the board represents a completed game of 
-            connect 4. Completion occurs with victory or a full board.
+        """
+        Returns true if the board represents a completed game of connect
+        4. Completion occurs with victory or a full board.
+        
         """
         if self.winsFor('X')==True or self.winsFor('O')==True:
             return True
-        if self.isFull()==True: return True
-        else:return False
+        if self.isFull()==True: 
+            return True
+        else:
+            return False
 
     def playGame(self,p1,p2):
-        """Sets up a game of connect four b/t two players, p1 and p2.
-            Each player must be a Player class unless the player's
-            ply=='HUMAN', in which case that player will allow for user
-            input.
+        """
+        Sets up a game of connect four b/t two players, p1 and p2.  Each
+        player must be a Player class unless the player's ply=='HUMAN', in
+        which case that player will allow for user input.
+          
         """
         print self
         c=1
-        while True:
+        
+        while True: # I'm a bad boy
 
             while c==1:
                 if p2.ply=='HUMAN' and p1.ply!='HUMAN':
@@ -214,10 +229,10 @@ class Player:
     
     def __init__(self,ox,tbt,ply,totalply):
         """initializes the data for the player class"""
-        self.ox=ox
-        self.tbt=tbt
-        self.ply=ply
-        self.totalply=totalply
+        self.ox=ox             # Player character
+        self.tbt=tbt           # Tie break behaviour
+        self.ply=ply           # Counter for recursion
+        self.totalply=totalply # Move recursion depth
         
     def __repr__(self):
         """Displays the characteristics of the player class"""
@@ -240,10 +255,11 @@ class Player:
         else: return 50.0
         
     def tiebreakMove(self,scores):
-        """Takes in a list of colum scores and moves in the column with the
-            highest score. If there are more than one high score then 
-            the player will chose one depending on the tbt type defined in 
-            the class.
+        """
+        Takes in a list of colum scores and moves in the column with the
+        highest score. If there are more than one high score then the player
+        will chose one depending on the tbt type defined in the class.
+        
         """
         t=[]
         m=max(scores)
@@ -263,8 +279,10 @@ class Player:
             
             
     def findhi(self,H):
-        """Finds the list index of the element with the highest value.
-            Input: ([List])
+        """
+        Finds the list index of the element with the highest value.  
+        Input: ([List])
+        
         """
         if len(H) == 1:
             return 0
@@ -274,9 +292,12 @@ class Player:
             return self.findhi(H[1:]) + 1
         
     def scoresFor(self,b):
-        """Returns a list of goodness scores with each element in the list
-            coresponding to a column on the game board.
         """
+        Returns a list of goodness scores with each element in the list
+        coresponding to a column on the game board.
+        
+        """
+        
         '''base case; just score the board'''
         if self.ply==0:
             Z=[]
@@ -302,8 +323,9 @@ class Player:
                         badguy = Player(self.oppChar(),self.tbt,
                                       self.ply-1,self.totalply)
                         
-                        '''weight each score by how many moves it took
-                        to get there'''
+                        '''weight each score by how many moves it took to get
+                        there. This is currently in developement and does not
+                        work.'''
                         if self.ply - 1 > 100:
                             badscore = [s * (float(self.ply - 1)\
                                                  /(self.totalply))
@@ -326,8 +348,10 @@ class Player:
             return L
             
     def nextMove(self,b):
-        """Creates the next move for the computer player, or asks the user
-            for input.
+        """
+        Creates the next move for the computer player, or asks the user for
+        input.
+        
         """
         if self.ply!='HUMAN':
             return self.tiebreakMove(self.scoresFor(b))
@@ -336,6 +360,11 @@ class Player:
             return x
 
 def main():
+    """
+    Gathers information from the user to construct the board and player
+    classes. Then activates the board's playGame().
+
+    """
 
     '''get information about the size of the terminal window'''
     rows, columns = os.popen('stty size', 'r').read().split()
