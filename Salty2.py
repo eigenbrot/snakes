@@ -88,7 +88,7 @@ def find_Vc(r, v, err):
         frontstd = np.std(v[frontidx]) ##
         fronterr = ((np.sum(err[frontidx]**2))**0.5)/len(frontidx) ##
 
-    '''this should be 2*bacerr for real data'''
+    '''this should be 2*backerr for real data'''
     while backstd < 2*backerr:        
         backidx.append(backidx[-1]-1)
         backstd = np.std(v[backidx])
@@ -110,9 +110,10 @@ def find_Vc(r, v, err):
 
 
 def simcurve(size,Z,v_r,h_rot,
-             w=0,N=6,pitch=np.pi/4.,view_ang=np.pi,ax=False,scale=1.,
+             ax=False,scale=1.,
              kappa_0=1.62,z_d=0.245,label='',rot_label=False,
-             p=False,rot_curve=False,output='test.fits'):
+             p=False,rot_curve=False,output='test.fits',
+             spiralpars=None,flarepars=None):
 
     #Z is in kpc, not scale heights
 
@@ -137,36 +138,43 @@ def simcurve(size,Z,v_r,h_rot,
     # else: N = 6
 
     #This array holds the opacity of each bin
-    kaparray = np.exp(-1*(distances/h_d))*\
-        LSP(distances, angles, w*0.8,N,pitch,view_ang + np.pi/6)
-    kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray.max()
+    kaparray = np.exp(-1*(distances/h_d))
+    kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray.max()        
 
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
     # total normalization is irrelevant
     Iarray = np.exp(-1*(distances/h_d))
-    lumpy = LSP(distances, angles, w,N,pitch,view_ang)
-    Iarray *= lumpy*np.exp(-1*(Z/h_z))/Iarray.max()
+    Iarray *= np.exp(-1*(Z/h_z))/Iarray.max()
 
+    # Now add whatever morphological extras the user desires
+    if spiralpars:
+        spiral = LSP(distances,angles,**spiralpars)
+        kaparray *= spiral
+        Iarray *= spiral
+    if flarepars:
+        flare = disco(distances,Z,h_z,**flarepars)
+        kaparray *= flare
+        Iarray *= flare
 
-    #for each sight line, we'll now figure out the relative light contributions from each
-    # bin along the sight line   
+    #for each sight line, we'll now figure out the relative light
+    # contributions from each bin along the sight line
     kapcum = np.cumsum(kaparray,axis=0)
     tauarray = scale*kapcum
        
     #This array will hold the relative contribution from each bin
     fracarray = Iarray*np.exp(-1*tauarray)
 
-    #Compute the rotation curve either with a tanh model, or from a provided 1D
-    # curve
+    #Compute the rotation curve either with a tanh model, or from a provided
+    # 1D curve
     if not rot_curve: TVC = v_r*np.tanh(distances/h_rot)
     else:
         def comp_TVC(rr): return np.interp(rr,rot_curve[0],rot_curve[1])
         vcomp = np.vectorize(comp_TVC)
         TVC = vcomp(distances)
     
-    #Now let's compute the projected los velocity of each bin, assuming the entire disc
-    # rotates with v_r
+    #Now let's compute the projected los velocity of each bin, assuming the
+    # entire disc rotates with v_r
     v_sarray = TVC*np.cos(angles)
 
     #finally, the light-weighted contribution to total LOS velocity
@@ -198,24 +206,35 @@ def simcurve(size,Z,v_r,h_rot,
     
     frachdu.header.update('Z',Z)
     frachdu.header.update('h_rot',h_rot,comment='kpc')
-    frachdu.header.update('w',w)
-    frachdu.header.update('N',N)
-    frachdu.header.update('pitch',pitch)
-    frachdu.header.update('VIEWANG',view_ang)
     frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
     frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
     frachdu.header.update('h_d',h_d,comment='Gas and dust scale length in kpc')
     frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
-    frachdu.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
-    frachdu.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
-    frachdu.header.update('CRVAL1',0.0,
-                          comment='WCS: X reference coordinate value')
-    frachdu.header.update('CRVAL2',0.0,
-                          comment='WCS: Y reference coordinate value')
-    frachdu.header.update('CDELT1',scale,comment='WCS: X pixel size')
-    frachdu.header.update('CDELT2',scale,comment='WCS: Y pixel size')
-    frachdu.header.update('CTYPE1','LINEAR',comment='X type')
-    frachdu.header.update('CTYPE2','LINEAR',comment='Y type')
+
+    if spiralpars:
+            frachdu.header.update('w',spiralpars['w'])
+            frachdu.header.update('N',spiralpars['N'])
+            frachdu.header.update('pitch',spiralpars['pitch'])
+            frachdu.header.update('VIEWANG',spiralpars['view_ang'])
+
+    if flarepars:
+        frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length')
+
+    # Add WCS coordinates (kpc) to headers
+    for HDU in [frachdu, tauhdu, kaphdu, Ihdu, 
+                vshdu, LOShdu, dhdu, ahdu, rothdu]:
+
+        HDU.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
+        HDU.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
+        HDU.header.update('CRVAL1',0.0,
+                              comment='WCS: X reference coordinate value')
+        HDU.header.update('CRVAL2',0.0,
+                              comment='WCS: Y reference coordinate value')
+        HDU.header.update('CDELT1',scale,comment='WCS: X pixel size')
+        HDU.header.update('CDELT2',scale,comment='WCS: Y pixel size')
+        HDU.header.update('CTYPE1','LINEAR',comment='X type')
+        HDU.header.update('CTYPE2','LINEAR',comment='Y type')
+
     if rot_curve: frachdu.header.update('rotcurve','yes')
     else: frachdu.header.update('rotcurve','False')
 
@@ -242,7 +261,10 @@ def simcurve(size,Z,v_r,h_rot,
     return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
 
 def LSP(distances, angles, w, bigN, p, vtheta):
-    
+    '''Generates an array that redistributes light into spiral arms via the
+    prescription of ASR 2012
+    '''
+
     prodlist = []
     
     for n in np.arange(2,bigN+1,2):
@@ -253,7 +275,16 @@ def LSP(distances, angles, w, bigN, p, vtheta):
 
     return 1 - w + np.array(prodlist).prod(axis=0)
     
+def disco(distances, Z, h_z, h_zR):
+    '''Generates an array that creates a galaxy where the scale height depends
+    on r via  h_z(R) = exp(R/h_zR), i.e. a flare
+    '''
+    
+    ideal_flare = np.exp(-1*Z / np.exp(distances/h_zR)) # The ideal flare formulation
+    outputarr = ideal_flare / np.exp(-1*Z/h_z) # Undoes the assumption of constant scale height
 
+    return outputarr
+    
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
                   rot_label='rotation_curve',pars=np.array([0,230,5.5,0.8,6.,0.36,np.pi/2.,0.652]),fixed=[],p=False):
