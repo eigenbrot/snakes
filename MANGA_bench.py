@@ -141,8 +141,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
         print '   Direct throughput correction is '+str(dcorrect)
         print '   Fiber throughput correction is '+str(fcorrect)
         
-        # direct *= dcorrect
-        # fiber *= fcorrect
+        direct *= dcorrect
+        fiber *= fcorrect
         
         if debug: 
             pot.plot(filt,[direct_start_time,direct_end_time,fiber_start_time,fiber_end_time])
