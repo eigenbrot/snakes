@@ -206,23 +206,32 @@ def simcurve(size,Z,v_r,h_rot,
     
     frachdu.header.update('Z',Z)
     frachdu.header.update('h_rot',h_rot,comment='kpc')
+    frachdu.header.update('v_r',v_r,comment='v_r')
     frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
     frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
     frachdu.header.update('h_d',h_d,comment='Gas and dust scale length in kpc')
     frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
 
+    hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
+               vshdu, LOShdu, dhdu, ahdu, rothdu]
+
     if spiralpars:
-            frachdu.header.update('w',spiralpars['w'])
-            frachdu.header.update('N',spiralpars['N'])
-            frachdu.header.update('pitch',spiralpars['pitch'])
-            frachdu.header.update('VIEWANG',spiralpars['view_ang'])
+        spiralhdu = pyfits.ImageHDU(spiral)
+        sprialhdu.header.update('EXTNAME','SPIRAL')
+        hdulist.append(spiralhdu)
+        frachdu.header.update('w',spiralpars['w'])
+        frachdu.header.update('N',spiralpars['N'])
+        frachdu.header.update('pitch',spiralpars['pitch'])
+        frachdu.header.update('VIEWANG',spiralpars['view_ang'])
 
     if flarepars:
+        flarehdu = pyfits.ImageHDU(flare)
+        flarehdu.header.update('EXTNAME','FLARE')
+        hdulist.append(flarehdu)
         frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length')
 
     # Add WCS coordinates (kpc) to headers
-    for HDU in [frachdu, tauhdu, kaphdu, Ihdu, 
-                vshdu, LOShdu, dhdu, ahdu, rothdu]:
+    for HDU in hdulist:
 
         HDU.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
         HDU.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
@@ -248,15 +257,7 @@ def simcurve(size,Z,v_r,h_rot,
     ahdu.header.update('EXTNAME','ANG')
     rothdu.header.update('EXTNAME','ROT')
 
-    pyfits.HDUList([frachdu,
-                    tauhdu,
-                    kaphdu,
-                    Ihdu,
-                    vshdu,
-                    LOShdu,
-                    dhdu,
-                    ahdu,
-                    rothdu]).writeto(output,clobber=True)
+    pyfits.HDUList(hdulist).writeto(output,clobber=True)
 
     return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
 
