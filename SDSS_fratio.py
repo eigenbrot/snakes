@@ -21,9 +21,9 @@ def kegstand(searchstr,EEfigs,Nfig,EE=0.50):
     in_files = glob(searchstr)
     
     for image in in_files:
-        
+        print image
         HDU = pyfits.open(image)[0]
-        dp = HDU.header['ANGLE']
+        dp = float(image.split('_')[2].split('.fits')[0])
         dprime = np.append(dprime, dp)
         radius = get_radius(HDU.data,pp,EE)
         R = np.append(R, radius)
@@ -80,7 +80,7 @@ def get_radius(data,pp,EEcut):
     """
     
     r, sb, err = ADE.fast_annulize(data,300)
-    r *= 0.0052
+    r *= 0.0044
     
     flux = np.cumsum(sb)
     EE = flux/flux.max()
