@@ -7,7 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
-def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17):
+def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,ax=None,label=None):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
                                  pxbin=16.) #Right now this is hard coded for
@@ -17,24 +17,26 @@ def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17):
 #    v, I = ADE.ADE_gauss(1000,500,50)
     I *= peak_scale/I.max()
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(v,I)
+    if not ax:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+    l = ax.plot(v,I,label=label)[0]
 
     cdf = np.cumsum(I)
     cdf /= cdf.max()
     lowidx = int(np.interp(0.1,cdf,np.arange(cdf.size)))
-    highidx = int(np.interp(0.9,cdf,np.arange(cdf.size))) + 1
+    highidx = int(np.interp(0.9,cdf,np.arange(cdf.size)))
 
-    ax.axvline(x=v[lowidx])
-    ax.axvline(x=v[highidx])
+    ax.axvline(x=v[lowidx],alpha=0.4,color=l.get_color())
+    ax.axvline(x=v[highidx],alpha=0.4,color=l.get_color())
 
-    moments = ADE.ADE_moments(v[lowidx:highidx], I[lowidx:highidx], threshold=np.inf)
+    moments = ADE.ADE_moments(v[lowidx:highidx+1], I[lowidx:highidx+1], threshold=np.inf)
 
     if plot:
         fig.show()
 
-    return moments, v, I
+    return moments, v, I, ax
 
 def noise_line(simfile,radius,peak_scale):
 
@@ -78,10 +80,10 @@ def line_comp(simfile,slayfile,plotprefix,width=17):
     print "{:^20} {:^20} {:^20}\n{:^10}{:^10}".format('m1','m2','m3','model','data')
     print ("-"*20+'    ')*3
     for i in range(dradii.size):
-        (mm1, mm2, mm3), V, I = do_line(simfile,dradii[i],1.,
+        (mm1, mm2, mm3), V, I, _ = do_line(simfile,dradii[i],1.,
                                         plot=False,Iwidth=width)
 
-        (nm1,nm2,nm3), negV, negI = do_line(simfile,-1*dradii[i],1.,
+        (nm1,nm2,nm3), negV, negI, _ = do_line(simfile,-1*dradii[i],1.,
                                plot=False,Iwidth=width)
 
         # cent_lambda = central_lambda[np.where(

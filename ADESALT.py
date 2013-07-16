@@ -168,7 +168,7 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
         #changed this as of 12.7 to baselineorder = 2
         spec.plotter(figure=0,xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='-')
         spec.plotter.figure.show()
-        spec.baseline(order=2,fit_plotted_area=True)
+        spec.baseline(order=3,fit_plotted_area=True)
         spec.specfit(guesses=guesses,tied=tied,negamp=False,fit_plotted_area=True)
         spec.plotter(xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='')
 #        spec.specfit(guesses=guesses,tied=tied,negamp=False)
@@ -319,6 +319,17 @@ def slayer(specimage,errimage,radii,guesses,outputfile,nrows=False,interact=Fals
     momenthead = pyfits.ImageHDU(np.hstack(total_moments))
     radiihead = pyfits.ImageHDU(np.array(radii))
     phead.header.update('SLAYDATE',datetime.now().isoformat(' '))
+    phead.header.update('SPECIM',specimage,comment='Input 2D spectrum')
+    phead.header.update('ERRIM',errimage,comment='Input error spectrum')
+    phead.header.update('NROWS',nrows,comment='Number of rows summed per aperture')
+    for l in range(numlines):
+        phead.header.update('L{}M0'.format(l),guesses[l*3],comment=\
+                                'Line {} moment 0 guess'.format(l))
+        phead.header.update('L{}M1'.format(l),guesses[l*3+1],comment=\
+                                'Line {} moment 1 guess'.format(l))
+        phead.header.update('L{}M2'.format(l),guesses[l*3+2],comment=\
+                                'Line {} moment 2 guess'.format(l))
+        
     datahead.header.update('EXTNAME','FIT')
     errorhead.header.update('EXTNAME','ERROR')
     momenthead.header.update('EXTNAME','MOMENTS')
