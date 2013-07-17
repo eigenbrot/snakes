@@ -450,7 +450,7 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
 
     offset = helpoff(pxradii,avg_centers)
     #offset = 271.750855446
-    print "Offset is "+str(offset)
+    #print "Offset is "+str(offset)
     
     kpcradii = pxradii - offset
     kpcradii *= 0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
@@ -465,7 +465,7 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     if moments:
         all_moments = hdus[4].data
         m1 = (all_moments[:,::3] - central_lambda)/central_lambda*3e5
-        m2 = all_moments[:,1::3]
+        m2 = all_moments[:,1::3] / central_lambda * 3e5
         m3 = all_moments[:,2::3]
 #        m1 = np.delete(m1,badidx)
 #        m2 = np.delete(m2,badidx)
@@ -572,17 +572,27 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     pxradii = pyfits.open(slayfile)[3].data
 
     row = np.where(np.abs(kpcradii-radius) == np.min(np.abs(kpcradii-radius)))[0][0]
-    print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
+    #print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
 
     hdu = pyfits.open(datafile)[0]
     CRVAL = hdu.header['CRVAL1']
     Cdelt = hdu.header['CDELT1']
-    
+    try:
+        seperr = hdu.header['SEPERR']
+    except KeyError:
+        seperr = False
+
     # We use '=f8' to force the endianess to be the same as the local
     # machine. This is so the precompiled bottleneck (bn) functions don't
     # complain
-    spectrum = np.array(hdu.data[row*2],dtype='=f8')
-    error = hdu.data[row*2 + 1]
+    if seperr:
+        spectrum = np.array(hdu.data[row],dtype='=f8')
+        errorfile = datafile.split('.')[0]+'_error.ms.fits'
+        error = pyfits.open(errorfile)[0].data[row]
+    else:
+        spectrum = np.array(hdu.data[row*2],dtype='=f8')
+        error = hdu.data[row*2 + 1]
+
     wave = np.arange(spectrum.size)*Cdelt + CRVAL
     
     idx = np.where((wave >= wavelength - window/2.) & (wave <= wavelength + window/2.))
