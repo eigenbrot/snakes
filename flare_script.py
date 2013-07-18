@@ -10,15 +10,18 @@ and non-flared models and compare them to data. It is designed to be run in
 def do():
 
     h_r = 8.3
-    hzrlist = np.arange(1,2)
+    hzrlist = np.arange(0.25,1.75,0.25) * h_r
     filelist = ['tiESO_z0_MgI.slay.fits',
                 'tiESO_z05_MgI.slay.fits',
                 'tiESO_z1_MgI.slay.fits']
     zlist = [0,0.43,0.86]
     fliplist = [False,True,False]
 
+    print "hzrlist:"
+    print hzrlist
+
     vclist = [salty.find_Vc(*salty.openslay(i)) for i in filelist]
-    
+
     '''generate some sim files'''
     for filename, z, flip, vc in zip(filelist,zlist,fliplist,vclist):
         print filename+':'
