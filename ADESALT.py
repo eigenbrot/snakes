@@ -470,9 +470,13 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
 #        m1 = np.delete(m1,badidx)
 #        m2 = np.delete(m2,badidx)
 #        m3 = np.delete(m3,badidx)
+        hdus.close()
         return (kpcradii,avg_centers,std_centers,m1,m2,m3)
 
-    else: return (kpcradii,avg_centers,std_centers)
+
+    else: 
+        hdus.close()
+        return (kpcradii,avg_centers,std_centers)
 
 def helpoff(radii,centers):
 
@@ -574,7 +578,8 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     row = np.where(np.abs(kpcradii-radius) == np.min(np.abs(kpcradii-radius)))[0][0]
     #print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
 
-    hdu = pyfits.open(datafile)[0]
+    datahdus = pyfits.open(datafile)
+    hdu = datahdus[0]
     CRVAL = hdu.header['CRVAL1']
     Cdelt = hdu.header['CDELT1']
     try:
@@ -610,6 +615,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     if plot:
         fig.show()
 
+    datahdus.close()
     return wave[idx], spectrum[idx], error[idx]
 
 def plot_row(msfile,rownum,smooth=False,ax=False):
@@ -649,3 +655,79 @@ def plot_row(msfile,rownum,smooth=False,ax=False):
     fig.show()
 
     return ax
+
+def SNbinning(msfile, SN_thresh=40, fit_deg=2):
+    
+    z = 0.008246 #For ESO 435-G25
+    line = 5007. #[OIII]
+
+    HDU = pyfits.open(msfile)[0]
+    flux = HDU.data
+    crpx = HDU.header['CRPIX1']
+    crval = HDU.header['CRVAL1']
+    crdelt = HDU.header['CDELT1']
+    try:
+        seperr = HDU.header['SEPERR']
+    except KeyError:
+        seperr = False
+    if seperr:
+        errorfile = msfile.split('.')[0]+'_error.ms.fits'
+        error = pyfits.open(errorfile)[0].data
+    fluxoutput = msfile.split('.')[0]+'.ms.bin.fits'
+    erroutput = msfile.split('.')[0]+'_error.ms.bin.fits'
+
+    wave = np.arange(flux.shape[1])*crdelt + crval
+
+    waveidx = np.where((wave > line*(1+z) - 10.) & (wave < line*(1+z) + 10.))[0]
+    waveregion = wave[waveidx]    
+    SN = 0
+    idx1 = 0
+    idx2 = idx1
+    binnum = 1
+    fluxlist = []
+    errlist = []
+
+    while idx2 < flux.shape[0] - 1:
+        SN = 0
+        print binnum
+        while SN < SN_thresh:
+            if seperr:
+                idx2 += 1
+                region = np.sum(flux[idx1:idx2,waveidx],axis=0)
+            else:
+                idx2 += 2
+                region = np.sum(flux[idx1:idx2:2,waveidx],axis=0)
+            if idx2 > flux.shape[0] - 1:
+                break
+
+            peakwave = waveregion[np.where(region == region.max())[0]]
+            velos = (waveregion - peakwave)/peakwave * 3e5
+            sigidx = np.where((velos > -120) & (velos < 120))[0]
+            region -= np.median(region)
+            signal = np.sum(region[sigidx])
+
+            if seperr:
+                noise = np.sqrt(np.sum(
+                        error[idx1:idx2,waveidx][:,sigidx]**2))
+            else:
+                noise = np.sqrt(np.sum(
+                        flux[idx1+1:idx2+1:2,waveidx][:,sigidx]**2))
+            
+            SN = signal/noise
+            print '\t{} {}\n\t\t{}'.format(idx1,idx2,SN)
+
+        HDU.header.update('SNBIN{}'.format(binnum),
+                          '{:} {:} {:5.3f}'.format(idx1,idx2,SN))
+        if seperr:
+            fluxlist.append(np.mean(flux[idx1:idx2,:],axis=0))
+            errlist.append(np.mean(error[idx1:idx2,:],axis=0))
+        else:
+            fluxlist.append(np.mean(flux[idx1:idx2:2,:],axis=0))
+            errlist.append(np.mean(flux[idx1+1:idx2+1:2,:],axis=0))
+        idx1 = idx2
+        binnum += 1
+
+    pyfits.PrimaryHDU(np.vstack(fluxlist),HDU.header).writeto(fluxoutput,clobber=True)
+    pyfits.PrimaryHDU(np.vstack(errlist),HDU.header).writeto(erroutput,clobber=True)
+
+    return
