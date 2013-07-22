@@ -2,16 +2,16 @@ import numpy as np
 import Salty2 as salty
 import pyfits
 
-def make_image(output):
+def make_image(output,h_zR):
 
-    v_r = 230.
+    v_r = 238.3067
     hrot = 5.45
     h_z = 0.43
     size = 501
     scale = 100.0/size
-    flarepars = dict(h_zR = 8.3)
+    flarepars = dict(h_zR = h_zR)
 
-    maxz = 50.0
+    maxz = 2.0
     numz = 250
 
     heights = np.linspace(0,maxz,numz)
@@ -20,7 +20,7 @@ def make_image(output):
 
     for Z in heights:
 
-        name = 'eonview_{:03.0f}.fits'.format(Z*100)
+        name = 'eonview_f{:04.0f}_{:04.0f}.fits'.format(h_zR*100,Z*1000)
         print Z, name
         salty.simcurve(size,Z,v_r,hrot,scale=scale,flarepars=flarepars,
                        output=name)

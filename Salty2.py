@@ -7,6 +7,7 @@ import scipy.optimize as spo
 import matplotlib.pyplot as plt
 import scipy.optimize as spo
 import NaCl as na
+import gc
 import ADEUtils as ADE
 from PyGalPot import PyGalPot as PGP
 from datetime import datetime
@@ -71,7 +72,7 @@ def gen_models(zlist,fraclist,SALTdata,hrot=5.45):
 
     return frac_results, plotlist
         
-def find_Vc(r, v, err):
+def find_Vc(r, v, err, back=True):
 
     frontidx = [0,1] ##
     frontstd = np.std(v[frontidx]) ##
@@ -94,9 +95,12 @@ def find_Vc(r, v, err):
         backstd = np.std(v[backidx])
         backerr = ((np.sum(err[backidx]**2))**0.5)/len(backidx)
     
-    finalv = (fronterr*np.abs(np.mean(v[frontidx])) + backerr*np.abs(np.mean(v[backidx])))/(fronterr + backerr)
+    if back:
+        finalv = (fronterr*np.abs(np.mean(v[frontidx])) + backerr*np.abs(np.mean(v[backidx])))/(fronterr + backerr)
     # finalv = np.mean(v[backidx])
-    
+    else:
+        finalv = np.mean(v[frontidx])
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.errorbar(r,v,yerr=err,fmt='.')
@@ -204,7 +208,7 @@ def simcurve(size,Z,v_r,h_rot,
     ahdu = pyfits.ImageHDU(angles)
     rothdu = pyfits.ImageHDU(TVC)
     
-    frachdu.header.update('Z',Z)
+    frachdu.header.update('Z',Z,comment='kpc')
     frachdu.header.update('h_rot',h_rot,comment='kpc')
     frachdu.header.update('v_r',v_r,comment='v_r')
     frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
@@ -257,7 +261,9 @@ def simcurve(size,Z,v_r,h_rot,
     ahdu.header.update('EXTNAME','ANG')
     rothdu.header.update('EXTNAME','ROT')
 
-    pyfits.HDUList(hdulist).writeto(output,clobber=True)
+    pyhdus = pyfits.HDUList(hdulist)
+    pyhdus.writeto(output,clobber=True)
+    pyhdus.close()
 
     return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
 
@@ -284,7 +290,7 @@ def disco(distances, Z, h_z, h_zR):
     ideal_flare = np.exp(-1*Z / np.exp(distances/h_zR)) # The ideal flare formulation
     outputarr = ideal_flare / np.exp(-1*Z/h_z) # Undoes the assumption of constant scale height
 
-    return outputarr
+    return outputarr/np.sum(outputarr)
     
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
@@ -378,7 +384,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
     return radii, velos, fitvelos, fitsig
 
-def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
+def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True,fit=True):
     """ Radius is in kpc"""
 
 
@@ -397,10 +403,8 @@ def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
         weights=np.mean(frac[:,column+1-pxbin/2.:column+1+pxbin/2.],axis=1),
         density=True)
     bincent = 0.5*(bins[1:]+bins[:-1])
-
     v = np.linspace(bincent.min()-200.,bincent.max()+200,numsamp)
     ihist = np.interp(v,bincent,vhist,right=0.0,left=0.0)
-
     gauss_arr = np.empty(numsamp)
 
     if plot:
@@ -412,6 +416,7 @@ def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
 
     for i in range(ihist.size):
 #        print ihist[i]
+        
         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth,NORM=False)
         gauss_arr = np.vstack((gauss_arr,gauss))
         if i % 25 == 0 and plot: ax0.plot(v,gauss)
@@ -422,12 +427,18 @@ def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
     gauss_arr /= np.sum(gauss_arr)
 
     lineshape = np.sum(gauss_arr,axis=0)
-
-    fitpars = spo.curve_fit(gaussfunc,v,lineshape,p0=(lineshape.max(),
-                                                      v[np.where(lineshape == lineshape.max())[0][0]],
-                                                      30.))[0]
-
-    mgauss = gaussfunc(v, *fitpars)
+    if fit:
+        print 'fitting'
+        fitpars = spo.curve_fit(gaussfunc,v,lineshape,
+                                p0=(lineshape.max(),
+                                    v[np.where(lineshape == \
+                                                   lineshape.max())[0][0]],
+                                    30.))[0]
+        
+        mgauss = gaussfunc(v, *fitpars)
+    
+    else:
+        fitpars = False
 
     if plot:
         fig = plt.figure()
@@ -436,10 +447,13 @@ def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True):
         ax.set_xlabel('Velocity [km/s]')
         ax.set_ylabel('Normalized power')
         ax.plot(v,lineshape)
-        ax.plot(v,mgauss)
+        if fit:
+            ax.plot(v,mgauss)
 
         fig.show()
 
+    hdus.close()
+    del gauss_arr
     return v, lineshape, fitpars
 
 def gaussfunc(x,peak,center,width): return peak*np.exp(-1*(x - center)**2/(2*width**2))

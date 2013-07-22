@@ -1,6 +1,7 @@
 import numpy as np
 import ADEUtils as ADE
 import ADESALT as sa
+import gc
 import Salty2 as salty
 import bottleneck as bn
 from datetime import datetime
@@ -10,9 +11,10 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,ax=None,label=None):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
-                                 pxbin=16.) #Right now this is hard coded for
-                                            #a 10 px binning during aperture
-                                            #extraction
+                                 pxbin=16.,fit=False) #Right now this is hard
+                                                      #coded for a 10 px
+                                                      #binning during aperture
+                                                      #extraction
 
 #    v, I = ADE.ADE_gauss(1000,500,50)
     I *= peak_scale/I.max()
@@ -86,13 +88,12 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
         (mm1, mm2, mm3), V, I, _ = do_line(simfile,radius,1.,
                                         plot=False,Iwidth=width)
 
-        (nm1,nm2,nm3), negV, negI, _ = do_line(simfile,-1*radius,1.,
-                               plot=False,Iwidth=width)
+        # (nm1,nm2,nm3), negV, negI, _ = do_line(simfile,-1*radius,1.,
+        #                        plot=False,Iwidth=width)
 
         # cent_lambda = central_lambda[np.where(
         #         np.abs(central_lambda - dm1[i,1]) == np.min(
         #             np.abs(central_lambda - dm1[i,1])))]
-        
         cent_lambda = 5048.126
         plot_center = dcent[i]/(3.e5) * cent_lambda + cent_lambda
         
@@ -161,6 +162,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     pp1.close()
     
     plt.clf()
+    plt.close('all')
 
     return 
 
