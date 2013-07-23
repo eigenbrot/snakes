@@ -168,7 +168,7 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
         #changed this as of 12.7 to baselineorder = 2
         spec.plotter(figure=0,xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='-')
         spec.plotter.figure.show()
-        spec.baseline(order=3,fit_plotted_area=True)
+        spec.baseline(order=2,fit_plotted_area=True)
         spec.specfit(guesses=guesses,tied=tied,negamp=False,fit_plotted_area=True)
         spec.plotter(xmin=fitmin,xmax=fitmax,errstyle='fill',linestyle='')
 #        spec.specfit(guesses=guesses,tied=tied,negamp=False)
@@ -222,8 +222,7 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
         ax.set_xlim(center-10.*std,center+10.*std)
         ax.text(0.05,0.95,
                 '$\mu$= {1:4.4f}\n$\mu_2$= {2:4.4f} $\Rightarrow\sigma$= {0:4.4f}\n$\mu_3$= {3:4.4f}'\
-                    .format(spec_moments[1]**0.5,*spec_moments),transform=ax.transAxes,ha='left',va='top')
-
+                    .format(spec_moments[1]**0.5,*spec_moments),transform=ax.transAxes,ha='left',va='top')        
         pp.savefig(spec.plotter.figure)
         pp.close()
 
@@ -247,6 +246,7 @@ def meat_moment(spec):
     # moment_minidx = int(np.interp(0.05,speccdf,np.arange(speccdf.size)))
     # moment_maxidx = int(np.interp(0.95,speccdf,np.arange(speccdf.size))) + 1
     except IndexError:
+        print "Error computing moments: Index Error"
         return np.array([0,0,0])
 
     ax = spec.plotter.figure.gca()
@@ -283,18 +283,31 @@ def make_curve(specimage, radii,guesses,outputfile,tied=[],\
 
     return
 
-def slayer(specimage,errimage,radii,guesses,outputfile,nrows=False,interact=False):
+def slayer(specimage,errimage,radii,guesses,outputfile,
+           nrows=False,interact=False,msfile=None):
     '''Takes a rectified SALT image and extracts some apertures and fits some
     lines. Unlike make_curve, each line is fit seperately which is nice when
     some of you lines suck. This is currently the perfered method.
     '''
 
-    specfile = specimage.split('.fits')[0]+'.ms.fits'
+    specfile = specimage.split('.fits')[0]+'_bin.ms.fits'
 
     if not nrows: 
         nrows = radii[1] - radii[0]
 
-    apextract(specimage,errimage,radii,nrows)
+    if not msfile:
+        #apextract(specimage,errimage,radii,nrows)
+        SNbinning(specimage,errimage)
+    else:
+        specfile = msfile
+        radii = []
+        head = pyfits.open(specfile)[0].header
+        i = 1
+        while 'APNUM{}'.format(i) in head:
+            rstr = head['APNUM{}'.format(i)].split(' ')
+            radii.append((int(rstr[2]) + int(rstr[3]))/2)
+            i +=1 
+        print radii
 
     total_results = []
     total_errs = []
@@ -656,77 +669,99 @@ def plot_row(msfile,rownum,smooth=False,ax=False):
 
     return ax
 
-def SNbinning(msfile, SN_thresh=40, fit_deg=2):
+def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
     
     z = 0.008246 #For ESO 435-G25
     line = 5007. #[OIII]
 
+    slayHDU = pyfits.open(slayfile)
+    pxradii = slayHDU[3].data
+    pars = slayHDU[1].data
+    centers = pars[:,1::3]
+    nrows = np.mean(np.diff(pxradii))
+    print 'Nrows: {}'.format(nrows)
+
+    msfile = slayfile.split('.slay.fits')[0]+'.ms.fits'
     HDU = pyfits.open(msfile)[0]
     flux = HDU.data
     crpx = HDU.header['CRPIX1']
     crval = HDU.header['CRVAL1']
     crdelt = HDU.header['CDELT1']
+    del HDU.header['APNUM*']
     try:
         seperr = HDU.header['SEPERR']
     except KeyError:
         seperr = False
+
     if seperr:
-        errorfile = msfile.split('.')[0]+'_error.ms.fits'
-        error = pyfits.open(errorfile)[0].data
-    fluxoutput = msfile.split('.')[0]+'.ms.bin.fits'
-    erroutput = msfile.split('.')[0]+'_error.ms.bin.fits'
+        errfile = msfile.split('.ms.fits')[0]+'_error.ms.fits'
+        error = pyfits.open(errfile)[0].data
+
+    fluxoutput = slayfile.split('.')[0]+'_bin.ms.fits'
+    erroutput = slayfile.split('.')[0]+'_bin_error.ms.fits'
 
     wave = np.arange(flux.shape[1])*crdelt + crval
 
-    waveidx = np.where((wave > line*(1+z) - 10.) & (wave < line*(1+z) + 10.))[0]
-    waveregion = wave[waveidx]    
+    # waveidx = np.where((wave > line*(1+z) - 10.) & (wave < line*(1+z) + 10.))[0]
+    # waveregion = wave[waveidx]    
     SN = 0
     idx1 = 0
     idx2 = idx1
-    binnum = 1
+    binnum = 0
     fluxlist = []
     errlist = []
 
     while idx2 < flux.shape[0] - 1:
         SN = 0
         print binnum
+        bincent = centers[idx1][1]
+        velos = (wave - bincent)/bincent * 3e5
+        sigidx = np.where((velos > -120) & (velos < 120))
+        signal = 0
+        noise = 0
         while SN < SN_thresh:
+            
+            ap = flux[idx2,:]
+            fit = np.poly1d(np.polyfit(wave,ap,fit_deg))
+            ap -= fit(wave)
+            signal += np.sum(flux[idx2,sigidx])
+
+            # peakwave = waveregion[np.where(region == region.max())[0]]
+            # velos = (waveregion - peakwave)/peakwave * 3e5
+            # sigidx = np.where((velos > -120) & (velos < 120))[0]
+            #region -= np.median(region)
+
+#            signal = np.sum(np.abs(region[sigidx]))
+
             if seperr:
+                noise = np.sqrt(noise**2 + np.sum(error[idx2,sigidx]**2))
                 idx2 += 1
-                region = np.sum(flux[idx1:idx2,waveidx],axis=0)
             else:
-                idx2 += 2
-                region = np.sum(flux[idx1:idx2:2,waveidx],axis=0)
+                noise = np.sqrt(noise**2 + np.sum(flux[idx2+1,sigidx]**2))
+                idx2 +=2
+
+            SN = signal/noise
+            print '\t{} {}\n\t\t{}'.format(idx1,idx2,SN)
+            
             if idx2 > flux.shape[0] - 1:
                 break
 
-            peakwave = waveregion[np.where(region == region.max())[0]]
-            velos = (waveregion - peakwave)/peakwave * 3e5
-            sigidx = np.where((velos > -120) & (velos < 120))[0]
-            region -= np.median(region)
-            signal = np.sum(region[sigidx])
-
-            if seperr:
-                noise = np.sqrt(np.sum(
-                        error[idx1:idx2,waveidx][:,sigidx]**2))
-            else:
-                noise = np.sqrt(np.sum(
-                        flux[idx1+1:idx2+1:2,waveidx][:,sigidx]**2))
-            
-            SN = signal/noise
-            print '\t{} {}\n\t\t{}'.format(idx1,idx2,SN)
-
-        HDU.header.update('SNBIN{}'.format(binnum),
-                          '{:} {:} {:5.3f}'.format(idx1,idx2,SN))
-        if seperr:
-            fluxlist.append(np.mean(flux[idx1:idx2,:],axis=0))
-            errlist.append(np.mean(error[idx1:idx2,:],axis=0))
-        else:
-            fluxlist.append(np.mean(flux[idx1:idx2:2,:],axis=0))
-            errlist.append(np.mean(flux[idx1+1:idx2+1:2,:],axis=0))
+        r1 = pxradii[idx1] - nrows/2
+        r2 = pxradii[idx2-1] + nrows/2
+        HDU.header.update('APNUM{}'.format(binnum+1),
+                          '{:} {:} {:n} {:n}'.format(binnum+1,binnum+1,r1,r2,))
+        # ax = plt.figure().add_subplot(111)
+        # ax.errorbar(velos,np.mean(flux[idx1:idx2,waveidx],axis=0),yerr=np.mean(error[idx1:idx2,waveidx],axis=0))
+        # ax.get_figure().show()
+        # raw_input('asdsa')
+        # plt.close(ax.get_figure())
+        
+        fluxlist.append(np.mean(flux[idx1:idx2,:],axis=0))
+        errlist.append(np.mean(error[idx1:idx2,:],axis=0))
         idx1 = idx2
         binnum += 1
 
+    HDU.header.update('SEPERR',True)
     pyfits.PrimaryHDU(np.vstack(fluxlist),HDU.header).writeto(fluxoutput,clobber=True)
     pyfits.PrimaryHDU(np.vstack(errlist),HDU.header).writeto(erroutput,clobber=True)
 
