@@ -173,7 +173,7 @@ lst[1] == tup[1] # True!
 # defined a list called "lst" twice in this code; one within the function
 # loop_test() and one outside of any function. This is totally OK (although
 # maybe not the best practice) because they are in different
-# namespaces. Variables assignment inside a function will never leave that
+# namespaces. Variable assignment inside a function will never leave that
 # function and variables defined within a module stay associated with that
 # module.
 #
