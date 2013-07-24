@@ -384,7 +384,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
     return radii, velos, fitvelos, fitsig
 
-def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True,fit=True):
+def line_profile(fitsfile,radius,Iwidth=17.,width=1.,plot=True,fit=True):
     """ Radius is in kpc"""
 
 
@@ -393,14 +393,21 @@ def line_profile(fitsfile,radius,Iwidth=17.,pxbin=1.,plot=True,fit=True):
     frac = hdus[0].data
     dist = hdus['DIST'].data
 
-    column = radius_to_column(dist,radius)
+    col1 = radius_to_column(dist,radius - width/2)
+    col2 = radius_to_column(dist,radius + width/2)
+
+    '''in this case, the desired width was less than the pixel resolution of
+    the simulation'''
+    if col1 == col2:
+        col2 += 1
+        print 'Desired width is less than simulation resolution. Using a width of {} kpc instead'.format(hdus[0].header['SCALE'])
 
     numsamp = 1000
 
     vhist, bins = np.histogram(
-        np.mean(vs[:,column+1-pxbin/2.:column+1+pxbin/2.],axis=1),
+        np.mean(vs[:,col1:col2],axis=1),
         bins=20,
-        weights=np.mean(frac[:,column+1-pxbin/2.:column+1+pxbin/2.],axis=1),
+        weights=np.mean(frac[:,col1:col2],axis=1),
         density=True)
     bincent = 0.5*(bins[1:]+bins[:-1])
     v = np.linspace(bincent.min()-200.,bincent.max()+200,numsamp)
@@ -460,11 +467,13 @@ def gaussfunc(x,peak,center,width): return peak*np.exp(-1*(x - center)**2/(2*wid
 
 def radius_to_column(dist,radius):
     '''a small helper function to convert a radius (in kpc) into a column
-    index that can be used to access various arrays'''
+    index that can be used to access various arrays produced by simcurve'''
     
     cidx = np.where(dist[int(dist.shape[0]/2),:] >= np.abs(radius))[0]
-    if radius > 0: pcidx = np.where(cidx >= dist.shape[1]/2)[0]
-    else: pcidx = np.where(cidx < dist.shape[1]/2)[0]
+    if radius > 0: 
+        pcidx = np.where(cidx >= dist.shape[1]/2)[0]
+    else: 
+        pcidx = np.where(cidx < dist.shape[1]/2)[0]
     scidx = np.argsort(dist[int(dist.shape[0]/2),cidx[pcidx]])
 
     try: column = cidx[pcidx[scidx]][0]

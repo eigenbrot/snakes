@@ -60,7 +60,7 @@ def apextract(filename, errorimage, apcenters, nrows):
         head.update('APNUM'+str(apnum),'{} {} {} {}'.format(apnum, apnum, r1, r2))
         apnum += 1
 
-        print np.mean(data[r1:r2+1,:],axis=0)
+#        print np.mean(data[r1:r2+1,:],axis=0)
         apertures.append(np.mean(data[r1:r2+1,:],axis=0))
         erraps.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/nrows)
 
@@ -290,14 +290,12 @@ def slayer(specimage,errimage,radii,guesses,outputfile,
     some of you lines suck. This is currently the perfered method.
     '''
 
-    specfile = specimage.split('.fits')[0]+'_bin.ms.fits'
-
     if not nrows: 
         nrows = radii[1] - radii[0]
 
     if not msfile:
-        #apextract(specimage,errimage,radii,nrows)
-        SNbinning(specimage,errimage)
+        specfile = specimage.split('.fits')[0]+'.ms.fits'
+        apextract(specimage,errimage,radii,nrows)
     else:
         specfile = msfile
         radii = []
@@ -469,7 +467,8 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     kpcradii *= 0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
     kpcradii *= 34.1e3/206265. # distance (34.1Mpc) / 206265"
     
-    if flip: kpcradii *= -1.
+    if flip: 
+        kpcradii *= -1.
     badidx = np.where(std_centers > 500.)
     kpcradii = np.delete(kpcradii,badidx)
     avg_centers = np.delete(avg_centers,badidx)
@@ -671,9 +670,6 @@ def plot_row(msfile,rownum,smooth=False,ax=False):
 
 def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
     
-    z = 0.008246 #For ESO 435-G25
-    line = 5007. #[OIII]
-
     slayHDU = pyfits.open(slayfile)
     pxradii = slayHDU[3].data
     pars = slayHDU[1].data
@@ -697,8 +693,8 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
         errfile = msfile.split('.ms.fits')[0]+'_error.ms.fits'
         error = pyfits.open(errfile)[0].data
 
-    fluxoutput = slayfile.split('.')[0]+'_bin.ms.fits'
-    erroutput = slayfile.split('.')[0]+'_bin_error.ms.fits'
+    fluxoutput = slayfile.split('.')[0]+'_bin{}.ms.fits'.format(SN_thresh)
+    erroutput = slayfile.split('.')[0]+'_bin{}_error.ms.fits'.format(SN_thresh)
 
     wave = np.arange(flux.shape[1])*crdelt + crval
 
@@ -756,8 +752,11 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
         # raw_input('asdsa')
         # plt.close(ax.get_figure())
         
-        fluxlist.append(np.mean(flux[idx1:idx2,:],axis=0))
-        errlist.append(np.mean(error[idx1:idx2,:],axis=0))
+        fluxlist.append(np.sum(flux[idx1:idx2,:],axis=0))
+        if seperr:
+            errlist.append(np.sqrt(np.sum(error[idx1:idx2,:]**2,axis=0)))
+        else:
+            errlist.append(np.sqrt(np.sum(flux[idx1+1:idx2+1:2,:]**2,axis=0)))
         idx1 = idx2
         binnum += 1
 

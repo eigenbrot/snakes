@@ -8,13 +8,11 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
-def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,ax=None,label=None):
+def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,ax=None,label=None):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
-                                 pxbin=16.,fit=False) #Right now this is hard
-                                                      #coded for a 10 px
-                                                      #binning during aperture
-                                                      #extraction
+                                 width=rwidth,fit=False) 
+
 
 #    v, I = ADE.ADE_gauss(1000,500,50)
     I *= peak_scale/I.max()
@@ -72,9 +70,13 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     approach'''
 
     pp = PDF(plotprefix+'_lines.pdf')
+    ppg = PDF(plotprefix+'_linegrid.pdf')
+    gridfig = plt.figure()
 
     dradii, dcent, derr, dm1, dm2, dm3 = sa.openslay(slayfile,moments=True,
                                                      flip=flip)
+    print dradii
+    rwidth = np.abs(np.mean(np.diff(dradii)))
     tm1 = np.array([])
     tm2 = np.array([])
     tm3 = np.array([])
@@ -86,7 +88,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
         
         radius = dradii[i]
         (mm1, mm2, mm3), V, I, _ = do_line(simfile,radius,1.,
-                                        plot=False,Iwidth=width)
+                                        plot=False,Iwidth=width,rwidth=rwidth)
 
         # (nm1,nm2,nm3), negV, negI, _ = do_line(simfile,-1*radius,1.,
         #                        plot=False,Iwidth=width)
@@ -121,7 +123,9 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
             mm1,dm1[i,1],mm2,dm2[i,1],mm3,dm3[i,1])
 
         pp.savefig(fig0)
-        fig0.clf()
+        ax0.change_geometry(4,5,i+1)
+        gridfig.axes.append(ax0)
+#        fig0.clf()
 
     pp.close()
 
@@ -160,9 +164,12 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     pp1.savefig(fig3)
     
     pp1.close()
+
+    ppg.savefig(gridfig)
+    ppg.close()
     
     plt.clf()
-    plt.close('all')
+#    plt.close('all')
 
     return 
 
