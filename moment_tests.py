@@ -5,10 +5,14 @@ import gc
 import Salty2 as salty
 import bottleneck as bn
 from datetime import datetime
-import matplotlib.pyplot as plt
+import matplotlib
+plt = matplotlib.pyplot
+rc = matplotlib.rc
+import pyfits
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
-def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,ax=None,label=None):
+def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
+            ax=None,label=None):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
                                  width=rwidth,fit=False) 
@@ -25,8 +29,8 @@ def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,ax=None,labe
 
     cdf = np.cumsum(I)
     cdf /= cdf.max()
-    lowidx = int(np.interp(0.1,cdf,np.arange(cdf.size)))
-    highidx = int(np.interp(0.9,cdf,np.arange(cdf.size)))
+    lowidx = int(np.interp(0.05,cdf,np.arange(cdf.size)))
+    highidx = int(np.interp(0.95,cdf,np.arange(cdf.size)))
 
     ax.axvline(x=v[lowidx],alpha=0.4,color=l.get_color())
     ax.axvline(x=v[highidx],alpha=0.4,color=l.get_color())
@@ -109,7 +113,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
         fig0 = plt.figure()
         ax0 = fig0.add_subplot(111)
         ax0.errorbar(dvelo,spec/np.max(spec),yerr=err/np.max(spec))
-        ax0.plot(V,I/np.max(I))
+#        ax0.plot(V,I/np.max(I))
         #ax0.plot(negV+mm1-nm1,negI/np.max(negI))
         ax0.set_xlabel('Velocity [km/s]')
         ax0.set_ylabel('Signal')
@@ -173,4 +177,117 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
 
     return 
 
+def plotzs(template_file, msfiles, flips):
+    '''Designed to plot line profiles at the same radius from various heights.
+    template_file should be .ms-like (either .ms or bin.ms) and will be used
+    to construct the bins that will be extracted from all other msfiles
+    '''
 
+    template_slay = template_file.split('.ms')[0]+'.slay.fits'
+    print template_slay
+    kpcradii, _, _ = sa.openslay(template_slay,flip=flips[0])
+    HDU = pyfits.open(template_file)[0]
+    head = HDU.header
+    bins = []
+    i = 1
+    while 'APNUM{}'.format(i) in head:
+        rstr = head['APNUM{}'.format(i)].split(' ')
+        bins.append([int(rstr[2]),int(rstr[3])])
+        i += 1
+
+    print len(bins), kpcradii.size
+    widths = np.diff(np.array(bins)).flatten() * 0.118*8*34.1e3/206265
+
+    for (msfile,flip) in zip(msfiles + [template_file],flips):
+        name = msfile.split('.ms.fits')[0] + '_binplot.pdf'
+        pp = PDF(name)
+        tempr, _, _ = sa.openslay(msfile.split('.ms')[0] + '.slay.fits',
+                                  flip=flip)        
+        tmphead = pyfits.open(msfile)[0].header
+        tmprstr = tmphead['APNUM1'].split(' ')
+        tmpwidth = int(tmprstr[3]) - int(tmprstr[2])
+        tmpwidth *= 0.118*8*34.1e3/206265
+        for radius in kpcradii:
+            idx = np.where(np.abs(tempr-radius) == np.min(np.abs(tempr-radius)))[0][0]
+            tmprstr = tmphead['APNUM{}'.format(idx+1)].split(' ')
+            print tmprstrx
+            dpx = int(tmprstr[3]) - int(tmprstr[2])
+            dr = dpx * 0.118*8*34.1e3/206265
+            r = tempr[idx]
+            fig0= plt.figure()
+            ax0 = fig0.add_subplot(111)
+            ax0.set_title('{:}\nr = {:5.3f} kpc\ndr = {:5.3f} kpc'.\
+                              format(msfile,r,dr))
+            ax0.set_xlabel('Wavelength [A]')
+            ax0.set_ylabel('ADU/s')
+            sa.plot_line(msfile,r,ax=ax0,plot=False,flip=flip)
+            pp.savefig(fig0)
+            
+        pp.close()
+    
+    return
+
+def plotzs2(msfiles, flips, sims):
+
+    font = {'size':4}
+    rc('font',**font)
+
+    for msfile, flip, simfile in zip(msfiles,flips,sims):
+        print msfile
+        height = int(msfile.split('_')[1][1:])
+        if height == 5:
+            height = 0.5
+        name = msfile.split('.ms.fits')[0] + '_binplot.pdf'
+        simname = simfile.split('.fits')[0] + '_binplot.pdf'
+        pp = PDF(name)
+        simpp = PDF(simname)
+        tempr, _, _ = sa.openslay(msfile.split('.ms')[0] + '.slay.fits',
+                                  flip=flip)        
+        print tempr
+        tmphead = pyfits.open(msfile)[0].header
+        ap = 1
+        fig0 = plt.figure()
+        fig1 = plt.figure()
+        for radius in np.sort(tempr):
+            print '\t{}'.format(radius)
+            tmprstr = tmphead['APNUM{}'.format(ap)].split(' ')
+            tmpwidth = int(tmprstr[3]) - int(tmprstr[2])
+            tmpwidth *= 0.118*8*34.1e3/206265
+            
+            ax0 = fig0.add_subplot(3,4,ap)
+            ax0.set_title('{}\n{}'.\
+                              format(msfile,datetime.now().isoformat(' ')),
+                          fontsize=4)
+            ax0.set_xlabel('Velocity [km/s]')
+            ax0.set_ylabel('ADU/s')
+            ax0.text(0.6,0.95,'z ~ {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
+                         .format(height,radius,tmpwidth),
+                     transform=ax0.transAxes,
+                     ha='left',va='top')
+            ax0.set_xlim(-600,600)
+            sa.plot_line(msfile,radius,ax=ax0,plot=False,flip=flip,velo=True)
+
+            ax1 = fig1.add_subplot(3,4,ap)
+            ax1.set_title('{}\n{}'.\
+                              format(simfile,datetime.now().isoformat(' ')),
+                          fontsize=4)
+            ax1.text(0.6,0.95,'z = {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
+                         .format(height,radius,tmpwidth),
+                     transform=ax1.transAxes,
+                     ha='left',va='top')
+            ax1.set_xlabel('Velocity [km/s]')
+            ax1.set_ylabel('Normalized flux')
+            ax1.set_xlim(-600,600)
+            
+            '''The negative 1 is there because all my sims are created
+            backwards, by convention
+            '''
+            do_line(simfile,-1*radius,1,ax=ax1,plot=False,rwidth=tmpwidth)
+            ap += 1
+
+        pp.savefig(fig0)
+        pp.close()
+        simpp.savefig(fig1)
+        simpp.close()
+
+    return

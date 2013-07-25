@@ -143,8 +143,7 @@ def simcurve(size,Z,v_r,h_rot,
 
     #This array holds the opacity of each bin
     kaparray = np.exp(-1*(distances/h_d))
-    kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray.max()        
-
+    kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray[size/2,size/2]
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
     # total normalization is irrelevant
@@ -171,14 +170,14 @@ def simcurve(size,Z,v_r,h_rot,
 
     #Compute the rotation curve either with a tanh model, or from a provided
     # 1D curve
-    if not rot_curve: TVC = v_r*np.tanh(distances/h_rot)
+    if not rot_curve: 
+        TVC = v_r*np.tanh(distances/h_rot)
     else:
         def comp_TVC(rr): return np.interp(rr,rot_curve[0],rot_curve[1])
         vcomp = np.vectorize(comp_TVC)
         TVC = vcomp(distances)
     
-    #Now let's compute the projected los velocity of each bin, assuming the
-    # entire disc rotates with v_r
+    #Now let's compute the projected los velocity of each bin
     v_sarray = TVC*np.cos(angles)
 
     #finally, the light-weighted contribution to total LOS velocity
