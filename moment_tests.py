@@ -265,7 +265,8 @@ def plotzs2(msfiles, flips, sims):
                      transform=ax0.transAxes,
                      ha='left',va='top')
             ax0.set_xlim(-600,600)
-            sa.plot_line(msfile,radius,ax=ax0,plot=False,flip=flip,velo=True)
+            sa.plot_line(msfile,radius,ax=ax0,plot=False,flip=flip,velo=True,
+                         baseline=1)
 
             ax1 = fig1.add_subplot(3,4,ap)
             ax1.set_title('{}\n{}'.\
