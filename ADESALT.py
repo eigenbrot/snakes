@@ -161,7 +161,8 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
         print "\n  Fitting aperture {0} (lines {1} to {2})".format(infostr[0],
                                                                    infostr[2],
                                                                    infostr[3])
-        fig_name = fig_path+'/{:02n}'.format(int(infostr[0]))+'_'+\
+        fig_name = fig_path+'/{:}_{:02n}'.format(specfile.split('.ms')[0],
+                                                 int(infostr[0]))+'_'+\
             str(guesses[1])[0:7]+'.pdf'
         pp = PDF(fig_name)
 
@@ -545,7 +546,7 @@ def offunc(x,radii,centers):
 
 def plot_line(datafile,radius,wavelength=5048.126,ax=False,
               central_lambda=[4901.416,5048.126],flip=False,
-              plot=True,window=20):
+              plot=True,window=20,velo=False):
     """ Plots a single line from a .ms file. It also needs a corresponding
     .slay file to get the pixel -> kpc radius conversion.
 
@@ -561,7 +562,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
 
     window - in Angstroms, the range of the plotted region
 
-    ax - a matplotlilb.axes.AcesSubplot object that will be plotted on if
+    ax - a matplotlilb.axes.AxesSubplot object that will be plotted on if
     provided. If ax is provided then no additional labels or titles will be
     added to it
     
@@ -588,7 +589,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     pxradii = pyfits.open(slayfile)[3].data
 
     row = np.where(np.abs(kpcradii-radius) == np.min(np.abs(kpcradii-radius)))[0][0]
-    #print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
+    print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
 
     datahdus = pyfits.open(datafile)
     hdu = datahdus[0]
@@ -613,11 +614,17 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     wave = np.arange(spectrum.size)*Cdelt + CRVAL
     
     idx = np.where((wave >= wavelength - window/2.) & (wave <= wavelength + window/2.))
+    
+    if velo:
+        wave = (wave - wavelength)/wavelength * 3e5
 
     if not ax:
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.set_xlabel('Wavelength [Angstroms]')
+        if velo:
+            ax.set_xlabel('Velocity [km/s]')
+        else:
+            ax.set_xlabel('Wavelength [Angstroms]')
         ax.set_ylabel('ADU/s')
         ax.set_title(datetime.now().isoformat(' '))
     
@@ -643,12 +650,20 @@ def plot_row(msfile,rownum,smooth=False,ax=False):
     exptime = hdu.header['EXPTIME']
     CRVAL = hdu.header['CRVAL1']
     Cdelt = hdu.header['CDELT1']
+    try:
+        seperr = hdu.header['SEPERR']
+    except KeyError:
+        seperr = False
     
     # We use '=f8' to force the endianess to be the same as the local
     # machine. This is so the precompiled bottleneck (bn) functions don't
     # complain
     spectrum = np.array(hdu.data[rownum],dtype='=f8')
-    error = hdu.data[rownum + 1]
+    if seperr:
+        errorfile = msfile.split('.ms')[0] + '_error.ms.fits'
+        error = pyfits.open(errorfile)[0].data[rownum]
+    else:
+        error = hdu.data[rownum + 1]
     wave = np.arange(spectrum.size)*Cdelt + CRVAL
 
     if smooth:
@@ -763,5 +778,57 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
     HDU.header.update('SEPERR',True)
     pyfits.PrimaryHDU(np.vstack(fluxlist),HDU.header).writeto(fluxoutput,clobber=True)
     pyfits.PrimaryHDU(np.vstack(errlist),HDU.header).writeto(erroutput,clobber=True)
+
+    return
+
+def template_binning(template_file,data_file,error_file,outname):
+    '''Takes the bins from template_file (presumably a bin.ms file) and
+    extracts data from the same bins in data_file
+    '''
+
+    HDU = pyfits.open(template_file)[0]
+    head = HDU.header
+    bins = []
+    i = 1
+    while 'APNUM{}'.format(i) in head:
+        rstr = head['APNUM{}'.format(i)].split(' ')
+        bins.append([int(rstr[2]),int(rstr[3])])
+        i += 1
+
+    hdu = pyfits.open(data_file)[0]
+    head = hdu.header
+    data = hdu.data
+    error = pyfits.open(error_file)[0].data
+
+    apertures = []
+    erraps = []
+
+    apnum = 1
+    for bin in bins:
+        r1 = bin[0]
+        r2 = bin[1]
+
+        print "Extracing from rows {} to {}".format(r1,r2)
+        
+        head.update('APNUM'+str(apnum),'{} {} {} {}'.format(apnum, apnum, r1, r2))
+        apnum += 1
+
+        apertures.append(np.mean(data[r1:r2+1,:],axis=0))
+        erraps.append(np.sqrt(np.sum(np.abs(error[r1:r2+1,:]),axis=0))/\
+                          (r2-r1+1))
+
+    data_output_list = np.vstack(apertures)
+    error_output_list = np.vstack(erraps)
+
+    if data_output_list.shape[0] == 1:
+        data_output_list = np.squeeze(data_output_list)
+        error_output_list = np.squeeze(error_output_list)
+
+    namesplit = outname.split('.')
+    erroutput = ''.join([namesplit[0],'_error.','.'.join(namesplit[1:])])
+    pyfits.PrimaryHDU(error_output_list,head).writeto(erroutput,clobber=True)
+
+    head.update('SEPERR',True,comment='Error vectors are in a separate file')
+    pyfits.PrimaryHDU(data_output_list,head).writeto(outname,clobber=True)
 
     return
