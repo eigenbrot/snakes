@@ -483,6 +483,9 @@ def radius_to_column(dist,radius):
 
     return column
 
+def observify(velocity, flux, error, resolution, binsize):
+    '''
+
 def fit_rot(datafile, pars=np.array([230,2.5])):
     
     r, v = np.loadtxt(datafile,unpack=True)

@@ -12,7 +12,7 @@ import pyfits
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
-            ax=None,label=None):
+            ax=None,label=None,plotargs=None):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
                                  width=rwidth,fit=False) 
@@ -25,15 +25,15 @@ def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-    l = ax.plot(v,I,label=label)[0]
+    l = ax.plot(v,I,label=label,**plotargs)[0]
 
     cdf = np.cumsum(I)
     cdf /= cdf.max()
     lowidx = int(np.interp(0.05,cdf,np.arange(cdf.size)))
     highidx = int(np.interp(0.95,cdf,np.arange(cdf.size)))
 
-    ax.axvline(x=v[lowidx],alpha=0.4,color=l.get_color())
-    ax.axvline(x=v[highidx],alpha=0.4,color=l.get_color())
+    # ax.axvline(x=v[lowidx],alpha=0.4,color=l.get_color())
+    # ax.axvline(x=v[highidx],alpha=0.4,color=l.get_color())
 
     moments = ADE.ADE_moments(v[lowidx:highidx+1], I[lowidx:highidx+1], threshold=np.inf)
 
@@ -232,13 +232,13 @@ def plotzs2(msfiles, flips, sims):
     font = {'size':4}
     rc('font',**font)
 
-    for msfile, flip, simfile in zip(msfiles,flips,sims):
+    for msfile, flip, simfiles in zip(msfiles,flips,sims):
         print msfile
         height = int(msfile.split('_')[1][1:])
         if height == 5:
             height = 0.5
         name = msfile.split('.ms.fits')[0] + '_binplot.pdf'
-        simname = simfile.split('.fits')[0] + '_binplot.pdf'
+        simname = '_'.join(simfiles[0].split('_')[0:2]) + '_binplot.pdf'
         pp = PDF(name)
         simpp = PDF(simname)
         tempr, _, _ = sa.openslay(msfile.split('.ms')[0] + '.slay.fits',
@@ -254,6 +254,7 @@ def plotzs2(msfiles, flips, sims):
             tmpwidth = int(tmprstr[3]) - int(tmprstr[2])
             tmpwidth *= 0.118*8*34.1e3/206265
             
+            #############
             ax0 = fig0.add_subplot(3,4,ap)
             ax0.set_title('{}\n{}'.\
                               format(msfile,datetime.now().isoformat(' ')),
@@ -266,11 +267,13 @@ def plotzs2(msfiles, flips, sims):
                      ha='left',va='top')
             ax0.set_xlim(-600,600)
             sa.plot_line(msfile,radius,ax=ax0,plot=False,flip=flip,velo=True,
-                         baseline=1)
+                         baseline=1,linewidth=0.4)
 
+            #############
             ax1 = fig1.add_subplot(3,4,ap)
             ax1.set_title('{}\n{}'.\
-                              format(simfile,datetime.now().isoformat(' ')),
+                              format(simname.split('_binplot')[0]
+                                     ,datetime.now().isoformat(' ')),
                           fontsize=4)
             ax1.text(0.6,0.95,'z = {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
                          .format(height,radius,tmpwidth),
@@ -283,7 +286,11 @@ def plotzs2(msfiles, flips, sims):
             '''The negative 1 is there because all my sims are created
             backwards, by convention
             '''
-            do_line(simfile,-1*radius,1,ax=ax1,plot=False,rwidth=tmpwidth)
+            for simfile in simfiles:
+                h_zR = pyfits.open(simfile)[0].header['H_ZR']
+                do_line(simfile,-1*radius,1,ax=ax1,plot=False,
+                        label=str(h_zR),rwidth=tmpwidth,plotargs=dict(linewidth=0.8))
+            ax1.legend(loc=0,title='h_zR')
             ap += 1
 
         pp.savefig(fig0)
