@@ -9,10 +9,11 @@ import matplotlib
 plt = matplotlib.pyplot
 rc = matplotlib.rc
 import pyfits
+from glob import glob
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
-            ax=None,label=None,plotargs=None):
+            ax=None,label=None,**plotargs):
 
     v, I, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=Iwidth,
                                  width=rwidth,fit=False) 
@@ -246,8 +247,8 @@ def plotzs2(msfiles, flips, sims):
         print tempr
         tmphead = pyfits.open(msfile)[0].header
         ap = 1
-        fig0 = plt.figure()
-        fig1 = plt.figure()
+        fig0 = plt.figure(figsize=(11,8.5))
+        fig1 = plt.figure(figsize=(11,8.4))
         for radius in np.sort(tempr):
             print '\t{}'.format(radius)
             tmprstr = tmphead['APNUM{}'.format(ap)].split(' ')
@@ -261,7 +262,7 @@ def plotzs2(msfiles, flips, sims):
                           fontsize=4)
             ax0.set_xlabel('Velocity [km/s]')
             ax0.set_ylabel('ADU/s')
-            ax0.text(0.6,0.95,'z ~ {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
+            ax0.text(0.1,0.95,'z ~ {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
                          .format(height,radius,tmpwidth),
                      transform=ax0.transAxes,
                      ha='left',va='top')
@@ -275,7 +276,7 @@ def plotzs2(msfiles, flips, sims):
                               format(simname.split('_binplot')[0]
                                      ,datetime.now().isoformat(' ')),
                           fontsize=4)
-            ax1.text(0.6,0.95,'z = {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
+            ax1.text(0.1,0.65,'z = {:}$h_z$\nr = {:5.3f}kpc\ndr = {:5.3f}kpc'\
                          .format(height,radius,tmpwidth),
                      transform=ax1.transAxes,
                      ha='left',va='top')
@@ -289,7 +290,7 @@ def plotzs2(msfiles, flips, sims):
             for simfile in simfiles:
                 h_zR = pyfits.open(simfile)[0].header['H_ZR']
                 do_line(simfile,-1*radius,1,ax=ax1,plot=False,
-                        label=str(h_zR),rwidth=tmpwidth,plotargs=dict(linewidth=0.8))
+                        label=str(h_zR),rwidth=tmpwidth,linewidth=0.8)
             ax1.legend(loc=0,title='h_zR')
             ap += 1
 
@@ -297,5 +298,21 @@ def plotzs2(msfiles, flips, sims):
         pp.close()
         simpp.savefig(fig1)
         simpp.close()
+
+    return
+
+def big_script():
+
+    mslist = glob('*_bin??.ms.fits')
+    simlist1 = glob('sim*208.fits')
+    simlist2 = glob('sim*415.fits')
+    simlist3 = glob('sim*1245.fits')
+    
+    mslist.sort()
+    simlist1.sort()
+    simlist2.sort()
+    simlist3.sort()
+
+    plotzs2(mslist,[True,False,False,False],zip(simlist1, simlist2, simlist3))
 
     return

@@ -437,6 +437,7 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     lineshape = np.sum(gauss_arr,axis=0)
 
     if observe:
+        print 'simulating effects of RSS'
         v, lineshape = observify(v,lineshape)
 
     if fit:
