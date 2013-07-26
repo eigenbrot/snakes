@@ -546,7 +546,8 @@ def offunc(x,radii,centers):
 
 def plot_line(datafile,radius,wavelength=5048.126,ax=False,
               central_lambda=[4901.416,5048.126],flip=False,
-              plot=True,window=20,velo=False,baseline=False):
+              plot=True,window=20,velo=False,baseline=False,
+              **plotargs):
     """ Plots a single line from a .ms file. It also needs a corresponding
     .slay file to get the pixel -> kpc radius conversion.
 
@@ -635,7 +636,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         ax.set_ylabel('ADU/s')
         ax.set_title(datetime.now().isoformat(' '))
     
-    ax.errorbar(pwave,pspec,yerr=perr)
+    ax.errorbar(pwave,pspec,yerr=perr,**plotargs)
     fig = ax.figure
     
     if plot:

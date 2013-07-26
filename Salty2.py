@@ -383,7 +383,9 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
     return radii, velos, fitvelos, fitsig
 
-def line_profile(fitsfile,radius,Iwidth=17.,width=1.,plot=True,fit=True):
+def line_profile(fitsfile,radius,Iwidth=17.,
+                 width=1.,plot=True,fit=True,
+                 observe=True):
     """ Radius is in kpc"""
 
 
@@ -433,6 +435,10 @@ def line_profile(fitsfile,radius,Iwidth=17.,width=1.,plot=True,fit=True):
     gauss_arr /= np.sum(gauss_arr)
 
     lineshape = np.sum(gauss_arr,axis=0)
+
+    if observe:
+        v, lineshape = observify(v,lineshape)
+
     if fit:
         print 'fitting'
         fitpars = spo.curve_fit(gaussfunc,v,lineshape,
@@ -483,8 +489,25 @@ def radius_to_column(dist,radius):
 
     return column
 
-def observify(velocity, flux, error, resolution, binsize):
+def observify(velocity, flux, resolution=54., binsize=12.06):
+    '''Designed to be a helper function to line_profile. It takes a line
+    profile and simulates the effects of RSS on the data. It does this by
+    first broadening the profile by the instrumental resolution (resolution)
+    and then resampling it with pixels the same size as RSS pixles
+    (binsize). All resolutions and binsizes are in km/s
     '''
+
+    '''Assume resolution is the FWHM'''
+    sigma = resolution/2.35482
+    length = 2*4*sigma # 4 sigma should be enough to get the wings
+    x = np.arange(length) - length/2.
+    _, kernel = ADE.ADE_gauss(x, 0, sigma, NORM=True)
+    smeared_flux = np.convolve(flux,kernel,'same')
+
+    resampled_velo = np.arange(velocity.min(), velocity.max(), binsize)
+    resampled_flux = np.interp(resampled_velo, velocity, smeared_flux)
+
+    return resampled_velo, resampled_flux
 
 def fit_rot(datafile, pars=np.array([230,2.5])):
     
