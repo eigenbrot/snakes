@@ -20,13 +20,14 @@ def ADE_gauss(length, offset, sigma, PEAK_VAL=1, FWHM=0, NORM=False):
         user's desires.
 
     Inputs:
-        length - Int
-            The length of the output array
+        length - Int, Ndarray
+            If Int: the length of the output array
+            If an Ndarray then it is taken to be the x values of the gaussian
         offset - Float
             The offset that defines where the peak of the gaussian is
         sigma  - Float
             The standard deviation of the gaussian
-        PEAK_VAL-Float
+        PEAK_VAL - Float
             The gaussian's maximum value
         FWHM   - Float
             If FWHM != 0 then the gaussian is forced to have whatever
@@ -45,7 +46,10 @@ def ADE_gauss(length, offset, sigma, PEAK_VAL=1, FWHM=0, NORM=False):
                gauss = PEAK_VAL*exp(-1*(x - offset)**2/s*sigma**2)
      '''
 
-    xvec = np.arange(length, dtype=np.float64)
+    if type(length) == np.ndarray:
+        xvec = length
+    else:
+        xvec = np.arange(length, dtype=np.float64)
 
     if FWHM: 
         sigma = FWHM/2.35482
