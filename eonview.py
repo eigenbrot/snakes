@@ -9,9 +9,9 @@ def make_image(output,h_zR):
     h_z = 0.43
     size = 501
     scale = 100.0/size
-    flarepars = dict(h_zR = h_zR)
+    flarepars = dict(ftype='linear', h_zR = h_zR)
 
-    maxz = 2.0
+    maxz = 50.
     numz = 250
 
     heights = np.linspace(0,maxz,numz)
@@ -20,7 +20,7 @@ def make_image(output,h_zR):
 
     for Z in heights:
 
-        name = 'eonview_f{:04.0f}_{:04.0f}.fits'.format(h_zR*100,Z*1000)
+        name = 'eonview_lf{:04.0f}_{:04.0f}.fits'.format(h_zR*100,Z*1000)
         print Z, name
         salty.simcurve(size,Z,v_r,hrot,scale=scale,flarepars=flarepars,
                        output=name)

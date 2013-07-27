@@ -49,3 +49,51 @@ def do():
             gc.collect()
 
     return
+
+def do_linear():
+    '''run in /d/monk/eigenbrot/EdgeOn/flare_test/linear
+    '''
+
+    h_r = 8.3
+    hzrlist = np.arange(0.1,1.0,0.25) * h_r
+    filelist = ['tiESO_z0_MgI_binz2.slay.fits',
+                'tiESO_z1_MgI_binz2.slay.fits',
+                'tiESO_z2_MgI_bin60.slay.fits',
+                'tiESO_z4_MgI_binz2.slay.fits']
+    zlist = [0,0.43,0.86,1.72]
+    fliplist = [True,False,False,False]
+
+    print "hzrlist:"
+    print hzrlist
+
+    vclist = [salty.find_Vc(*salty.openslay(i),back=back) 
+              for (i,back) in zip(filelist,fliplist)]
+    print "vclist:"
+    print vclist
+    salty.plt.close('all')
+    
+    '''generate some sim files'''
+    for filename, z, flip, vc in zip(filelist,zlist,fliplist,vclist):
+        print filename+':'
+        zx = filename.split('_')[1]
+        noname = 'sim_{}_noflare.fits'.format(zx)
+        salty.simcurve(1001,z,vc,5.45,scale=100/1001.,output = noname)
+        noprefix = 'noflare_comp_{}'.format(zx)
+#        mt.line_comp(noname,filename,noprefix,flip=flip)
+
+        for hzr in hzrlist:
+            print filename+'\t'+str(hzr)
+            flarename = 'sim_{:}_lflare_{:3.0f}.fits'.format(zx,hzr*100.)
+            salty.simcurve(1001,z,vc,5.45,scale=100/1001.,
+                           output=flarename,
+                           flarepars=dict(ftype='linear',h_zR = hzr))
+
+            prefix = 'lflare_comp_{:}_f{:04.0f}'.format(zx,hzr*100.)
+#            mt.line_comp(flarename,filename,prefix,flip=flip)
+            salty.plt.close('all')
+            mt.plt.close('all')
+            salty.gc.collect()
+            mt.gc.collect()
+            gc.collect()
+
+    return

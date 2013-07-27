@@ -304,14 +304,16 @@ def plotzs2(msfiles, flips, sims):
 def big_script():
 
     mslist = glob('*_bin??.ms.fits')
-    simlist1 = glob('sim*208.fits')
-    simlist2 = glob('sim*415.fits')
-    simlist3 = glob('sim*1245.fits')
+    simlist1 = glob('sim*083.fits')
+    simlist2 = glob('sim*290.fits')
+    simlist3 = glob('sim*706.fits')
     
     mslist.sort()
     simlist1.sort()
     simlist2.sort()
     simlist3.sort()
+    
+    print mslist, simlist1, simlist2, simlist3
 
     plotzs2(mslist,[True,False,False,False],zip(simlist1, simlist2, simlist3))
 

@@ -156,7 +156,15 @@ def simcurve(size,Z,v_r,h_rot,
         kaparray *= spiral
         Iarray *= spiral
     if flarepars:
-        flare = disco(distances,Z,h_z,**flarepars)
+        kaparray /= np.exp(-1*(Z/h_z))
+        Iarray /= np.exp(-1*(Z/h_z))
+        if flarepars['ftype'] == 'exp':
+            flare = disco(distances,Z,h_z,**flarepars)
+        elif flarepars['ftype'] == 'linear':
+            flare = quickmatch(distances,Z,h_z,**flarepars)
+        else:
+            print "Flare type not recognized. Accepted types are 'exp' or 'linear'."
+            flare = 1.
         kaparray *= flare
         Iarray *= flare
 
@@ -231,7 +239,9 @@ def simcurve(size,Z,v_r,h_rot,
         flarehdu = pyfits.ImageHDU(flare)
         flarehdu.header.update('EXTNAME','FLARE')
         hdulist.append(flarehdu)
+        frachdu.header.update('FTYPE',flarepars['ftype'],comment='Type of flare')
         frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length')
+
 
     # Add WCS coordinates (kpc) to headers
     for HDU in hdulist:
@@ -281,16 +291,30 @@ def LSP(distances, angles, w, bigN, p, vtheta):
 
     return 1 - w + np.array(prodlist).prod(axis=0)
     
-def disco(distances, Z, h_z, h_zR):
+def disco(distances, Z, h_z, **flarepars):
     '''Generates an array that creates a galaxy where the scale height depends
     on r via  h_z(R) = exp(R/h_zR), i.e. a flare
     '''
     
+    h_zR = flarepars['h_zR']
     ideal_flare = np.exp(-1*Z / np.exp(distances/h_zR)) # The ideal flare formulation
-    outputarr = ideal_flare / np.exp(-1*Z/h_z) # Undoes the assumption of constant scale height
 
-    return outputarr/np.sum(outputarr)
+    return ideal_flare/np.sum(ideal_flare)
     
+
+def quickmatch(distances, Z, h_z, **flarepars):
+    '''Generates an array that is used to redistribute the light in a galaxy
+    into a linear flare. A linear flare has a linearly increasing scale
+    height, as opposed to the flares produced by disco, which exponentially
+    increase.
+
+    In this case h_z(R) = h_z + h_zR*R
+    '''
+    
+    h_zR = flarepars['h_zR']
+    ideal_flare = np.exp(-1*Z / (h_z + h_zR*distances))
+
+    return ideal_flare/np.sum(ideal_flare)
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
                   rot_label='rotation_curve',pars=np.array([0,230,5.5,0.8,6.,0.36,np.pi/2.,0.652]),fixed=[],p=False):
