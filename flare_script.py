@@ -83,7 +83,7 @@ def do_linear():
 
         for hzr in hzrlist:
             print filename+'\t'+str(hzr)
-            flarename = 'sim_{:}_lflare_{:3.0f}.fits'.format(zx,hzr*100.)
+            flarename = 'sim_{:}_lflare_{:03.0f}.fits'.format(zx,hzr*100.)
             salty.simcurve(1001,z,vc,5.45,scale=100/1001.,
                            output=flarename,
                            flarepars=dict(ftype='linear',h_zR = hzr))

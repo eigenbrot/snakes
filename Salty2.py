@@ -148,7 +148,7 @@ def simcurve(size,Z,v_r,h_rot,
     # doubly-exp disc 
     # total normalization is irrelevant
     Iarray = np.exp(-1*(distances/h_d))
-    Iarray *= np.exp(-1*(Z/h_z))/Iarray.max()
+    Iarray *= np.exp(-1*(Z/h_z))
 
     # Now add whatever morphological extras the user desires
     if spiralpars:

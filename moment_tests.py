@@ -20,7 +20,7 @@ def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
 
 
 #    v, I = ADE.ADE_gauss(1000,500,50)
-    I *= peak_scale/I.max()
+#    I *= peak_scale/I.max()
     
     if not ax:
         fig = plt.figure()
