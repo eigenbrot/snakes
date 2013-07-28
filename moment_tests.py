@@ -306,7 +306,7 @@ def big_script():
     mslist = glob('*_bin??.ms.fits')
     simlist1 = glob('sim*083.fits')
     simlist2 = glob('sim*290.fits')
-    simlist3 = glob('sim*706.fits')
+    simlist3 = glob('sim*025.fits')
     
     mslist.sort()
     simlist1.sort()

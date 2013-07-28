@@ -234,10 +234,10 @@ def simcurve(size,Z,v_r,h_rot,
         spiralhdu = pyfits.ImageHDU(spiral)
         sprialhdu.header.update('EXTNAME','SPIRAL')
         hdulist.append(spiralhdu)
-        frachdu.header.update('w',spiralpars['w'])
-        frachdu.header.update('N',spiralpars['N'])
-        frachdu.header.update('pitch',spiralpars['pitch'])
-        frachdu.header.update('VIEWANG',spiralpars['view_ang'])
+        frachdu.header.update('w',spiralpars['w'],comment='Spiral weight')
+        frachdu.header.update('N',spiralpars['N'],comment='Number of spiral arms')
+        frachdu.header.update('pitch',spiralpars['pitch'],comment='Spiral wind degree')
+        frachdu.header.update('VIEWANG',spiralpars['view_ang'],comment='Viewing angle')
 
     if flarepars:
         flarehdu = pyfits.ImageHDU(flare)
