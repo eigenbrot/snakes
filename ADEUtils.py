@@ -43,7 +43,7 @@ def ADE_gauss(length, offset, sigma, PEAK_VAL=1, FWHM=0, NORM=False):
          x vector used to create the gaussian and the second array is
          the actual gaussian computed using:
 
-               gauss = PEAK_VAL*exp(-1*(x - offset)**2/s*sigma**2)
+               gauss = PEAK_VAL*exp(-1*(x - offset)**2/2*sigma**2)
      '''
 
     if type(length) == np.ndarray:
