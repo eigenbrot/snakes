@@ -117,7 +117,7 @@ def simcurve(size,Z,v_r,h_rot,
              ax=False,scale=1.,
              kappa_0=1.62,z_d=0.245,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits',
-             spiralpars=None,flarepars=None):
+             spiralpars=None,flarepars=None,ringpars=None):
 
     #Z is in kpc, not scale heights
 
@@ -167,6 +167,10 @@ def simcurve(size,Z,v_r,h_rot,
             flare = 1.
         kaparray *= flare
         Iarray *= flare
+    if ringpars:
+        ring = bigben(distances,**ringpars)
+        Iarray *= ring
+        kaparray *= ring
 
     #for each sight line, we'll now figure out the relative light
     # contributions from each bin along the sight line
@@ -240,8 +244,15 @@ def simcurve(size,Z,v_r,h_rot,
         flarehdu.header.update('EXTNAME','FLARE')
         hdulist.append(flarehdu)
         frachdu.header.update('FTYPE',flarepars['ftype'],comment='Type of flare')
-        frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length')
+        frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length [kpc]')
 
+    if ringpars:
+        ringhdu = pyfits.ImageHDU(ring)
+        ringhdu.header.update('EXTNAME','RING')
+        hdulist.append(ringhdu)
+        frachdu.header.update('r_R',ringpars['r_R'],comment='Ring radius [kpc]')
+        frachdu.header.update('r_sig',ringpars['r_sig'],comment='Ring width [kpc]')
+        frachdu.header.update('r_w',ringpars['r_w'],comment='Ring strength')
 
     # Add WCS coordinates (kpc) to headers
     for HDU in hdulist:
@@ -315,6 +326,23 @@ def quickmatch(distances, Z, h_z, **flarepars):
     ideal_flare = np.exp(-1*Z / (h_z + h_zR*distances))
 
     return ideal_flare/np.sum(ideal_flare)
+
+def bigben(distances, **ringpars):
+    '''Generates and array that can be used to redistribute light into a
+    ring. The ring is parametrized as a gaussian in r such that:
+
+    I(r) = exp(-(r - r_R)**2/(2*r_sig**2))
+    '''
+
+    r_R = ringpars['r_R']
+    r_sig = ringpars['r_sig']
+    r_w = ringpars['r_w']
+
+    ring = np.exp(-1*(distances - r_R)**2/(2*r_sig**2))
+    background = np.sum(ring)/(r_w * distances.size)
+    ring += background
+
+    return ring/np.sum(ring)
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
                   rot_label='rotation_curve',pars=np.array([0,230,5.5,0.8,6.,0.36,np.pi/2.,0.652]),fixed=[],p=False):
