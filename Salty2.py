@@ -232,7 +232,7 @@ def simcurve(size,Z,v_r,h_rot,
 
     if spiralpars:
         spiralhdu = pyfits.ImageHDU(spiral)
-        sprialhdu.header.update('EXTNAME','SPIRAL')
+        spiralhdu.header.update('EXTNAME','SPIRAL')
         hdulist.append(spiralhdu)
         frachdu.header.update('w',spiralpars['w'],comment='Spiral weight')
         frachdu.header.update('N',spiralpars['N'],comment='Number of spiral arms')
@@ -287,16 +287,16 @@ def simcurve(size,Z,v_r,h_rot,
 
     return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
 
-def LSP(distances, angles, w, bigN, p, vtheta):
+def LSP(distances, angles, w, N, pitch, view_ang):
     '''Generates an array that redistributes light into spiral arms via the
     prescription of ASR 2012
     '''
 
     prodlist = []
     
-    for n in np.arange(2,bigN+1,2):
-        sinarray = (n*w)/(n-1) * np.sin( np.log(distances)/np.tan(p) - angles +\
-                                             vtheta)**bigN
+    for n in np.arange(2,N+1,2):
+        sinarray = (n*w)/(n-1) * np.sin( np.log(distances)/np.tan(pitch) - angles +\
+                                             view_ang)**N
         prodlist.append(sinarray)
 
 

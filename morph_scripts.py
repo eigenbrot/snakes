@@ -145,3 +145,24 @@ def ring_script_radius():
               'r_R')
 
     return
+
+def spiral_script():
+
+    
+    mslist = glob('*_bin??.ms.fits')
+    simlist1 = glob('sim*p0100.fits')
+    simlist2 = glob('sim*p1147.fits')
+    simlist3 = glob('sim*p2194.fits')
+    
+    mslist.sort()
+    simlist1.sort()
+    simlist2.sort()
+    simlist3.sort()
+
+    print mslist, simlist1, simlist2, simlist3
+    
+    grid_plot(mslist,[True,False,False,False],
+              zip(simlist1,simlist2,simlist3),
+              'pitch')
+
+    return
