@@ -11,7 +11,7 @@ def make_image(output,h_zR):
     scale = 100.0/size
     flarepars = dict(ftype='linear', h_zR = h_zR)
 
-    maxz = 50.
+    maxz = 30.
     numz = 250
 
     heights = np.linspace(0,maxz,numz)

@@ -155,6 +155,7 @@ def simcurve(size,Z,v_r,h_rot,
         spiral = LSP(distances,angles,**spiralpars)
         kaparray *= spiral
         Iarray *= spiral
+
     if flarepars:
         kaparray /= np.exp(-1*(Z/h_z))
         Iarray /= np.exp(-1*(Z/h_z))
@@ -169,8 +170,12 @@ def simcurve(size,Z,v_r,h_rot,
         Iarray *= flare
     if ringpars:
         ring = bigben(distances,**ringpars)
-        Iarray *= ring
-        kaparray *= ring
+        totalI = np.sum(Iarray)
+        totalkap = np.sum(kaparray)
+        Iarray *= (1 - ringpars['r_w'])
+        Iarray += ring*totalI
+        kaparray *= (1 - ringpars['r_w'])
+        kaparray += ring*totalkap
 
     #for each sight line, we'll now figure out the relative light
     # contributions from each bin along the sight line
@@ -308,9 +313,10 @@ def disco(distances, Z, h_z, **flarepars):
     '''
     
     h_zR = flarepars['h_zR']
-    ideal_flare = np.exp(-1*Z / np.exp(distances/h_zR)) # The ideal flare formulation
+    h_zprime = np.exp(distances/h_zR)
+    ideal_flare = np.exp(-1*Z / h_zprime) # The ideal flare formulation
 
-    return ideal_flare/np.sum(ideal_flare)
+    return ideal_flare * h_z / h_zprime
     
 
 def quickmatch(distances, Z, h_z, **flarepars):
@@ -323,9 +329,10 @@ def quickmatch(distances, Z, h_z, **flarepars):
     '''
     
     h_zR = flarepars['h_zR']
-    ideal_flare = np.exp(-1*Z / (h_z + h_zR*distances))
+    h_zprime = h_z + h_zR*distances
+    ideal_flare = np.exp(-1*Z / h_zprime)
 
-    return ideal_flare/np.sum(ideal_flare)
+    return ideal_flare * h_z / h_zprime
 
 def bigben(distances, **ringpars):
     '''Generates and array that can be used to redistribute light into a
@@ -339,10 +346,9 @@ def bigben(distances, **ringpars):
     r_w = ringpars['r_w']
 
     ring = np.exp(-1*(distances - r_R)**2/(2*r_sig**2))
-    background = np.sum(ring)/(r_w * distances.size)
-    ring += background
+    total = np.sum(ring)
 
-    return ring/np.sum(ring)
+    return ring*r_w/total
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
                   rot_label='rotation_curve',pars=np.array([0,230,5.5,0.8,6.,0.36,np.pi/2.,0.652]),fixed=[],p=False):
