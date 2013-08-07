@@ -117,7 +117,7 @@ def simcurve(size,Z,v_r,h_rot,
              ax=False,scale=1.,
              kappa_0=1.62,z_d=0.245,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits',
-             spiralpars=None,flarepars=None,ringpars=None):
+             spiralpars=None,flarepars=None,ringpars=None,warppars=None):
 
     #Z is in kpc, not scale heights
 
@@ -148,7 +148,7 @@ def simcurve(size,Z,v_r,h_rot,
     # doubly-exp disc 
     # total normalization is irrelevant
     Iarray = np.exp(-1*(distances/h_d))
-    Iarray *= np.exp(-1*(Z/h_z))
+    Iarray *= np.exp(-1*(np.abs(Z)/h_z))
 
     # Now add whatever morphological extras the user desires
     if spiralpars:
@@ -157,8 +157,8 @@ def simcurve(size,Z,v_r,h_rot,
         Iarray *= spiral
 
     if flarepars:
-        kaparray /= np.exp(-1*(Z/h_z))
-        Iarray /= np.exp(-1*(Z/h_z))
+        kaparray /= np.exp(-1*(np.abs(Z)/h_z))
+        Iarray /= np.exp(-1*(np.abs(Z)/h_z))
         if flarepars['ftype'] == 'exp':
             flare = disco(distances,Z,h_z,**flarepars)
         elif flarepars['ftype'] == 'linear':
@@ -176,6 +176,13 @@ def simcurve(size,Z,v_r,h_rot,
         Iarray += ring*totalI
         kaparray *= (1 - ringpars['r_w'])
         kaparray += ring*totalkap
+
+    if warppars:
+        kaparray /= np.exp(-1*(np.abs(Z)/h_z))
+        Iarray /= np.exp(-1*(np.abs(Z)/h_z))
+        warp = star_trek(distances,angles,Z,h_z,**warppars)
+        Iarray *= warp
+        kaparray *= warp
 
     #for each sight line, we'll now figure out the relative light
     # contributions from each bin along the sight line
@@ -259,6 +266,13 @@ def simcurve(size,Z,v_r,h_rot,
         frachdu.header.update('r_sig',ringpars['r_sig'],comment='Ring width [kpc]')
         frachdu.header.update('r_w',ringpars['r_w'],comment='Ring strength')
 
+    if warppars:
+        warphdu = pyfits.ImageHDU(warp)
+        warphdu.header.update('EXTNAME','WARP')
+        hdulist.append(warphdu)
+        frachdu.header.update('warpfac',warppars['warp_factor'],comment='Warp factor')
+        frachdu.header.update('warpang',warppars['warp_ang'],comment='Warp angle')
+
     # Add WCS coordinates (kpc) to headers
     for HDU in hdulist:
 
@@ -335,7 +349,7 @@ def quickmatch(distances, Z, h_z, **flarepars):
     return ideal_flare * h_z / h_zprime
 
 def bigben(distances, **ringpars):
-    '''Generates and array that can be used to redistribute light into a
+    '''Generates an array that can be used to redistribute light into a
     ring. The ring is parametrized as a gaussian in r such that:
 
     I(r) = exp(-(r - r_R)**2/(2*r_sig**2))
@@ -349,6 +363,19 @@ def bigben(distances, **ringpars):
     total = np.sum(ring)
 
     return ring*r_w/total
+
+def star_trek(distances, angles, Z, h_z, **warppars):
+    '''Generates an array that can be used to redistribute light into a
+    warp. The warp is parametrized as a change in Z.
+
+    '''
+    
+    warp_factor = warppars['warp_factor']
+    warp_ang = warppars['warp_ang']
+    
+    Zprime = Z - (warp_factor * np.cos(angles - warp_ang) * distances**3)
+    
+    return np.exp(-1*(Zprime)/h_z)
 
 def fit_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label='',\
                   rot_label='rotation_curve',pars=np.array([0,230,5.5,0.8,6.,0.36,np.pi/2.,0.652]),fixed=[],p=False):
@@ -478,16 +505,20 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         ax0 = fig0.add_subplot(111)
         ax0.set_xlabel('Velocity [km/s]')
         ax0.set_ylabel('Normalized power')
-        ax0.plot(v,ihist,'.')
+        ax0.plot(v,ihist,'--')
+        fig0.show()
+        raw_input('asdas')
 
     for i in range(ihist.size):
 #        print ihist[i]
         
         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth,NORM=False)
         gauss_arr = np.vstack((gauss_arr,gauss))
-        if i % 25 == 0 and plot: ax0.plot(v,gauss)
+        if i % 25 == 0 and plot: 
+            ax0.plot(v,gauss)
 
-    if plot: fig0.show()
+    if plot: 
+        fig0.show()
     gauss_arr = gauss_arr[1:]
 
     gauss_arr /= np.sum(gauss_arr)

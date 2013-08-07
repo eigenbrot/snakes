@@ -13,15 +13,12 @@ def do():
     r_sig = 1.
     vc_list = [216.78] * 4 #,203.7565,200.516,242.0]
     zlist = [0,0.43,0.86,1.72]
-    weight_list = [0.28] #np.linspace(0.05,0.5,3)
 
     for z, vc in zip(zlist,vc_list):        
-        for r_w in weight_list:
-
-            name = 'sim_z{:n}_ringa_w{:03.0f}.fits'.format(z/0.43,r_w*100)
-            print name
-            salty.simcurve(1001,z,vc,5.45,scale=100/1001.,output=name,
-                           ringpars=dict(r_R=r_R,r_sig=r_sig,r_w=r_w))
+        
+        name = 'sim_z{:n}_boring.fits'.format(z/0.43)
+        print name
+        salty.simcurve(1001,z,vc,5.45,scale=100/1001.,output=name)
             
         salty.plt.close('all')
         salty.gc.collect()

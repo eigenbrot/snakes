@@ -75,7 +75,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     approach'''
 
     pp = PDF(plotprefix+'_lines.pdf')
-    ppg = PDF(plotprefix+'_linegrid.pdf')
+#    ppg = PDF(plotprefix+'_linegrid.pdf')
     gridfig = plt.figure()
 
     dradii, dcent, derr, dm1, dm2, dm3 = sa.openslay(slayfile,moments=True,
@@ -94,13 +94,18 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
         radius = dradii[i]
         (mm1, mm2, mm3), V, I, _ = do_line(simfile,radius,1.,
                                         plot=False,Iwidth=width,rwidth=rwidth)
-
+        tm1 = np.append(tm1,mm1)
+        tm2 = np.append(tm2,mm2)
+        tm3 = np.append(tm3,mm3)
         # (nm1,nm2,nm3), negV, negI, _ = do_line(simfile,-1*radius,1.,
         #                        plot=False,Iwidth=width)
 
         # cent_lambda = central_lambda[np.where(
         #         np.abs(central_lambda - dm1[i,1]) == np.min(
         #             np.abs(central_lambda - dm1[i,1])))]
+        
+        if np.isnan(dcent[i]):
+            continue
         cent_lambda = 5048.126
         plot_center = dcent[i]/(3.e5) * cent_lambda + cent_lambda
         
@@ -113,23 +118,21 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
 
         fig0 = plt.figure()
         ax0 = fig0.add_subplot(111)
-        ax0.errorbar(dvelo,spec/np.max(spec),yerr=err/np.max(spec))
-#        ax0.plot(V,I/np.max(I))
+        ax0.errorbar(dvelo,spec/np.max(spec),yerr=err/np.max(spec),color='gray')
+        ax0.plot(V,I/np.max(I),color='b')
         #ax0.plot(negV+mm1-nm1,negI/np.max(negI))
         ax0.set_xlabel('Velocity [km/s]')
         ax0.set_ylabel('Signal')
         ax0.set_title(datetime.now().isoformat(' ')+'\nr = {:4.3f} kpc'.
                       format(dradii[i]))
 
-        tm1 = np.append(tm1,mm1)
-        tm2 = np.append(tm2,mm2)
-        tm3 = np.append(tm3,mm3)
+        
         print "{:10.3f} {:10.3f} {:10.3f} {:10.3f} {:10.3f} {:10.3f}".format(
             mm1,dm1[i,1],mm2,dm2[i,1],mm3,dm3[i,1])
 
         pp.savefig(fig0)
-        ax0.change_geometry(4,5,i+1)
-        gridfig.axes.append(ax0)
+        # ax0.change_geometry(4,5,i+1)
+#        gridfig.axes.append(ax0)
 #        fig0.clf()
 
     pp.close()
@@ -144,7 +147,7 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     ax1.set_xlabel('Radius [kpc]')
     ax1.set_ylabel('$\mu_1$')
     ax1.set_ylim(-260,260)
-    ax1.legend(loc=0)
+    ax1.legend(loc=0,scatterpoints=1,numpoints=1)
     ax1.set_title(datetime.now().isoformat(' '))
     pp1.savefig(fig1)
 
@@ -155,23 +158,23 @@ def line_comp(simfile,slayfile,plotprefix,width=17,flip=False):
     ax2.set_xlabel('Radius [kpc]')
     ax2.set_ylabel('$\mu_2$')
     ax2.set_ylim(0,2000)
-    ax2.legend(loc=0)
+    ax2.legend(loc=0,scatterpoints=1,numpoints=1)
     pp1.savefig(fig2)
 
     fig3 = plt.figure()
     ax3 = fig3.add_subplot(111)
     ax3.plot(dradii,tm3,'.',label='model')
-    ax3.plot(dradii,dm3[:,1],'x',label='data')
+#    ax3.plot(dradii,dm3[:,1],'x',label='data')
     ax3.set_xlabel('Radius [kpc]')
     ax3.set_ylabel('$\mu_3$')
-    ax3.set_ylim(-5,5)
-    ax3.legend(loc=0)
+    ax3.set_ylim(-2,2)
+    ax3.legend(loc=0,scatterpoints=1,numpoints=1)
     pp1.savefig(fig3)
     
     pp1.close()
 
-    ppg.savefig(gridfig)
-    ppg.close()
+#    ppg.savefig(gridfig)
+#    ppg.close()
     
     plt.clf()
 #    plt.close('all')

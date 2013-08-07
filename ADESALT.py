@@ -581,9 +581,9 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     """
 
     if '.slay.' in datafile:
-        datafile = ''.join(datafile.split('.')[:-2] + ['.ms.fits'])
+        datafile = '.'.join(datafile.split('.')[:-2] + ['ms.fits'])
 
-    slayfile = ''.join(datafile.split('.')[:-2] + ['.slay.fits'])
+    slayfile = '.'.join(datafile.split('.')[:-2] + ['slay.fits'])
 
     kpcradii, _, _ = openslay(slayfile,central_lambda=central_lambda,
                               flip=flip,moments=False)
@@ -606,7 +606,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     # complain
     if seperr:
         spectrum = np.array(hdu.data[row],dtype='=f8')
-        errorfile = datafile.split('.')[0]+'_error.ms.fits'
+        errorfile = '.'.join(datafile.split('.')[:-2])+'_error.ms.fits'
         error = pyfits.open(errorfile)[0].data[row]
     else:
         spectrum = np.array(hdu.data[row*2],dtype='=f8')

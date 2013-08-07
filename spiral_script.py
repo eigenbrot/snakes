@@ -8,18 +8,18 @@ spirality
 def do():
 
     h_r = 8.3
-    vc_list = [216.78,203.7565,200.516,242.0]
+    vc_list = [216.78]*4#,203.7565,200.516,242.0]
     zlist = [0,0.43,0.86,1.72]
 
     w = 0.8
     N = 6
     view_ang = 0.    
-    pitch_list = np.arange(0.1,np.pi,np.pi/3.)
+    pitch_list = [0.17] #np.arange(0.17,0.52,0.10)
 
     for z, vc in zip(zlist,vc_list):
         for pitch in pitch_list:
             
-            name = 'sim_z{:n}_spiral_p{:04.0f}.fits'.format(z/0.43,pitch*1000)
+            name = 'sim_z{:n}_spirala_p{:04.0f}.fits'.format(z/0.43,pitch*1000)
             print name
             salty.simcurve(1001,z,vc,5.45,scale=100/1001.,output=name,
                            spiralpars=dict(w=w,
