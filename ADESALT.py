@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 import pyspeckit as psk
 import matplotlib.pyplot as plt
 import scipy.optimize as spo
+from scipy import ndimage
 from datetime import datetime
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 import time
@@ -443,6 +444,10 @@ def dirtydown(img,outimg,HDU=0,axis=0):
 
 
 def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=False):
+    '''Opens a .slay.fits file and returns the radii (in kpc), line centers
+    (in km/s) and errors on line centers (in km/s). The optional moments flag
+    will also return the first three statistical moments about the mean
+    '''
 
     hdus = pyfits.open(datafile)
 
@@ -692,7 +697,11 @@ def plot_row(msfile,rownum,smooth=False,ax=False):
     return ax
 
 def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
-    
+    '''takes a slay file and corresponding .ms.fits file and re-extracts
+    apertures with a variable radial bin size designed to achieve a minumum
+    S/N in each bin.
+    '''
+
     slayHDU = pyfits.open(slayfile)
     pxradii = slayHDU[3].data
     pars = slayHDU[1].data
@@ -840,3 +849,37 @@ def template_binning(template_file,data_file,error_file,outname):
     pyfits.PrimaryHDU(data_output_list,head).writeto(outname,clobber=True)
 
     return
+
+
+def PVim(slayfile,velorange,central_wave = 5048.126):
+
+    msfile = '.'.join(slayfile.split('.')[:-2])+'.ms.fits'
+    hdu = pyfits.open(msfile)[0]
+    header = hdu.header
+    crval = header['CRVAL1']
+    cdelt = header['CDELT1']
+    msdata = hdu.data
+    wave = np.arange(msdata.shape[1])*cdelt + crval
+    
+    radii, peaks, _ = openslay(slayfile)
+    
+    # centidx = np.where(np.abs(radii) == np.min(np.abs(radii)))[0]
+    # central_wave = peaks[centidx]
+    # print central_wave
+    
+    velo = (wave - central_wave)/central_wave*3e5
+    idx = np.where((velo >= -1*velorange/2.) & (velo <= velorange/2.))[0]
+    
+    PV = msdata[:,idx].T
+    sPV = ndimage.filters.gaussian_filter(PV,2)
+    P, V = np.meshgrid(radii,velo[idx])
+    ax = plt.figure().add_subplot(111)
+    ax.contour(P,V,sPV,25)
+    ax.set_xlabel('Radius [kpc]')
+    ax.set_ylabel('Velocity [km/s]')
+
+    ax.figure.show()
+
+    return ax
+    
+    
