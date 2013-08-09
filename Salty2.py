@@ -504,7 +504,7 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         fig0 = plt.figure()
         ax0 = fig0.add_subplot(111)
         ax0.set_xlabel('Velocity [km/s]')
-        ax0.set_ylabel('Normalized power')
+        ax0.set_ylabel('Flux')
         ax0.plot(v,ihist,'--')
         fig0.show()
         raw_input('asdas')
@@ -547,7 +547,7 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         ax = fig.add_subplot(111)
     #    ax.plot(bincent,vhist,'.')
         ax.set_xlabel('Velocity [km/s]')
-        ax.set_ylabel('Normalized power')
+        ax.set_ylabel('Flux')
         ax.plot(v,lineshape)
         if fit:
             ax.plot(v,mgauss)

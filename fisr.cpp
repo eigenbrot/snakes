@@ -86,8 +86,8 @@ int main(int argc, char * argv[]){
 //        Usage:
 //            ./a.out
               
-//        This version of main does output anything. Instead it asks the user to
-//        keep providing values to compute until the use inputs 0.
+//        This version of main does not output anything. Instead it asks the
+//        user to keep providing values to compute until the use inputs 0.
 
 //     */
 
