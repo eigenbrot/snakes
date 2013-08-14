@@ -24,9 +24,9 @@ int main(int argc, char **argv) {
     if (method == 'f') sqrt_arr = fast_array_sqrt(test,size);
     else if (method == 's') sqrt_arr = slow_array_sqrt(test,size);
     
-    for (int i = 0; i < size; i++) {
-    	printf("%9.7f - %9.7f\n",test[i],sqrt_arr[i]);
-    }
+    // for (int i = 0; i < size; i++) {
+    // 	printf("%9.7f - %9.7f\n",test[i],sqrt_arr[i]);
+    // }
 
     delete[] test;
     delete[] sqrt_arr;
