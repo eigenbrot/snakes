@@ -5,6 +5,7 @@ import math
 import os
 import scipy.optimize as spo
 import bottleneck as bn
+import multiprocessing as mp
 from numba.decorators import jit, autojit
 from numba import float32, int16
 
@@ -753,3 +754,17 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
 
     return np.array([m1, m2, m3])
 
+def parallel_map(func, arglist): 
+    '''A simple wrapper for Python's multiprocess.Pool().map()
+    function. It is designed to perform map(func, arglist), which is
+    equivalent to [func(i) for i in arglist], in a parallel way 
+    '''
+    
+    try:
+        cpunum = mp.cpu_count()
+    except NotImplementedError:
+        cpunum = 4
+
+    pool = mp.Pool(processes=cpunum)
+
+    return pool.map(func, arglist)
