@@ -210,9 +210,13 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         lowV = np.interp(0.1,cdf,fit_mV)
         highV = np.interp(0.9,cdf,fit_mV)
         dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
-        _, _, dm3 = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx])
-        numsamp = dV[dmoment_idx].size
-        err_dm3 = np.sqrt(6*numsamp*(numsamp-1)/((numsamp-2)*(numsamp+1)*(numsamp+3)))
+        # _, _, dm3 = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx])
+        # numsamp = dV[dmoment_idx].size
+        # err_dm3 = np.sqrt(6*numsamp*(numsamp-1)/((numsamp-2)*(numsamp+1)*(numsamp+3)))
+        print "bootstrapping..."
+        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dmoment_idx],dI[dmoment_idx]],10000)
+        dm3 = moments[2]
+        err_dm3 = merrs[2]
         big_dm3 = np.append(big_dm3,dm3)
         big_mm3 = np.append(big_mm3,mm3)
         big_em3 = np.append(big_em3,err_dm3)
@@ -234,8 +238,9 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
     ax = plt.figure().add_subplot(111)
     ax.set_xlabel('Radius [km/s]')
     ax.set_ylabel('$\mu_3$')
-    ax.errorbar(radii,big_dm3,yerr=big_em3,ls='.',label='data')
-    ax.plot(radii,big_mm3,'-',label='model')
+    #    ax.plot(radii,big_dm3,'.',label='data',markersize=20,color='b')
+    ax.errorbar(radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
+    ax.plot(radii,big_mm3,'-',label='model',color='g')
     ax.legend(loc=0,scatterpoints=1,numpoints=1)
     pp1.savefig(ax.figure)
     pp1.close()

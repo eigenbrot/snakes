@@ -768,3 +768,32 @@ def parallel_map(func, arglist):
     pool = mp.Pool(processes=cpunum)
 
     return pool.map(func, arglist)
+
+def bootstrap(func, arglist, N, kwargs={}):
+    '''Computes error via bootstrapping on an arbitrary function. The
+    major restriction is that func is assumed to return a single, 1D,
+    Numpy array. Bootstrap will also resample ALL of the elements of
+    arglist. If you want to keep some inputs unchanged pass them as
+    keywords. The func can have an arbitrary number of arguments and
+    keyword arguments. If the output of func is a Ndarray of length N
+    then bootstrap returns two arrays of length N. The first is the
+    mean value over all bootstraps and the second is the stddev of the
+    same.
+    '''
+    
+    if type(arglist) != list:
+        arglist = [arglist]
+    size = len(arglist[0])
+    resultarr = None
+    for i in range(N):
+
+        idx = np.random.randint(0,size,size)
+        bootargs = [i[idx] for i in arglist]
+        result = func(*bootargs,**kwargs)
+        try:
+            resultarr = np.vstack((resultarr,result))
+        except ValueError:
+            resultarr = result
+
+    print np.isnan(resultarr).sum()
+    return bn.nanmean(resultarr,axis=0),bn.nanstd(resultarr,axis=0)
