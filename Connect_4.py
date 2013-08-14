@@ -84,10 +84,12 @@ class Board:
             if self.horz(ox,i):return True
         for j in range(self.cols):
             if self.vert(ox,j):return True
-        for i in range(self.rows):
-            for j in range(self.cols):
-                if self.agywag(ox,i,j): return True
-                if self.vagyvag(ox,i,j):return True
+            if self.agywag(ox,j):return True
+            if self.vagyvag(ox,j):return True
+        # for i in range(self.rows):
+        #     for j in range(self.cols):
+        #         if self.agywag(ox,i,j): return True
+        #         if self.vagyvag(ox,i,j):return True
         return False
     
     def vert(self,ox,c):
@@ -116,36 +118,38 @@ class Board:
             i+=1
         return False
         
-    def agywag(self,ox,i,j):
+    def agywag(self,ox,j):
         """Czechs for a diagonal win."""
         z=0
-        r=i
         c=j
-        while r in range(self.rows):
-            while c in range(self.cols):
-                if self.data[r][c]==ox:
-                    z+=1
-                if self.data[r][c]!=ox:
-                    z=0
-                if z>=4: return True
-                else:break
+        r=0
+        while c in range(self.cols) and r in range(self.rows):
+            print c,r
+            if self.data[r][c]==ox:
+                z+=1
+            elif self.data[r][c]!=ox:
+                z=0
+            if z>=4: return True
+            # else:break #We break here because we need to
+            #                #increment c, r and n at the same time
+            self.data[r][c] = '*'
             c+=1
             r+=1
+            print self
+        print "end on", c,r
         return False
         
-    def vagyvag(self,ox,i,j):
+    def vagyvag(self,ox,j):
         """Czechs for a diagonal win, but differently"""
         z=0
-        r=i
         c=j
-        while r in range(self.rows):
-            while c in range(self.cols):
-                if self.data[r][c]==ox:
-                    z+=1
-                if self.data[r][c]!=ox:
-                    z=0
-                if z>=4: return True
-                else:break
+        r=0
+        while c in range(self.cols) and r in range(self.rows):
+            if self.data[r][c]==ox:
+                z+=1
+            elif self.data[r][c]!=ox:
+                z=0
+            if z>=4: return True
             c+=-1
             r+=1
         return False
@@ -197,6 +201,7 @@ class Board:
                 c=2
 
             while c==2:
+                print 'player 2'
                 if p1.ply=='HUMAN' and p2.ply!='HUMAN':
                     print 'Thinking...\n'
                 moveCol=p2.nextMove(self)
@@ -327,6 +332,7 @@ class Player:
                         there. This is currently in developement and does not
                         work.'''
                         if self.ply - 1 > 100:
+                            print "Trying to weight score"
                             badscore = [s * (float(self.ply - 1)\
                                                  /(self.totalply))
                                         for s in badguy.scoresFor(b)]
@@ -420,7 +426,8 @@ def main():
     P1=Player('X','RANDOM',ply1,ply1)
     P2=Player('O','RANDOM',ply2,ply2)
 
-    print
+    print P1
+    print P2
 
     B.playGame(P1,P2)
     return
