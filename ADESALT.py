@@ -384,7 +384,7 @@ def gravity_gun(specimage,errimage,template_image,outputfile,combinedfile,intera
 
     return
 
-def plot_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label=None,hr=1):
+def plot_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,label=None,hr=1,**plotargs):
     '''Takes a slayer output file and plots the rotation curve associated with
     the lines that were fit. Has lots of neat options for plotting.
     '''
@@ -403,7 +403,7 @@ def plot_curve(datafile,central_lambda=[4901.416,5048.126],flip=False,ax=False,l
     else: ax.set_ylabel('Radius [$r/h_r$]')
     ax.set_ylabel('LOS velocity [km/s]')
 
-    ax.errorbar(kpcradii/hr,avg_centers,yerr=std_centers,fmt='.',label=label)
+    ax.errorbar(kpcradii/hr,avg_centers,yerr=std_centers,fmt='.',label=label,**plotargs)
 
     ax.axvline(x=0,ls='--',color='k',alpha=0.3)
     ax.axhline(y=0,ls='--',color='k',alpha=0.3)
