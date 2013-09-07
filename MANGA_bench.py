@@ -41,7 +41,7 @@ def loader():
 debug = False
 
 def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
-             EXTEN=0, OUTPUT=0, FL=50, FR=4.2, FP='99,99'):
+             EXTEN=0, OUTPUT=0, FL=50, FR=4.2, FP='99,99',FO='-99'):
     '''
     Description:
         FReD is primary reduction tool for the FRD Bench. It takes in two
@@ -367,7 +367,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
                 +'# Number of apertures: '+str(num_ap)+'\n'
                 +'# Focal length and beam speed: '+str(FL)+'mm '+str(FR)+'\n'
                 +'# Filter: '+filt+'\n'
-                +'# Fiber position: '+FP+'\n'
+                +'# Fiber input position: '+FP+'\n'
+                +'# Fiber output position: '+FO+'\n'
                 +'# Polish: '+polish+'\n'
                 +'# Throughput: '+str(tput_100)+'\n'
                 +'# Direct image cutoff: '+str(dir_cut)+'\n'
@@ -471,9 +472,13 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
         print 'Output position is ('+outpos+')'
         focal_length = nood[fiber_pos]['focal_length']
         focal_ratio = nood[fiber_pos]['focal_ratio']
+        diameter = nood[fiber_pos]['diameter']
+        L2_focal_length = nood[fiber_pos]['L2f']
 #        focal_length = 53.2988
+        print 'Input focal length = {} mm'.format(L2_focal_length)
+        print 'Aperture stop diameter = {} mm'.format(diameter)
+        print 'Fiber fed at f/{:3.1f}'.format(focal_ratio)
         print 'Camera focal length = '+str(focal_length)+' mm'
-        print 'Fiber fed at f/{}'.format(int(focal_ratio))
     
         for filt in nood[fiber_pos]['data'].keys():
             direct_name = nood[fiber_pos]['data'][filt]['direct']['final']
@@ -484,9 +489,10 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             print '  Direct image is '+direct_name
             print '  Fiber image is  '+fiber_name
 
-            (metric,plot_data) = FReD(direct_name,fiber_name,num_ap,pot,filt,\
-                                          dir_cut,EXTEN=exten,FL=focal_length,\
-                                          FR=focal_ratio,OUTPUT=name+'.dat',FP=fiber_pos)
+            (metric,plot_data) = FReD(direct_name,fiber_name,num_ap,pot,filt,
+                                      dir_cut,EXTEN=exten,FL=focal_length,
+                                      FR=focal_ratio,OUTPUT=name+'.dat',
+                                      FP=fiber_pos,FO=outpos)
             
             hdu = pyfits.ImageHDU(np.array(plot_data))
             hdu.header.update('FIBERPOS',fiber_pos)
@@ -552,7 +558,7 @@ def main():
         else: T = thePot(doT)
         os.system('cp /d/monk/eigenbrot/MANGA/manga_FRD.sm .')
         soba(N.ratios,num_ap,dir_cut,N.exten,T,mfile)
-        ring_helper(mfile)
+#        ring_helper(mfile)
         plot_helper('plotdata.fits',
                     'allfibers.pdf',
                     hname+'\n'+datetime.now().isoformat(' '))
@@ -722,9 +728,9 @@ class Noodle:
             for ds in data[exp]['ds']:
                 head = pyfits.open(ds)[self.exten].header
                 fiber_pos = head['FIBERPOS']
-                L2_focal_length = head['APTAREA']
+                L2_focal_length = float(head['APTAREA'])
                 diameter = float(head['APTDIA'])
-                focal_ratio = round(L2_focal_length/diameter,1)
+                focal_ratio = L2_focal_length/diameter
                 filt = head['FILTER']
                 ftype = head['OBSERVER']
                 timestr = head['TIME-OBS']
@@ -734,7 +740,7 @@ class Noodle:
                 
                 if fiber_pos not in self.ratios.keys():
                     self.ratios[fiber_pos] =\
-                        {'data':{},'focal_ratio':focal_ratio}
+                        {'data':{},'focal_ratio':focal_ratio, 'diameter':diameter, 'L2f':L2_focal_length}
                 if filt not in self.ratios[fiber_pos]['data'].keys():
                     self.ratios[fiber_pos]['data'][filt] = {}
                 if ftype not in self.ratios[fiber_pos]['data'][filt].keys():
@@ -749,6 +755,7 @@ class Noodle:
             for ds in data[exp]['ds']:
                 head = pyfits.open(ds)[self.exten].header
                 L3_focal_length = head['FOCALLEN']
+                apt_diameter = head['APTDIA']
                 filt = head['FILTER']
                 ftype = head['OBSERVER']
                 timestr = head['TIME-OBS']
