@@ -284,21 +284,38 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     total'''
     
     tput_100 = float(f_ADUrate.max() / d_ADUrate.max())
+    testtput = f_ADUrate[-1] / d_ADUrate[-1]
+
+    print "Tput_100 is {}\nTest is {}".format(tput_100,testtput)
 
     rf5 = FL/10.
     rf4 = FL/8.
-    if rf5 > d_r_c.max():
-        d_ADUf5 = d_ADUrate.max()
-    else: d_ADUf5 = np.interp(rf5,d_r_c,d_ADUrate)
+    # if rf5 > d_r_c.max():
+    #     d_ADUf5 = d_ADUrate.max()
+    # else: d_ADUf5 = np.interp(rf5,d_r_c,d_ADUrate)
         
-    if rf4 > d_r_c.max():
-        d_ADUf4 = d_ADUrate.max()
-    else: d_ADUf4 = np.interp(rf4,d_r_c,d_ADUrate)
+    # if rf4 > d_r_c.max():
+    #     #d_ADUf4 = d_ADUrate.max()
+    #     d_ADUf4 = np.interp(rf4,d_rvec,d_ADUrate)
+    #     print "Max value reached in radius at f/4. ({} > {})".format(rf4, d_r_c.max())
+    #     print "Uncorrected comparison: {} > {} ?".format(rf4, d_rvec.max())
+    # else: d_ADUf4 = np.interp(rf4,d_r_c,d_ADUrate)
     
-    tput_f5 = np.interp(rf5,f_r_c,f_ADUrate)/d_ADUf5
-    tput_f4 = np.interp(rf4,f_r_c,f_ADUrate)/d_ADUf4
-    tput_f5b = np.interp(rf5,f_r_c,f_EE)
-    tput_f4b = np.interp(rf4,f_r_c,f_EE)
+    if rf4 > f_r_c.max():
+        print "Max fiber radius reached at f/4. ({} > {})".format(rf4, f_r_c.max())
+
+    d_ADUf5 = np.interp(rf5,d_rvec,d_ADUrate)
+    d_ADUf4 = np.interp(rf4,d_rvec,d_ADUrate)
+
+    # tput_f5 = np.interp(rf5,f_r_c,f_ADUrate)/d_ADUf5
+    # tput_f4 = np.interp(rf4,f_r_c,f_ADUrate)/d_ADUf4
+    # tput_f5b = np.interp(rf5,f_r_c,f_EE)
+    # tput_f4b = np.interp(rf4,f_r_c,f_EE)
+
+    tput_f5 = np.interp(rf5,f_rvec,f_ADUrate)/d_ADUf5
+    tput_f4 = np.interp(rf4,f_rvec,f_ADUrate)/d_ADUf4
+    tput_f5b = np.interp(rf5,f_rvec,f_EE)
+    tput_f4b = np.interp(rf4,f_rvec,f_EE)
     
     sloanf = np.interp(rf4,f_rvec,f_ADUrate)
     sloand = np.interp(rf4,d_rvec,d_ADUrate)
@@ -449,8 +466,8 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             +'# {:10}= '.format('N80')+'fiber f/# at EE80\n'
             +'# {:10}= '.format('tput')+'total throughput\n'
             +'# {:10}= '.format('sloan')+'fiber within f/4 / direct within f/4 (uncorrected)\n'
-            +'# {:10}= '.format('tput5')+'throughput at f/5\n'
-            +'# {:10}= '.format('tput4')+'throughput at f/4\n'
+            +'# {:10}= '.format('tput5')+'throughput at f/5 (uncorrected)\n'
+            +'# {:10}= '.format('tput4')+'throughput at f/4 (uncorrected)\n'
             +'# {:10}= '.format('EE5')+'fiber EE at f/5\n'
             +'# {:10}= '.format('EE4')+'fiber EE at f/4\n'
             +'#\n'
@@ -558,7 +575,7 @@ def main():
         else: T = thePot(doT)
         os.system('cp /d/monk/eigenbrot/MANGA/manga_FRD.sm .')
         soba(N.ratios,num_ap,dir_cut,N.exten,T,mfile)
-#        ring_helper(mfile)
+        ring_helper(mfile)
         plot_helper('plotdata.fits',
                     'allfibers.pdf',
                     hname+'\n'+datetime.now().isoformat(' '))
