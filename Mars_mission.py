@@ -68,10 +68,11 @@ def get_distance4(end_time, g_tup):
     
     for i in range(times.size - 1):
 
-        v = v_0 + g_0 * 30.
+        avg_v = v_0 + g_0 * 30.
+        v = v_0 + g_0 * 60.
         velocities[i+1] = v
         print v
-        distances[i+1] = distances[i] + v * 60
+        distances[i+1] = distances[i] + avg_v * 60
         g_0 = np.interp(distances[i+1],g_tup[0],g_tup[1])
         v_0 = v
 
