@@ -193,7 +193,6 @@ class Board:
                 c=2
 
             while c==2:
-                print 'player 2'
                 if p1.ply=='HUMAN' and p2.ply!='HUMAN':
                     print 'Thinking...\n'
                 moveCol=p2.nextMove(self)

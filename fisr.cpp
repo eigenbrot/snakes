@@ -17,37 +17,37 @@ float fast(float x) {
     return x;
 }
 
-int main(int argc, char * argv[]){
-    /* Computes the inverse square root on a bunch of inputs.
+// int main(int argc, char * argv[]){
+//     /* Computes the inverse square root on a bunch of inputs.
 
-       Usage:
-            ./a.out outputfile float1 float2 float3 ...
+//        Usage:
+//             ./a.out outputfile float1 float2 float3 ...
 
-       outputfile will contain all of the input numbers and their inverse
-       square roots.
+//        outputfile will contain all of the input numbers and their inverse
+//        square roots.
 
-       This version of main uses c++ output streams to write the output. I'm
-       not crazy about how the formatting for this type of output works.
+//        This version of main uses c++ output streams to write the output. I'm
+//        not crazy about how the formatting for this type of output works.
 
-    */
+//     */
 
-    int count = argc - 2;
-    char * output = argv[1];
-    ofstream fout;
+//     int count = argc - 2;
+//     char * output = argv[1];
+//     ofstream fout;
 
-    fout.open(output);
-    fout<<setw(10)<<"Input"<<setw(10)<<"Output"<<endl;
-    fout<<setiosflags(ios::fixed);
+//     fout.open(output);
+//     fout<<setw(10)<<"Input"<<setw(10)<<"Output"<<endl;
+//     fout<<setiosflags(ios::fixed);
 
-    for (int i = 0; i < count; i++) {
-	float input = atof(argv[i+2]);
-	fout<<setprecision(2)<<setw(10)<<input
-	    <<setprecision(7)<<setw(10)<<fast(input)<<endl;
-    }
-    fout.close();
+//     for (int i = 0; i < count; i++) {
+// 	float input = atof(argv[i+2]);
+// 	fout<<setprecision(2)<<setw(10)<<input
+// 	    <<setprecision(7)<<setw(10)<<fast(input)<<endl;
+//     }
+//     fout.close();
 
-    return 0;
-}
+//     return 0;
+// }
       
 
 // int main(int argc, char *argv[]) {
@@ -80,29 +80,29 @@ int main(int argc, char * argv[]){
 //     return 0;
 // }
 
-// int main(int argc, char * argv[]) {
-//     /* Computes the inverse square root on a bunch of inputs.
+int main(int argc, char * argv[]) {
+    /* Computes the inverse square root on a bunch of inputs.
        
-//        Usage:
-//            ./a.out
+       Usage:
+           ./a.out
               
-//        This version of main does not output anything. Instead it asks the
-//        user to keep providing values to compute until the use inputs 0.
+       This version of main does not output anything. Instead it asks the
+       user to keep providing values to compute until the use inputs 0.
 
-//     */
+    */
 
-//     float x;
-//     char * input;
+    float x;
+    char * input;
 
-//     printf("Enter you want to find the inv. sqrt. of ('q' to quit)\n");
-//     scanf("%f", &x);
+    printf("Enter you want to find the inv. sqrt. of ('q' to quit)\n");
+    scanf("%f", &x);
     
-//     while (x) {
-// //	x = (float) atof(input);
-// //	printf("%10.2f\n",x);
-// 	printf("%10.2f\n",fast(x));
-// 	scanf("%f", &x);
-//     }
+    while (x) {
+//	x = (float) atof(input);
+//	printf("%10.2f\n",x);
+	printf("%10.2f\n",fast(x));
+	scanf("%f", &x);
+    }
 
-//     return 0;
-// }
+    return 0;
+}
