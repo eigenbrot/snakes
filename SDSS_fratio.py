@@ -23,7 +23,7 @@ def kegstand(searchstr,EEfigs,Nfig,EE=0.50):
     for image in in_files:
         print image
         HDU = pyfits.open(image)[0]
-        dp = float(image.split('_')[2].split('.fits')[0])
+        dp = float(image.split('_')[1].split('.fits')[0])
         dprime = np.append(dprime, dp)
         radius = get_radius(HDU.data,pp,EE)
         R = np.append(R, radius)
@@ -106,7 +106,8 @@ def get_radius(data,pp,EEcut):
     ax.set_xlim(0,1.5*r1)
     ax.set_title('r: {:3.2f} mm'.format(r1))
 
-    pp.savefig(fig)
+    if pp:
+        pp.savefig(fig)
 
     return r1
 

@@ -6,8 +6,11 @@ import os
 import scipy.optimize as spo
 import bottleneck as bn
 import multiprocessing as mp
-from numba.decorators import jit, autojit
-from numba import float32, int16
+try:
+    from numba.decorators import jit, autojit
+    from numba import float32, int16
+except ImportError:
+    fast_annulize = annulize
 
 debug=0
 
@@ -454,6 +457,8 @@ def annulize(data, num_an, distances=np.array([0])):
                 middle of the corresponding annulus.
         fluxes- ndarray
                 each entry is the flux contained within that annulus.
+        errors- ndarray
+                The standard deviation of the pixels in each annulus.
     '''
 
     if debug: print'annulizing...'
