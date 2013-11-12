@@ -103,7 +103,7 @@ def get_radius(data,pp,EEcut):
     ax.axvline(r1,linestyle='-',alpha=0.4)
     ax.axhline(1.0,linestyle=':',color='k',alpha=0.2)
     ax.set_ylim(0,1.1)
-    ax.set_xlim(0,1.5*r1)
+#    ax.set_xlim(0,1.5*r1)
     ax.set_title('r: {:3.2f} mm'.format(r1))
 
     if pp:

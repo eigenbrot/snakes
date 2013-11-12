@@ -290,6 +290,7 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
 
     rf5 = FL/10.
     rf4 = FL/8.
+    rf32 = FL/6.4
     # if rf5 > d_r_c.max():
     #     d_ADUf5 = d_ADUrate.max()
     # else: d_ADUf5 = np.interp(rf5,d_r_c,d_ADUrate)
@@ -317,8 +318,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     tput_f5b = np.interp(rf5,f_rvec,f_EE)
     tput_f4b = np.interp(rf4,f_rvec,f_EE)
     
-    sloanf = np.interp(rf4,f_rvec,f_ADUrate)
-    sloand = np.interp(rf4,d_rvec,d_ADUrate)
+    sloanf = np.interp(rf32,f_rvec,f_ADUrate)
+    sloand = np.interp(rf32,d_rvec,d_ADUrate)
     sloan_m = sloanf/sloand
     
     r_ideal = FL/(2*FR)
@@ -465,7 +466,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             +'# {:10}= '.format('N90')+'fiber f/# at EE90\n'
             +'# {:10}= '.format('N80')+'fiber f/# at EE80\n'
             +'# {:10}= '.format('tput')+'total throughput\n'
-            +'# {:10}= '.format('sloan')+'fiber within f/4 / direct within f/4 (uncorrected)\n'
+            +'# {:10}= '.format('sloan')+'fiber within f/3.2 / direct within f/3.2 (uncorrected)\n'
             +'# {:10}= '.format('tput5')+'throughput at f/5 (uncorrected)\n'
             +'# {:10}= '.format('tput4')+'throughput at f/4 (uncorrected)\n'
             +'# {:10}= '.format('EE5')+'fiber EE at f/5\n'
@@ -1133,6 +1134,8 @@ def ring_helper(metric_file):
     return
 
 def findring(pos):
+    if pos.split(',')[0] == 'S':
+        return int(pos.split(',')[1])
     xpos, ypos = map(int,pos.split(','))
     
     return int(np.ceil(((xpos**2. + ypos**2.)/2.)**0.5))
