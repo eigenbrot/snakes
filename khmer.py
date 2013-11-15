@@ -4,6 +4,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+from datetime import datetime
 import scipy.optimize as spo
 import os
 
@@ -153,7 +154,7 @@ def gen_curve(p):
     return m_v
 
 
-def vdiff(file1, file2, zlist):
+def vdiff(file1, file2, zlist, output=None):
     fig = plt.figure(1)
     fig.clf()
     ax = fig.add_subplot(111)
@@ -177,12 +178,15 @@ def vdiff(file1, file2, zlist):
     v_r2 = (g_r2*r2*3.08*10**11)**0.5
 
     delta_v = v_r1 - v_r2
-#    ax.plot(r1/3.93, delta_v,'k--', label='$\Delta v_{mod}$')
+
+    outlist = []
+    
+    #    ax.plot(r1/3.93, delta_v,'k--', label='$\Delta v_{mod}$')
 
     ax.set_xlabel("$r/h_r$")
-    ax.set_ylabel("v(r,z)/v(r,z=0) [km/s]")
-    ax.set_xlim(-0.1,6)
-    ax.set_ylim(0,1.1)
+    ax.set_ylabel("$dv$ [km/s]")
+    # ax.set_xlim(-0.1,6)
+    # ax.set_ylim(0,1.1)
 #    ax.set_title("$\Delta v_{mod} = $"+file1+" - "+file2+"\n"\
 #                     +"$z$ compaison is max - 0.5max")
 
@@ -200,14 +204,43 @@ def vdiff(file1, file2, zlist):
         idx11 = np.where(data1[1] == data1[1][zidx11])
         g_r11 = data1[3][idx11]
         v_r11 = (g_r11*r2*3.08*10**11)**0.5
+
+        dv1 = vav*(v_r11/v_r1 - 1)
+        dv2 = vav*(v_r22/v_r2 - 1)
+
+        outlist += [dv1, dv2]
         
-        ax.plot(r2/3.93, (v_r11/v_r1), clist[i]+'--')
-        ax.plot(r2/3.93, (v_r22/v_r2), clist[i]+'-',label=str(zlist[i]/0.32))
+        ax.plot(r2/3.93, dv1, clist[i]+'--')
+        ax.plot(r2/3.93, dv2, clist[i]+'-',label=str(zlist[i]/0.32))
     
     ax.legend(loc=5,title='$z/h_z$')
 
     fig.show()
     
+    if output:
+        outstack = np.vstack(outlist).T
+        f = open(output, 'w')
+        f.write('# Generated on {}\n#\n'.format(datetime.now().isoformat(' '))+\
+                '# dV = <V>( V(z) / V(z=0) - 1 )\n' + \
+                '# <V> = (V(z=0)_max + V(z=0)_halfmax) / 2\n#\n' + \
+                '# {:10} - r/h_r\n'.format('r') + \
+                '# {:10} - V(z=0) for half max model [km/s]\n'.format('V0_half') + \
+                '# {:10} - V(z=0) for max model [km/s]\n'.format('V0_max') + \
+                '# {:10} - dV(z=?*h_z) for half max model [km/s]\n'.format('dV?_half') + \
+                '# {:10} - dV(z=?*h_z) for max model [km/s]\n#\n'.format('dV?_max') + \
+                '#{:>9}{:>10}{:>10}'.format('r','V0_half','V0_max'))
+        for z in zlist:
+            f.write('{:>10}{:>10}'.format('dV{:n}_half'.format(z/0.32),'dV{:n}_max'.format(z/0.32)))
+
+        f.write(str('\n#{:9}{:10}{:10}' + len(zlist)*2*'{:10}'+'\n').\
+                format(*range(len(zlist)*2 + 3)))
+
+        for i in range(r2.size):
+            f.write('{:10.4f}{:10.4f}{:10.4f}'.format(r2[i],v_r1[i],v_r2[i]))
+            f.write(str(len(zlist)*2*'{:10.4f}' + '\n').format(*outstack[i]))
+        f.close()
+
+                
     return
 
 if __name__ == "__main__":
