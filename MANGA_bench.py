@@ -1190,14 +1190,14 @@ def hex_plot_helper(datafile,outputfile,title,numfibers):
     pp.close()
     return
 
-def plot_hex(rank):
+def plot_hex(rank,scale=1):
 
     offset = (rank % 2)*0.5
     row_lengths = np.concatenate((
         np.arange(rank) + rank + 1,
         [rank*2 + 1],
         (np.arange(rank) + rank + 1)[::-1]))
-    y_offsets = np.arange(rank*2 + 1)*1.732 - rank*1.732
+    y_offsets = scale*(np.arange(rank*2 + 1)*1.732 - rank*1.732)
     
 
     fig = plt.figure()
@@ -1206,9 +1206,9 @@ def plot_hex(rank):
     theta = np.arange(0,2*np.pi,0.01)
 
     for (row,y) in zip(row_lengths,y_offsets):
-         for x in (np.arange(row) - row/2 + offset)*2:
-            ax.plot(np.cos(theta)+x,np.sin(theta)+y,'k')
-
+         for x in (np.arange(row) - row/2 + offset)*2*scale:
+            ax.plot(scale*np.cos(theta)+x,scale*np.sin(theta)+y,'k')
+         print offset
          offset = abs(offset - 0.5)
 
     return ax
