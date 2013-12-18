@@ -189,6 +189,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
     big_dm3 = np.array([])
     big_mm3 = np.array([])
     big_em3 = np.array([])
+    plot_radii = np.array([])
     pp = PDF(plotprefix+'_lines.pdf')
     
     for radius in radii:
@@ -207,31 +208,54 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
 
         fit_mV = dV + peak
         cdf = np.cumsum(mI_pad/np.sum(mI_pad))
+        # Limits defined by model data
         lowV = np.interp(0.1,cdf,fit_mV)
         highV = np.interp(0.9,cdf,fit_mV)
         dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
-        # _, _, dm3 = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx])
-        # numsamp = dV[dmoment_idx].size
+
+        # Limits defined by smoothed actual data
+        window_size = 21
+        window = np.blackman(window_size)
+        signal = np.r_[dI[window_size - 1:0:-1],dI,dI[-1:-1*window_size:-1]]
+        smoothed = np.convolve(window/np.sum(window),signal,'valid')[(window_size/2):-(window_size/2)]
+        print smoothed.size, dV.size
+        scdf = np.cumsum(smoothed/np.sum(smoothed))
+        dlowV = np.interp(0.01,scdf,dV)
+        dhighV = np.interp(0.99,scdf,dV)
+        dsmooth_idx = np.where((dV >= dlowV) & (dV <= dhighV))
+        print dsmooth_idx
+        if dsmooth_idx[0].size <= 2:
+            continue
+        # _, _, dm3 = ADE.ADE_moments(dV[dsmooth_idx],dI[dsmooth_idx])
+        # numsamp = dV[dsmooth_idx].size
         # err_dm3 = np.sqrt(6*numsamp*(numsamp-1)/((numsamp-2)*(numsamp+1)*(numsamp+3)))
         print "bootstrapping..."
-        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dmoment_idx],dI[dmoment_idx]],10000)
+#        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dmoment_idx],dI[dmoment_idx]],10000)
+        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dsmooth_idx],dI[dsmooth_idx]],10000)
         dm3 = moments[2]
         err_dm3 = merrs[2]
         big_dm3 = np.append(big_dm3,dm3)
         big_mm3 = np.append(big_mm3,mm3)
         big_em3 = np.append(big_em3,err_dm3)
+        plot_radii = np.append(plot_radii,radius)
 
         fig = plt.figure()
         ax0 = fig.add_subplot(311)
         ax1 = fig.add_subplot(312)
+        ax2 = fig.add_subplot(313)
         ax0.plot(dV,dI,'k-')
         ax0.plot(mV,mI,'b:',alpha=0.6)
-        ax0.plot(dV+peak,mI_pad,'b-')
+        ax0.plot(fit_mV,mI_pad,'b-')
         ax0.axvline(x=lowV,ls=':',color='r',alpha=0.8)
         ax0.axvline(x=highV,ls=':',color='r',alpha=0.8)
+        ax0.axvline(x=dlowV,ls=':',color='g',alpha=0.8)
+        ax0.axvline(x=dhighV,ls=':',color='g',alpha=0.8)
         ax1.plot(dV,corr)
         ax1.axvline(x=peak,ls=':',color='k',alpha=0.5)
+        ax2.plot(dV,smoothed)
+        ax2.set_xlim(ax0.get_xlim())
         pp.savefig(fig)
+        plt.close(fig)
     pp.close()
 
     pp1 = PDF(plotprefix+'_m3.pdf')
@@ -239,8 +263,10 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
     ax.set_xlabel('Radius [km/s]')
     ax.set_ylabel('$\mu_3$')
     #    ax.plot(radii,big_dm3,'.',label='data',markersize=20,color='b')
-    ax.errorbar(radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
-    ax.plot(radii,big_mm3,'-',label='model',color='g')
+    ax.errorbar(plot_radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
+    ax.set_ylim(-3*np.median(big_em3),3*np.median(big_em3))
+#    ax.set_ylim(-10,10)
+    ax.plot(plot_radii,big_mm3,'-',label='model',color='g')
     ax.legend(loc=0,scatterpoints=1,numpoints=1)
     pp1.savefig(ax.figure)
     pp1.close()
