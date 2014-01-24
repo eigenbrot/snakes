@@ -490,6 +490,7 @@ def line_profile(fitsfile,radius,Iwidth=17.,
 
     numsamp = 1000
 
+    print 'building histogram'
     vhist, bins = np.histogram(
         np.mean(vs[:,col1:col2],axis=1),
         bins=20,
@@ -509,26 +510,38 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         fig0.show()
         raw_input('asdas')
 
-    for i in range(ihist.size):
-#        print ihist[i]
-        
-        r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth,NORM=False)
-        gauss_arr = np.vstack((gauss_arr,gauss))
-        if i % 25 == 0 and plot: 
-            ax0.plot(v,gauss)
+    scale = np.mean(np.diff(v))
+    print scale
+    Iwidthpx = Iwidth/scale
+    _, kernel = ADE.ADE_gauss(numsamp,numsamp/2-1,0,FWHM=Iwidthpx,NORM=True)
+    print kernel.sum()
+#    ADE.eplot(np.arange(kernel.size)*scale,kernel)
+    lineshape = np.convolve(kernel,ihist,'same')
+
+#     print 'building {} gaussians'.format(ihist.size)
+#     for i in range(ihist.size):
+# #        print ihist[i]
+#         print i
+#         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
+#         gauss_arr = np.vstack((gauss_arr,gauss))
+#         if i % 25 == 0 and plot: 
+#             ax0.plot(v,gauss)
 
     if plot: 
         fig0.show()
-    gauss_arr = gauss_arr[1:]
+    # gauss_arr = gauss_arr[1:]
 
-    gauss_arr /= np.sum(gauss_arr)
+    # gauss_arr /= np.sum(gauss_arr)
 
-    lineshape = np.sum(gauss_arr,axis=0)
+    # lineshape2 = np.sum(gauss_arr,axis=0)
 
     if observe:
         print 'simulating effects of RSS'
         v, lineshape = observify(v,lineshape)
-
+#        ov, lineshape2 = observify(v,lineshape2)
+    # else:
+    #     ov = v
+        
     if fit:
         print 'fitting'
         fitpars = spo.curve_fit(gaussfunc,v,lineshape,
@@ -548,7 +561,8 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     #    ax.plot(bincent,vhist,'.')
         ax.set_xlabel('Velocity [km/s]')
         ax.set_ylabel('Flux')
-        ax.plot(v,lineshape)
+        ax.plot(v,lineshape/lineshape.sum())
+#        ax.plot(ov,lineshape2/lineshape2.sum(),':')
         if fit:
             ax.plot(v,mgauss)
 
