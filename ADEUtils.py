@@ -722,9 +722,12 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
     this clipping.
     '''
 
-    if err != None: p /= err
+#    if err != None: p /= err
 
-    norm_p = p/np.sum(p)
+    sump = np.sum(p)
+    norm_p = p/sump
+    if err is not None:
+        norm_err = err/sump
 
     std_p = np.array(norm_p)
     #eplot(x,std_p)
@@ -757,7 +760,20 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
 
     m3 = np.sum(norm_p * (x - m1)**3)/m2**1.5
 
-    return np.array([m1, m2, m3])
+    if err is not None:
+#        sum_err = np.sqrt(np.sum(norm_err**2))
+        m1_i_err = np.sqrt((x*norm_err)**2)
+        m1_err = np.sqrt(np.sum(m1_i_err**2))
+        m2_i_err = np.sqrt((2*(x - m1)*norm_p*m1_err)**2 + (norm_err*(x - m1)**2)**2)
+        m2_err = np.sqrt(np.sum(m2_i_err**2))
+        m3_i_err = m2**(-1.5)*np.sqrt((3*norm_p*m1_err*(x - m1)**2)**2 +
+                                      (norm_err*(x - m1)**3)**2 +
+                                      (3*norm_p*m2_err/2/m2*(x - m1)**3)**2)
+        m3_err = np.sqrt(np.sum(m3_i_err**2))
+
+        return np.array([m1,m2,m3]), np.array([m1_err,m2_err,m3_err])
+    else:
+        return np.array([m1, m2, m3])
 
 def parallel_map(func, arglist): 
     '''A simple wrapper for Python's multiprocess.Pool().map()
