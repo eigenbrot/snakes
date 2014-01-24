@@ -193,7 +193,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
     pp = PDF(plotprefix+'_lines.pdf')
     
     for radius in radii:
-
+        
         (_, _, mm3,), mV, mI, _ = do_line(simfile, radius, 1.,
                                         plot=False,rwidth=rwidth)
         dV, dI, derr = sa.plot_line(slayfile,radius,wavelength=cent_lambda,velo=True,
@@ -218,7 +218,6 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         window = np.blackman(window_size)
         signal = np.r_[dI[window_size - 1:0:-1],dI,dI[-1:-1*window_size:-1]]
         smoothed = np.convolve(window/np.sum(window),signal,'valid')[(window_size/2):-(window_size/2)]
-        print smoothed.size, dV.size
         scdf = np.cumsum(smoothed/np.sum(smoothed))
         dlowV = np.interp(0.01,scdf,dV)
         dhighV = np.interp(0.99,scdf,dV)
@@ -229,9 +228,11 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         # _, _, dm3 = ADE.ADE_moments(dV[dsmooth_idx],dI[dsmooth_idx])
         # numsamp = dV[dsmooth_idx].size
         # err_dm3 = np.sqrt(6*numsamp*(numsamp-1)/((numsamp-2)*(numsamp+1)*(numsamp+3)))
-        print "bootstrapping..."
+#        print "bootstrapping..."
 #        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dmoment_idx],dI[dmoment_idx]],10000)
-        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dsmooth_idx],dI[dsmooth_idx]],10000)
+#        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dsmooth_idx],dI[dsmooth_idx]],10000)
+        moments, merrs = ADE.ADE_moments(dV[dsmooth_idx],dI[dsmooth_idx],err=derr[dsmooth_idx])
+        print "moments: {}\nerrs: {}".format(moments,merrs)
         dm3 = moments[2]
         err_dm3 = merrs[2]
         big_dm3 = np.append(big_dm3,dm3)
@@ -260,11 +261,12 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
 
     pp1 = PDF(plotprefix+'_m3.pdf')
     ax = plt.figure().add_subplot(111)
+    ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
     ax.set_xlabel('Radius [km/s]')
     ax.set_ylabel('$\mu_3$')
     #    ax.plot(radii,big_dm3,'.',label='data',markersize=20,color='b')
     ax.errorbar(plot_radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
-    ax.set_ylim(-3*np.median(big_em3),3*np.median(big_em3))
+    ax.set_ylim(-5*np.median(big_em3),5*np.median(big_em3))
 #    ax.set_ylim(-10,10)
     ax.plot(plot_radii,big_mm3,'-',label='model',color='g')
     ax.legend(loc=0,scatterpoints=1,numpoints=1)
@@ -419,3 +421,10 @@ def big_script():
     plotzs2(mslist,[True,False,False,False],zip(simlist1, simlist2, simlist3))
 
     return
+
+def compare_models(slayfile, simfiles, plotprefix, flip=False, cent_lambda = 5048.126):
+    '''This function calls new_moments to generate comparisons of data and
+    models for a list of simfiles. Compute the reduced chi squared for each
+    one and report that.
+    '''
+    pass
