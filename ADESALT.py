@@ -606,6 +606,13 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     except KeyError:
         seperr = False
 
+    '''get the width of the bin in kpc'''
+    print np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]])
+    rwidth = np.diff(np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]]))[0]
+    print 'rwidth = {}'.format(rwidth)
+    rwidth *= 0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
+    rwidth *= 34.1e3/206265. # distance (34.1Mpc) / 206265"
+
     # We use '=f8' to force the endianess to be the same as the local
     # machine. This is so the precompiled bottleneck (bn) functions don't
     # complain
@@ -648,7 +655,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         fig.show()
 
     datahdus.close()
-    return pwave, pspec, perr
+    return pwave, pspec, perr, rwidth
 
 def plot_row(msfile,rownum,smooth=False,ax=False):
     """
