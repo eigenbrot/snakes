@@ -202,10 +202,10 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         (_, _, mm3,_), mV, mI, _ = do_line(simfile, radius, 1.,
                                         plot=False,rwidth=rwidth)
 
-        dI /= np.mean(dI)
-        mI /= np.mean(mI)
+        conv_dI = dI/np.mean(dI)
+        conv_mI = mI/np.mean(mI)
         mI_pad = pad(mI,dI.size)
-        corr = np.convolve(dI,mI_pad[::-1],'same')
+        corr = np.convolve(conv_dI,mI_pad[::-1],'same')
         idx = np.where(corr == corr.max())[0][0]
         peak = dV[idx]
 
@@ -216,6 +216,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         highV = np.interp(0.9,cdf,fit_mV)
         dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
         mmoment_idx = np.where((fit_mV >= lowV) & (fit_mV <= highV))
+        print dmoment_idx
 
         # Limits defined by smoothed actual data
         window_size = 21
@@ -226,13 +227,13 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         dlowV = np.interp(0.01,scdf,dV)
         dhighV = np.interp(0.99,scdf,dV)
         dsmooth_idx = np.where((dV >= dlowV) & (dV <= dhighV))
-        print dsmooth_idx
 
         if plotprefix:
             fig = plt.figure()
             ax0 = fig.add_subplot(311)
             ax1 = fig.add_subplot(312)
             ax2 = fig.add_subplot(313)
+            ax0.set_title('r = {:5.3f} kpc'.format(radius))
             ax0.plot(dV,dI,'k-')
             ax0.plot(mV,mI*np.max(dI)/np.max(mI),'b:',alpha=0.6)
             ax0.plot(fit_mV,mI_pad*np.max(dI)/np.max(mI_pad),'b-')
@@ -276,7 +277,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         pp1 = PDF(plotprefix+'_m3.pdf')
         ax = plt.figure().add_subplot(111)
         ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
-        ax.set_xlabel('Radius [km/s]')
+        ax.set_xlabel('Radius [kpc]')
         ax.set_ylabel('$\mu_3$')
     #    ax.plot(radii,big_dm3,'.',label='data',markersize=20,color='b')
         ax.errorbar(plot_radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
