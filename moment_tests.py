@@ -37,6 +37,7 @@ def do_line(simfile,radius,peak_scale,plot=True,Iwidth=17,rwidth=1.,
     # ax.axvline(x=v[highidx],alpha=0.4,color=l.get_color())
 
     moments = ADE.ADE_moments(v[lowidx:highidx+1], I[lowidx:highidx+1], threshold=np.inf)
+#    ADE.eplot(v[lowidx:highidx+1], I[lowidx:highidx+1])
 
     if plot:
         fig.show()
@@ -189,13 +190,15 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
     big_dm3 = np.array([])
     big_mm3 = np.array([])
     big_em3 = np.array([])
+    big_mm3_2 = np.array([])
     plot_radii = np.array([])
-    pp = PDF(plotprefix+'_lines.pdf')
+    if plotprefix:
+        pp = PDF(plotprefix+'_lines.pdf')
     
     for radius in radii:
         
         dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,wavelength=cent_lambda,velo=True,
-                                            plot=False,baseline=1)
+                                            plot=False,baseline=1,flip=flip)
         (_, _, mm3,), mV, mI, _ = do_line(simfile, radius, 1.,
                                         plot=False,rwidth=rwidth)
 
@@ -212,6 +215,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         lowV = np.interp(0.1,cdf,fit_mV)
         highV = np.interp(0.9,cdf,fit_mV)
         dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
+        mmoment_idx = np.where((fit_mV >= lowV) & (fit_mV <= highV))
 
         # Limits defined by smoothed actual data
         window_size = 21
@@ -224,25 +228,27 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         dsmooth_idx = np.where((dV >= dlowV) & (dV <= dhighV))
         print dsmooth_idx
 
-        fig = plt.figure()
-        ax0 = fig.add_subplot(311)
-        ax1 = fig.add_subplot(312)
-        ax2 = fig.add_subplot(313)
-        ax0.plot(dV,dI,'k-')
-        ax0.plot(mV,mI,'b:',alpha=0.6)
-        ax0.plot(fit_mV,mI_pad,'b-')
-        ax0.axvline(x=lowV,ls=':',color='r',alpha=0.8)
-        ax0.axvline(x=highV,ls=':',color='r',alpha=0.8)
-        ax0.axvline(x=dlowV,ls=':',color='g',alpha=0.8)
-        ax0.axvline(x=dhighV,ls=':',color='g',alpha=0.8)
-        ax1.plot(dV,corr)
-        ax1.axvline(x=peak,ls=':',color='k',alpha=0.5)
-        ax2.plot(dV,smoothed)
-        ax2.set_xlim(ax0.get_xlim())
-        pp.savefig(fig)
-        plt.close(fig)
+        if plotprefix:
+            fig = plt.figure()
+            ax0 = fig.add_subplot(311)
+            ax1 = fig.add_subplot(312)
+            ax2 = fig.add_subplot(313)
+            ax0.plot(dV,dI,'k-')
+            ax0.plot(mV,mI*np.max(dI)/np.max(mI),'b:',alpha=0.6)
+            ax0.plot(fit_mV,mI_pad*np.max(dI)/np.max(mI_pad),'b-')
+            ax0.axvline(x=lowV,ls=':',color='r',alpha=0.8)
+            ax0.axvline(x=highV,ls=':',color='r',alpha=0.8)
+            ax0.axvline(x=dlowV,ls=':',color='g',alpha=0.8)
+            ax0.axvline(x=dhighV,ls=':',color='g',alpha=0.8)
+            ax1.plot(dV,corr)
+            ax1.axvline(x=peak,ls=':',color='k',alpha=0.5)
+            ax2.plot(dV,scdf)
+            ax2.set_xlim(ax0.get_xlim())
+            ax1.set_xlim(ax0.get_xlim())
+            pp.savefig(fig)
+            plt.close(fig)
 
-        if dsmooth_idx[0].size <= 2:
+        if dmoment_idx[0].size <= 2:
             print "skipping {} kpc".format(radius)
             continue
         # _, _, dm3 = ADE.ADE_moments(dV[dsmooth_idx],dI[dsmooth_idx])
@@ -251,33 +257,39 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
 #        print "bootstrapping..."
 #        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dmoment_idx],dI[dmoment_idx]],10000)
 #        moments, merrs = ADE.bootstrap(ADE.ADE_moments,[dV[dsmooth_idx],dI[dsmooth_idx]],10000)
-        moments, merrs = ADE.ADE_moments(dV[dsmooth_idx],dI[dsmooth_idx],err=derr[dsmooth_idx])
-        print "moments: {}\nerrs: {}".format(moments,merrs)
+        moments, merrs = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx],err=derr[dmoment_idx])
+        mmoments = ADE.ADE_moments(fit_mV[mmoment_idx],mI_pad[mmoment_idx])
+        # ADE.eplot(fit_mV[mmoment_idx],mI_pad[mmoment_idx])
+        # raw_input('pause')
+        print "moments: {}\nerrs: {}\nmmoments: {}".format(moments,merrs,mmoments)
         dm3 = moments[2]
         err_dm3 = merrs[2]
         big_dm3 = np.append(big_dm3,dm3)
         big_mm3 = np.append(big_mm3,mm3)
+        big_mm3_2 = np.append(big_mm3_2,mmoments[2])
         big_em3 = np.append(big_em3,err_dm3)
         plot_radii = np.append(plot_radii,radius)
 
-    pp.close()
-
-    pp1 = PDF(plotprefix+'_m3.pdf')
-    ax = plt.figure().add_subplot(111)
-    ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
-    ax.set_xlabel('Radius [km/s]')
-    ax.set_ylabel('$\mu_3$')
+    if plotprefix:
+        pp.close()
+    
+        pp1 = PDF(plotprefix+'_m3.pdf')
+        ax = plt.figure().add_subplot(111)
+        ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
+        ax.set_xlabel('Radius [km/s]')
+        ax.set_ylabel('$\mu_3$')
     #    ax.plot(radii,big_dm3,'.',label='data',markersize=20,color='b')
-    ax.errorbar(plot_radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
-#    ax.set_ylim(-5*np.median(big_em3),5*np.median(big_em3))
-#    ax.set_ylim(-10,10)
-    ax.plot(plot_radii,big_mm3,'-',label='model',color='g')
-    ax.legend(loc=0,scatterpoints=1,numpoints=1)
-    pp1.savefig(ax.figure)
-    pp1.close()
+        ax.errorbar(plot_radii,big_dm3,yerr=big_em3,fmt='.',ecolor='b',ms=20,color='b')
+        #    ax.set_ylim(-5*np.median(big_em3),5*np.median(big_em3))
+        #    ax.set_ylim(-10,10)
+        ax.plot(plot_radii,big_mm3,'-',label='model',color='g')
+        ax.plot(plot_radii,big_mm3_2,'-',color='r',label='with same window as data')
+        ax.legend(loc=0,scatterpoints=1,numpoints=1)
+        pp1.savefig(ax.figure)
+        pp1.close()
     plt.close('all')
 
-    return radii, big_dm3, big_mm3, big_em3
+    return plot_radii, big_dm3, big_mm3_2, big_em3
 
 def pad(arr,length):
 
@@ -431,3 +443,30 @@ def compare_models(slayfile, simfiles, plotprefix, flip=False, cent_lambda = 504
     one and report that.
     '''
     pass
+
+def plot_multiple(morph_string_list, plot_prefix):
+
+    zlist = [0,1,2,4]
+    fliplist = [False,True,True,True]
+    color_list = ['orange','green']
+
+    for z,flip in zip(zlist,fliplist):
+        ax = plt.figure().add_subplot(111)
+        ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
+        ax.set_xlabel('Radius [km/s]')
+        ax.set_ylabel('$\mu_3$')
+        for morph, color in zip(morph_string_list,color_list):
+            slayfile = glob('tiESO_z{}_*.slay.fits'.format(z))[0]
+            simfile = glob('sim*z{}*{}*.fits'.format(z,morph))[0]
+            print "using data file: {}\nand sim file: {}".format(slayfile,simfile)
+            radius, data, model, error = new_moments(slayfile,simfile,False,flip=flip)
+            ax.plot(radius, model,'-',label=morph,color=color)
+        ax.errorbar(radius,data,yerr=error,fmt='.',ms=10,color='b')
+        ax.legend(loc=0,scatterpoints=1,numpoints=1)
+        lim = 2#np.median(data) + np.std(data)*3
+        ax.set_ylim(-lim,lim)
+        pp = PDF('{}_z{}.pdf'.format(plot_prefix,z))
+        pp.savefig(ax.get_figure())
+        pp.close()
+    
+    return
