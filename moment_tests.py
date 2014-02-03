@@ -199,7 +199,7 @@ def new_moments(slayfile, simfile, plotprefix, flip=False, cent_lambda = 5048.12
         
         dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,wavelength=cent_lambda,velo=True,
                                             plot=False,baseline=1,flip=flip)
-        (_, _, mm3,), mV, mI, _ = do_line(simfile, radius, 1.,
+        (_, _, mm3,_), mV, mI, _ = do_line(simfile, radius, 1.,
                                         plot=False,rwidth=rwidth)
 
         dI /= np.mean(dI)
@@ -469,4 +469,39 @@ def plot_multiple(morph_string_list, plot_prefix):
         pp.savefig(ax.get_figure())
         pp.close()
     
+    return
+
+def test_kurt(slayfile,outname):
+
+    
+    radii, _, _ = sa.openslay(slayfile,moments=False)
+    zlist = [0,1,2,4]
+    for z in zlist:
+        simfile = 'sim_z{}_boring.fits'.format(z)
+        flarefile = 'sim_z{}_nflarea_1245.fits'.format(z)
+        ax = plt.figure().add_subplot(111)
+        ax.set_title('Generated on {}'.format(datetime.now().isoformat()))
+        ax.set_xlabel('Radius [km/s]')
+        ax.set_ylabel('$\mu_4$')
+        ax.set_title('z = {}$h_z$'.format(z))
+        bkurt = np.array([])
+        fkurt = np.array([])
+        for radius in radii:
+            _, bmV, bmI, _ = do_line(simfile, radius, 1.,
+                                   plot=False,rwidth=9.3)
+            _, fmV, fmI, _ = do_line(flarefile, radius, 1.,
+                                     plot=False,rwidth=9.3)
+            bmoments = ADE.ADE_moments(bmV, bmI)
+            fmoments = ADE.ADE_moments(fmV, fmI)
+
+            bkurt = np.append(bkurt, bmoments[3])
+            fkurt = np.append(fkurt, fmoments[3])
+
+        ax.plot(radii, bkurt, label='simple disk')
+        ax.plot(radii, fkurt, label='flare')
+        ax.legend(loc=0)
+        pp = PDF('{}_z{}.pdf'.format(outname,z))
+        pp.savefig(ax.get_figure())
+        pp.close()
+
     return

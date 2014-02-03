@@ -759,9 +759,11 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
         m2 = new_m2
 
     m3 = np.sum(norm_p * (x - m1)**3)/m2**1.5
+    
+    m4 = np.sum(norm_p * (x - m1)**4)/m2**2
 
     if err is not None:
-#        sum_err = np.sqrt(np.sum(norm_err**2))
+        sum_err = np.sqrt(np.sum(err**2))
         m1_i_err = np.sqrt((x*norm_err)**2)
         m1_err = np.sqrt(np.sum(m1_i_err**2))
         m2_i_err = np.sqrt((2*(x - m1)*norm_p*m1_err)**2 + (norm_err*(x - m1)**2)**2)
@@ -773,7 +775,7 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
 
         return np.array([m1,m2,m3]), np.array([m1_err,m2_err,m3_err])
     else:
-        return np.array([m1, m2, m3])
+        return np.array([m1, m2, m3, m4])
 
 def parallel_map(func, arglist): 
     '''A simple wrapper for Python's multiprocess.Pool().map()
