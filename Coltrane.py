@@ -172,6 +172,29 @@ def plot_ice(results,show=True):
 
     return ax1, ax2, ax3
 
+def make_fits(vrlist,hrlist,footprints,output):
+    '''Generate a fits version of the goodness-of-fit map from a comparison of
+    data to a grid of models.
+    '''
+    shape = (int(footprints[0].size**0.5),int(footprints[0].size**0.5))
+    hdu = pyfits.PrimaryHDU(footprints[2].reshape(shape))
+    hdu.header.update('CRPIX1',1,comment='WCS: X reference pixel')
+    hdu.header.update('CRVAL1',footprints[1].min(),
+                      comment='WCS: X reference coordinate value')
+    hdu.header.update('CDELT1',np.mean(np.diff(hrlist)),
+                      comment='WCS: X pixel size')
+    hdu.header.update('CTYPE1','LINEAR',comment='X type')
+    hdu.header.update('CRPIX2',1,comment='WCS: Y reference pixel')
+    hdu.header.update('CRVAL2',footprints[0].min(),
+                      comment='WCS: Y reference coordinate value')
+    hdu.header.update('CDELT2',np.mean(np.diff(vrlist)),
+                      comment='WCS: Y pixel size')
+    hdu.header.update('CTYPE2','LINEAR',comment='Y type')
+    hdu.writeto(output)
+
+    return
+
+
 def plot_chi(results):
     '''Given the output of giant_steps, plot a countour map of the goodness of
     fit parameter as a function of parameter 1 and parameter 2. Show this
