@@ -638,7 +638,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         fit = ADE.polyclip(pwave,pspec,baseline)
         pspec -= fit(pwave)
 
-    if not ax:
+    if not ax and plot:
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if velo:
@@ -648,10 +648,10 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         ax.set_ylabel('ADU/s')
         ax.set_title(datetime.now().isoformat(' '))
     
-    ax.errorbar(pwave,pspec,yerr=perr,**plotargs)
-    fig = ax.figure
     
     if plot:
+        ax.errorbar(pwave,pspec,yerr=perr,**plotargs)
+        fig = ax.figure
         fig.show()
 
     datahdus.close()
