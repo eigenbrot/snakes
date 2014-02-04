@@ -121,6 +121,8 @@ def simcurve(size,Z,v_r,h_rot,
 
     #Z is in kpc, not scale heights
 
+    if size % 2 == 0:
+        size += 1
 
     #first generate the radial distance array. Taken from ADEUtils
     vecvec = np.indices((size,size),dtype=np.float32)
