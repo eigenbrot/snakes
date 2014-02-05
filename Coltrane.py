@@ -6,12 +6,13 @@ import matplotlib
 import glob
 import time
 import pyfits
+import scipy.optimize as spo
 plt = matplotlib.pyplot
 glob = glob.glob
 
 
 def moments_notice(slayfile, simfile, plotprefix=False,
-                   flip=False, cent_lambda = 5048.126):
+                   flip=False, cent_lambda = 5048.126, skip_radii = []):
     '''Take an extracted spectrum (slayfile) and model galaxy (simfile) and
     compute the first 3 statistical moments for both at all radii sampled by
     the spectrum. The model is binned and degraded to match the data quality
@@ -38,6 +39,10 @@ def moments_notice(slayfile, simfile, plotprefix=False,
         pp = PDF(plotprefix+'_lines.pdf')
 
     for radius in radii:
+        
+        if int(np.floor(radius)) in skip_radii:
+            print "user skipping radius {} kpc".format(radius)
+            continue
 
         dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,
                                             wavelength=cent_lambda,velo=True,
@@ -96,7 +101,7 @@ def moments_notice(slayfile, simfile, plotprefix=False,
         (big_dm2, big_dm2e, big_mm2),\
         (big_dm3, big_dm3e, big_mm3)
 
-def giant_steps(slay_file, simstring, parameter_list):
+def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     '''Take an extracted spectrum (slayfile) and a list of galaxy models and
     compute the goodness of fit for each model as a function of two model
     parameters specified in parameter_list. The goodness of fit is defined as
@@ -120,14 +125,14 @@ def giant_steps(slay_file, simstring, parameter_list):
                                                    parameter_list[1],
                                                    par2)
 
-        radii, m1, m2, m3 = moments_notice(slay_file,sim_file)
+        radii, m1, m2, m3 = moments_notice(slay_file,sim_file,
+                                           skip_radii=skip_radii)
         chis = np.array([])
         for moment in [m1, m2, m3]:
-            red_chi = np.sum((moment[0] - moment[2])**2/moment[1])/\
-                (radii.size - 1)
-            chis = np.append(chis,red_chi)
+            red_chi = (moment[0] - moment[2])**2/moment[1]**2
+            chis = np.r_[chis,red_chi]
 
-        value = np.sum(chis**2)
+        value = np.sum(chis)/(radii.size*3 - 1)
         print 'fit goodness: {}'.format(value)
         par1_arr = np.append(par1_arr,par1)
         par2_arr = np.append(par2_arr,par2)
@@ -135,19 +140,44 @@ def giant_steps(slay_file, simstring, parameter_list):
     
     return par1_arr, par2_arr, value_arr
 
-def make_boring(vr_list, h_rot_list, z=0, size=1001):
+def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5]),
+                    name='boring',size=1001,z=0):
+    
+    pf = spo.fmin(solo,p0,args=(slayfile,name,size,z,skip_radii))
+    
+    return pf
+
+def solo(p,slayfile,name,size,z,skip_radii):
+
+    simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0)[0]
+
+    radii, m1, m2, m3 = moments_notice(slayfile,simfile,
+                                       skip_radii=skip_radii)
+    chis = np.array([])
+    for moment in [m1, m2, m3]:
+        red_chi = (moment[0] - moment[2])**2/moment[1]**2
+        chis = np.r_[chis,red_chi]
+
+    value = np.sum(chis)/(radii.size*3 - 1)
+    print '\nsimfile: {}\np0: {}\np1: {}\nval: {}\n'.\
+        format(simfile,p[0],p[1],value)
+    return value
+
+def make_boring(vr_list, h_rot_list, z=0, size=1001, name='boring'):
     '''Given a list of values for v_r and h_rot, make a grid of galaxy models
     with all possible combinations of those two parameters.
     '''
-    basename = 'sim_z{:n}_boring'.format(z)
+    basename = 'sim_z{:n}_{}'.format(z,name)
+    namelist = []
     for v_r in vr_list:
         for h_rot in h_rot_list:
             name = '{:}_{:03n}_{:03n}.fits'.format(basename,v_r,h_rot*100)
             print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
                 name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999)
+            namelist.append(name)
 
-    return
+    return namelist
     
 def plot_ice(results,show=True):
     '''Given the results of moments_notice(), plot model vs. data for all
