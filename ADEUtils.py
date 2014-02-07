@@ -773,13 +773,13 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
                                       (3*norm_p*m2_err/2/m2*(x - m1)**3)**2)
         m3_err = np.sqrt(np.sum(m3_i_err**2))
 
-        print 'sum_err: {}'.format(sum_err)
-        print 'm1_i_err: {}'.format(m1_i_err)
-        print 'm1_err: {}'.format(m1_err)
-        print 'm2_i_err: {}'.format(m2_i_err)
-        print 'm2_err: {}'.format(m2_err)
-        print 'm3_i_err: {}'.format(m3_i_err)
-        print 'm3_err: {}'.format(m3_err)
+        # print 'sum_err: {}'.format(sum_err)
+        # print 'm1_i_err: {}'.format(m1_i_err)
+        # print 'm1_err: {}'.format(m1_err)
+        # print 'm2_i_err: {}'.format(m2_i_err)
+        # print 'm2_err: {}'.format(m2_err)
+        # print 'm3_i_err: {}'.format(m3_i_err)
+        # print 'm3_err: {}'.format(m3_err)
 
         return np.array([m1,m2,m3]), np.array([m1_err,m2_err,m3_err])
     else:

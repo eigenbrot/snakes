@@ -143,23 +143,35 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
 def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5,1.62,0.245]),
                     name='boring',size=1001,z=0):
     
+    #pf = spo.leastsq(solo,p0,args=(slayfile,name,size,z,skip_radii),full_output=True)
     pf = spo.fmin(solo,p0,args=(slayfile,name,size,z,skip_radii))
     
-    return pf
+    if len(pf) == 4:
+        simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0,
+                              z_d=pf[3],kappa_0=pf[2])[0]
+    else:
+        simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0)[0]
+        
+    bar = moments_notice(slayfile,simfile,
+                         skip_radii=skip_radii)
+    return pf, bar
 
 def solo(p,slayfile,name,size,z,skip_radii):
 
-    simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0,
-                          z_d=p[2],kappa_0=p[3])[0]
-
+    if len(p) == 4:
+        simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0,
+                              z_d=p[3],kappa_0=p[2])[0]
+    else:
+        simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0)[0]
+        
     radii, m1, m2, m3 = moments_notice(slayfile,simfile,
                                        skip_radii=skip_radii)
     chis = np.array([])
     for moment in [m1, m2, m3]:
-        red_chi = (moment[0] - moment[2])**2/moment[1]**2
+        red_chi = (moment[0] - moment[2])/moment[1]
         chis = np.r_[chis,red_chi]
 
-    value = np.sum(chis)/(radii.size*3 - 1)
+    value = np.sum(chis**2)
     print '\nsimfile: {}\np0: {}\np1: {}\nval: {}\n'.\
         format(simfile,p[0],p[1],value)
     return value
@@ -251,3 +263,28 @@ def pad(arr,length):
     '''
     preroll = np.append(arr,np.zeros(length - arr.size))
     return np.roll(preroll, (length - arr.size)/2)
+
+def mintest():
+
+    x = np.arange(100)
+    trua = np.random.random()*100
+    trub = np.random.random()
+    y = x*trua + trub
+    y += np.random.rand(100)*10.
+
+    p0 = [0.,0.]
+    fmin = spo.fmin(fmin_func,p0,args=(x,y))
+    leastsq = spo.leastsq(least_func,p0,args=(x,y))
+
+    return trua, trub, fmin, leastsq
+
+def fmin_func(p,x,y):
+
+    testy = x*p[0] + p[1]
+    chi = np.sum((testy - y)**2)
+    return chi
+
+def least_func(p,x,y):
+
+    testy = x*p[0] + p[1]
+    return (testy - y)
