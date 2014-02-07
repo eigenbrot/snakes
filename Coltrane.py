@@ -140,7 +140,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5,1.62,0.245]),
+def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5,1.62,8.43]),
                     name='boring',size=1001,z=0):
     
     #pf = spo.leastsq(solo,p0,args=(slayfile,name,size,z,skip_radii),full_output=True)
@@ -148,7 +148,7 @@ def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5,1.62,0.245]),
     
     if len(pf) == 4:
         simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0,
-                              z_d=pf[3],kappa_0=pf[2])[0]
+                              h_dust=pf[3],kappa_0=pf[2])[0]
     else:
         simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0)[0]
         
@@ -160,7 +160,7 @@ def solo(p,slayfile,name,size,z,skip_radii):
 
     if len(p) == 4:
         simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0,
-                              z_d=p[3],kappa_0=p[2])[0]
+                              h_dust=p[3],kappa_0=p[2])[0]
     else:
         simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0)[0]
         
@@ -176,7 +176,7 @@ def solo(p,slayfile,name,size,z,skip_radii):
         format(simfile,p[0],p[1],value)
     return value
 
-def make_boring(vr_list, h_rot_list, z_d=0.245, kappa_0=1.62,
+def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
                 z=0, size=1001, name='boring'):
     '''Given a list of values for v_r and h_rot, make a grid of galaxy models
     with all possible combinations of those two parameters.
@@ -189,7 +189,7 @@ def make_boring(vr_list, h_rot_list, z_d=0.245, kappa_0=1.62,
             print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
                 name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
-                           z_d=z_d,kappa_0=kappa_0)
+                           h_dust=h_dust,kappa_0=kappa_0)
             namelist.append(name)
 
     return namelist

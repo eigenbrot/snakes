@@ -115,7 +115,7 @@ def find_Vc(r, v, err, back=True):
 
 def simcurve(size,Z,v_r,h_rot,
              ax=False,scale=1.,
-             kappa_0=1.62,z_d=0.245,label='',rot_label=False,
+             kappa_0=1.62,z_d=0.245,h_dust=8.43,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits',
              spiralpars=None,flarepars=None,ringpars=None,warppars=None):
 
@@ -144,7 +144,7 @@ def simcurve(size,Z,v_r,h_rot,
     # else: N = 6
 
     #This array holds the opacity of each bin
-    kaparray = np.exp(-1*(distances/h_d))
+    kaparray = np.exp(-1*(distances/h_dust))
     kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray[size/2,size/2]
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
