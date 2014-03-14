@@ -16,7 +16,7 @@ def loader():
     import os
     import matplotlib
     if os.popen('echo $DISPLAY').readline() == 'localhost:10.0\n': 
-        print 'Deactivating display...'
+        print '\tDeactivating display...'
         matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
@@ -24,13 +24,13 @@ def loader():
     from matplotlib import rc
     from matplotlib.backends.backend_pdf import PdfPages as PDF
     from matplotlib.collections import PatchCollection
-    print 'syncing mesh...'
+    print '\tsyncing mesh...'
     from pyraf import iraf
     import pyfits
-    print 'calculating splines...'
+    print '\tcalculating splines...'
     import ADEUtils as ADE
     import time
-    print 'initializing goodness...'
+    print '\tinitializing goodness...'
     import glob
     from datetime import datetime
     import ConfigParser
@@ -325,7 +325,7 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     r_ideal = FL/(2*FR)
     r_ideal_test = d_r_c[np.where(f_ADUrate == f_ADUrate.max())[0]]
     metric = np.interp(r_ideal, f_r_c, f_EE)
-    metric80 = FL/(2*np.interp(0.8,f_EE,f_r_c))
+    metric80 = FL/(2*np.interp(0.82,f_EE,f_r_c))
     metric90 = FL/(2*np.interp(0.9,f_EE,f_r_c))
     
     if debug:
@@ -464,7 +464,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             +'# {:10}= '.format('Out_pos')+'fiber output position\n'
             +'# {:10}= '.format('filt')+'filter\n'
             +'# {:10}= '.format('N90')+'fiber f/# at EE90\n'
-            +'# {:10}= '.format('N80')+'fiber f/# at EE80\n'
+            +'# {:10}= '.format('N82')+'fiber f/# at EE82\n'
             +'# {:10}= '.format('tput')+'total throughput\n'
             +'# {:10}= '.format('sloan')+'fiber within f/3.2 / direct within f/3.2 (uncorrected)\n'
             +'# {:10}= '.format('tput5')+'throughput at f/5 (uncorrected)\n'
@@ -474,7 +474,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             +'#\n'
             +str('#{0:>10}{1:>10}{2:>9}{3:>9}{4:>9}{5:>9}{6:>9}{7:>9}'
                  +'{8:>9}{9:>9}{10:>9}\n')\
-                .format('Fiber_pos','Out_pos','filt','N90','N80','tput','sloan',\
+                .format('Fiber_pos','Out_pos','filt','N90','N82','tput','sloan',\
                             'tput5','tput4','EE5','EE4')
             +str('#{0:>10}{1:>10}{2:>9}{3:>9}{4:>9}{5:>9}{6:>9}{7:>9}'
                  +'{8:>9}{9:>9}{10:>9}\n')\
