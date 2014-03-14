@@ -167,7 +167,7 @@ def solo(p,slayfile,name,size,z,skip_radii):
     radii, m1, m2, m3 = moments_notice(slayfile,simfile,
                                        skip_radii=skip_radii)
     chis = np.array([])
-    for moment in [m1, m2, m3]:
+    for moment in [m3]:
         red_chi = (moment[0] - moment[2])/moment[1]
         chis = np.r_[chis,red_chi]
 
