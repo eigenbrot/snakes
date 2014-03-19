@@ -115,7 +115,7 @@ def find_Vc(r, v, err, back=True):
 
 def simcurve(size,Z,v_r,h_rot,
              ax=False,scale=1.,
-             kappa_0=1.62,z_d=0.245,h_dust=8.43,label='',rot_label=False,
+             kappa_0=1.62,z_d=0.21,h_dust=8.43,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits',
              spiralpars=None,flarepars=None,ringpars=None,warppars=None):
 
@@ -134,7 +134,7 @@ def simcurve(size,Z,v_r,h_rot,
 
     #some values from Xilouris '99 for ESO 435-G25 (IC 2531)
 #    kappa_0 = 0.652 #=\tau/2z_d units are kpc^-1
-    h_d = 8.43 #kpc
+    h_d = 5.05 #kpc
     h_z = 0.43 #kpc scale height
 #    z_d = 0.23 #kpc dust scale height
 
