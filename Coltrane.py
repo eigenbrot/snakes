@@ -140,40 +140,56 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(slayfile, skip_radii=[], p0=np.array([239.,5.5,1.62,8.43]),
-                    name='boring',size=1001,z=0):
+def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
+                    name='boring',size=1001,fixed=[]):
     
+    p0 = [pars[i] for i in range(len(pars)) if i not in fixed]
+
+    print 'p0 is {}'.format(p0)
+    raw_input('please confirm')
+
     #pf = spo.leastsq(solo,p0,args=(slayfile,name,size,z,skip_radii),full_output=True)
-    pf = spo.fmin(solo,p0,args=(slayfile,name,size,z,skip_radii))
+    pf = spo.fmin(solo,p0,args=(slaydict,name,size,skip_radii,pars,fixed))
     
-    if len(pf) == 4:
-        simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0,
-                              h_dust=pf[3],kappa_0=pf[2])[0]
-    else:
-        simfile = make_boring([pf[0]],[pf[1]],name=name,size=size,z=0)[0]
-        
-    bar = moments_notice(slayfile,simfile,
-                         skip_radii=skip_radii)
-    return pf, bar
+    pfl = list(pf)
 
-def solo(p,slayfile,name,size,z,skip_radii):
+    parsf = [pars[j] if j in fixed else pfl.pop(0) for j in range(len(pars))]
+    
+    bar_dict = {}
 
-    if len(p) == 4:
-        simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0,
-                              h_dust=p[3],kappa_0=p[2])[0]
-    else:
-        simfile = make_boring([p[0]],[p[1]],name=name,size=size,z=0)[0]
+    for z in slaydict.keys():
+        simfile = make_boring([parsf[0]],[parsf[1]],name=name,size=size,z=z,
+                              h_dust=parsf[3],kappa_0=parsf[2])[0]
         
-    radii, m1, m2, m3 = moments_notice(slayfile,simfile,
-                                       skip_radii=skip_radii)
+        bar = moments_notice(slaydict[z][0],simfile,
+                             skip_radii=skip_radii,
+                             flip=slaydict[z][1])
+        bar_dict[z] = bar
+        
+    return parsf, bar_dict
+
+def solo(p,slaydict,name,size,skip_radii,par0,fixed):
+
+    pl = list(p)
+    pars = [par0[j] if j in fixed else pl.pop(0) for j in range(len(par0))]
+
     chis = np.array([])
-    for moment in [m3]:
-        red_chi = (moment[0] - moment[2])/moment[1]
-        chis = np.r_[chis,red_chi]
+    for z in slaydict.keys():
+        
+        simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
+                              h_dust=pars[3],kappa_0=pars[2])[0]
+        
+        radii, m1, m2, m3 = moments_notice(slaydict[z][0],simfile,
+                                           skip_radii=skip_radii,
+                                           flip=slaydict[z][1])
 
-    value = np.sum(chis**2)
-    print '\nsimfile: {}\np0: {}\np1: {}\nval: {}\n'.\
-        format(simfile,p[0],p[1],value)
+        for moment in [m1,m2,m3]:
+            red_chi = (moment[0] - moment[2])/moment[1]
+            chis = np.r_[chis,red_chi]
+
+    value = np.sum(chis**2)/(chis.size - p.size - 1)
+    print '\nsimfile: {}\nv_r: {}\nh_rot: {}\nkappa_0: {}\nh_dust: {}\nvalue: {}\n'.\
+        format(simfile,pars[0],pars[1],pars[2],pars[3],value)
     return value
 
 def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
@@ -194,28 +210,42 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
 
     return namelist
     
-def plot_ice(results,show=True):
+def plot_ice(results,title='',show=True):
     '''Given the results of moments_notice(), plot model vs. data for all
     three moments. Show the plots and return them.
     '''
-    ax1 = plt.figure().add_subplot(111)
-    ax2 = plt.figure().add_subplot(111)
-    ax3 = plt.figure().add_subplot(111)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(311)
+    ax2 = fig.add_subplot(312)
+    ax3 = fig.add_subplot(313)
     ax1.set_ylabel('$\mu_1$')
     ax2.set_ylabel('$\mu_2$')
     ax3.set_ylabel('$\mu_3$')
 
+    fig.suptitle('{}\n{}'.format(title,time.asctime()))
     radius = results[0]
 
     for ax, data in zip([ax1, ax2, ax3],[results[1],results[2],results[3]]):
         ax.set_xlabel('radius [kpc]')
-        ax.set_title(time.asctime())
-        ax.errorbar(radius,data[0],yerr=data[1],fmt='.',ms=15)
+        ax.errorbar(radius,data[0],yerr=data[1],fmt='.',ms=7)
         ax.plot(radius,data[2])
-        if show:
-            ax.get_figure().show()
+
+    if show: fig.show()
 
     return ax1, ax2, ax3
+
+def multi_plot(bar_dict):
+    '''Takes a bar_dict from a multiple-height run of cutting session and
+    plots the first three moments for each height.
+    '''
+
+    figlist = []
+    for z in bar_dict.keys():
+        fig = plot_ice(bar_dict[z],'z={}'.format(z))
+        figlist.append(fig)
+
+    return figlist
 
 def make_fits(vrlist,hrlist,footprints,output):
     '''Generate a fits version of the goodness-of-fit map from a comparison of
