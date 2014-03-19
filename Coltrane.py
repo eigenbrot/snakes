@@ -142,13 +142,37 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
 
 def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
                     name='boring',size=1001,fixed=[]):
+    '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
+    a moment sense) to a set of data. Any number of heights can be fit
+    simultaneously with judicious use of the slay dict, which is expected to
+    have the following format:
+    
+        slaydict = {hight: ['slayfile.fits',Flip_boolean]},
+
+    where height is a number (in scale heights) and Flip_boolean tells the
+    program it needs to flip the radii around zero.
+
+    If there are bad data at certain radii you can skip them over using
+    skip_radii. You don't even need to get the exact radius correct, the check
+    is done that skip_radii[i] == floor(measured_radius).
+
+    pars and fixed are used to control which parameters get fit. Pars is a
+    list with every model parameter and fixed is a list of indices for which
+    parameters shoud NOT be fit (i.e., fixed). For example, the first
+    parameter is the asymptotic speed so if you wanted to have all models be
+    forced to have an asymptotic speed of 270 km/s then pars would be
+    [270,...] and fixed=[0]
+
+    The output of cutting session is a tuple containing the best fit
+    parameters and a bar_dict (see moments_notice) for use with plotting
+    functions.
+    '''
     
     p0 = [pars[i] for i in range(len(pars)) if i not in fixed]
 
     print 'p0 is {}'.format(p0)
     raw_input('please confirm')
 
-    #pf = spo.leastsq(solo,p0,args=(slayfile,name,size,z,skip_radii),full_output=True)
     pf = spo.fmin(solo,p0,args=(slaydict,name,size,skip_radii,pars,fixed))
     
     pfl = list(pf)
@@ -169,6 +193,16 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
     return parsf, bar_dict
 
 def solo(p,slaydict,name,size,skip_radii,par0,fixed):
+    '''This is the minimizing function that is called by cutting_session. It
+    constructs the necessary model galaxies, computes the moments of the
+    lines, and returns a reduce chi squared value quantifying the goodness of
+    fit.
+
+    The reduced chi-squared is computed across all moments and all heights. So
+    if you are fitting 3 heights that each have N radial bins (as they should,
+    if using correctly binned data) then the chi-squared will be computed with
+    3x3xN points (three from moments, three from heights).
+    '''
 
     pl = list(p)
     pars = [par0[j] if j in fixed else pl.pop(0) for j in range(len(par0))]
