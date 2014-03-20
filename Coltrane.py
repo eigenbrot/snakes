@@ -141,7 +141,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     return par1_arr, par2_arr, value_arr
 
 def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
-                    name='boring',size=1001,fixed=[]):
+                    name='boring',size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
     a moment sense) to a set of data. Any number of heights can be fit
     simultaneously with judicious use of the slay dict, which is expected to
@@ -173,17 +173,21 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
     print 'p0 is {}'.format(p0)
     raw_input('please confirm')
 
-    pf = spo.fmin(solo,p0,args=(slaydict,name,size,skip_radii,pars,fixed))
+    pf = spo.fmin(solo,p0,args=(slaydict,name,size,skip_radii,pars,fixed,flare))
     
     pfl = list(pf)
 
     parsf = [pars[j] if j in fixed else pfl.pop(0) for j in range(len(pars))]
-    
+
     bar_dict = {}
+    if flare:
+        flarepars = {'h_zR': parsf[-1], 'ftype':flare}
+    else:
+        flarepars = None
 
     for z in slaydict.keys():
         simfile = make_boring([parsf[0]],[parsf[1]],name=name,size=size,z=z,
-                              h_dust=parsf[3],kappa_0=parsf[2])[0]
+                              h_dust=parsf[3],kappa_0=parsf[2],flarepars=flarepars)[0]
         
         bar = moments_notice(slaydict[z][0],simfile,
                              skip_radii=skip_radii,
@@ -192,7 +196,7 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
         
     return parsf, bar_dict
 
-def solo(p,slaydict,name,size,skip_radii,par0,fixed):
+def solo(p,slaydict,name,size,skip_radii,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -208,10 +212,15 @@ def solo(p,slaydict,name,size,skip_radii,par0,fixed):
     pars = [par0[j] if j in fixed else pl.pop(0) for j in range(len(par0))]
 
     chis = np.array([])
+    if flare:
+        flarepars = {'h_zR':pars[-1],'ftype':flare}
+    else:
+        flarepars = None
+
     for z in slaydict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
-                              h_dust=pars[3],kappa_0=pars[2])[0]
+                              h_dust=pars[3],kappa_0=pars[2],flarepars=flarepars)[0]
         
         radii, m1, m2, m3 = moments_notice(slaydict[z][0],simfile,
                                            skip_radii=skip_radii,
@@ -227,7 +236,7 @@ def solo(p,slaydict,name,size,skip_radii,par0,fixed):
     return value
 
 def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
-                z=0, size=1001, name='boring'):
+                z=0, size=1001, name='boring',flarepars=None):
     '''Given a list of values for v_r and h_rot, make a grid of galaxy models
     with all possible combinations of those two parameters.
     '''
@@ -239,7 +248,7 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
             print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
                 name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
-                           h_dust=h_dust,kappa_0=kappa_0)
+                           h_dust=h_dust,kappa_0=kappa_0,flarepars=flarepars)
             namelist.append(name)
 
     return namelist
