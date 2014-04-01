@@ -129,3 +129,27 @@ def clean_VI(searchstr):
 
     return
         
+def radius_test(search_str):
+
+    file_list = glob(search_str)
+
+    zs = np.array([])
+    rs = np.array([])
+
+    for image in file_list:
+        print image
+        z = float(image.split('_')[1][0:4])
+        data = pyfits.open(image)[0].data
+        r = get_radius(data,None,0.2)/0.0044
+
+        zs = np.append(zs,z)
+        rs = np.append(rs,r)
+
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel('z')
+    ax.set_ylabel('r')
+    ax.plot(zs,rs)
+
+    ax.get_figure().show()
+
+    return ax
