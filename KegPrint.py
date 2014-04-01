@@ -44,8 +44,6 @@ def main():
         do_print(printer)
         update_ID(printID)
         print "printed something new at {}".format(time.asctime())
-    else:
-        print "nothing to print"
 
     return
 
