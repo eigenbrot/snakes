@@ -134,8 +134,8 @@ def simcurve(size,Z,v_r,h_rot,
 
     #some values from Xilouris '99 for ESO 435-G25 (IC 2531)
 #    kappa_0 = 0.652 #=\tau/2z_d units are kpc^-1
-    h_d = 5.05 #kpc
-    h_z = 0.43 #kpc scale height
+    h_s = 5.22 #kpc
+    h_z = 0.40 #kpc scale height
 #    z_d = 0.23 #kpc dust scale height
 
     #N needs to be an integer
@@ -149,7 +149,7 @@ def simcurve(size,Z,v_r,h_rot,
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
     # total normalization is irrelevant
-    Iarray = np.exp(-1*(distances/h_d))
+    Iarray = np.exp(-1*(distances/h_s))
     Iarray *= np.exp(-1*(np.abs(Z)/h_z))
 
     # Now add whatever morphological extras the user desires
@@ -238,7 +238,7 @@ def simcurve(size,Z,v_r,h_rot,
     frachdu.header.update('v_r',v_r,comment='v_r')
     frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
     frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
-    frachdu.header.update('h_d',h_d,comment='Gas and dust scale length in kpc')
+    frachdu.header.update('h_s',h_s,comment='Gas and dust scale length in kpc')
     frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
 
     hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
