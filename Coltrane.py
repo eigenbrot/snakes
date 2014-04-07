@@ -87,9 +87,9 @@ def moments_notice(slayfile, simfile, plotprefix=False,
         big_mm1 = np.append(big_mm1,mpeak)
         big_dm1e = np.append(big_dm1e,dmerrs[0])
 
-        big_dm2 = np.append(big_dm2,dmoments[1])
-        big_mm2 = np.append(big_mm2,mmoments[1])
-        big_dm2e = np.append(big_dm2e,dmerrs[1])
+        big_dm2 = np.append(big_dm2,np.sqrt(dmoments[1]))
+        big_mm2 = np.append(big_mm2,np.sqrt(mmoments[1]))
+        big_dm2e = np.append(big_dm2e,dmerrs[1]/(2*np.sqrt(mmoments[1])))
 
         big_dm3 = np.append(big_dm3,dmoments[2])
         big_mm3 = np.append(big_mm3,mmoments[2])
@@ -97,9 +97,9 @@ def moments_notice(slayfile, simfile, plotprefix=False,
 
         plot_radii = np.append(plot_radii,radius)
 
-    return plot_radii, (big_dm1, big_dm1e, big_mm1),\
-        (big_dm2, big_dm2e, big_mm2),\
-        (big_dm3, big_dm3e, big_mm3)
+    return plot_radii, [big_dm1, big_dm1e, big_mm1],\
+        [big_dm2, big_dm2e, big_mm2],\
+        [big_dm3, big_dm3e, big_mm3]
 
 def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     '''Take an extracted spectrum (slayfile) and a list of galaxy models and
@@ -140,8 +140,9 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
-                    name='boring',size=1001,fixed=[],flare=False):
+def cutting_session(slaydict, output_file, skip_radii=[], 
+                    pars=[239.,5.5,1.62,8.43], name='boring',
+                    size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
     a moment sense) to a set of data. Any number of heights can be fit
     simultaneously with judicious use of the slay dict, which is expected to
@@ -172,12 +173,19 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
 
     print 'p0 is {}'.format(p0)
     raw_input('please confirm')
+    f = open(output_file,'w')
+    f.write('# Generated on {}\n'.format(time.asctime())
+            +'# pars: {}\n'.format(pars)
+            +'# p0: {}\n'.format(p0))
 
-    pf = spo.fmin(solo,p0,args=(slaydict,name,size,skip_radii,pars,fixed,flare))
+    pf = spo.fmin(solo,p0,args=(slaydict,name,f,size,skip_radii,pars,fixed,flare))
     
     pfl = list(pf)
 
     parsf = [pars[j] if j in fixed else pfl.pop(0) for j in range(len(pars))]
+
+    f.write('# final_pars: {}\n'.format(parsf))
+    f.close()
 
     bar_dict = {}
     if flare:
@@ -187,7 +195,8 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
 
     for z in slaydict.keys():
         simfile = make_boring([parsf[0]],[parsf[1]],name=name,size=size,z=z,
-                              h_dust=parsf[3],kappa_0=parsf[2],flarepars=flarepars)[0]
+                              h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
+                              flarepars=flarepars)[0]
         
         bar = moments_notice(slaydict[z][0],simfile,
                              skip_radii=skip_radii,
@@ -196,7 +205,7 @@ def cutting_session(slaydict, skip_radii=[], pars=[239.,5.5,1.62,8.43],
         
     return parsf, bar_dict
 
-def solo(p,slaydict,name,size,skip_radii,par0,fixed,flare):
+def solo(p,slaydict,name,output_file,size,skip_radii,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -217,10 +226,12 @@ def solo(p,slaydict,name,size,skip_radii,par0,fixed,flare):
     else:
         flarepars = None
 
+    output_file.write(str('{:11.4f} '*len(pars)).format(*pars))
+
     for z in slaydict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
-                              h_dust=pars[3],kappa_0=pars[2],flarepars=flarepars)[0]
+                              h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],flarepars=flarepars)[0]
         
         radii, m1, m2, m3 = moments_notice(slaydict[z][0],simfile,
                                            skip_radii=skip_radii,
@@ -228,15 +239,17 @@ def solo(p,slaydict,name,size,skip_radii,par0,fixed,flare):
 
         for moment in [m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
+            output_file.write('{:11.4f} '.format(np.sum(red_chi**2)))
             chis = np.r_[chis,red_chi]
 
     value = np.sum(chis**2)/(chis.size - p.size - 1)
+    output_file.write('{:11.4f}\n'.format(value))
     print '\nsimfile: {}\nv_r: {}\nh_rot: {}\nkappa_0: {}\nh_dust: {}\nvalue: {}\n'.\
         format(simfile,pars[0],pars[1],pars[2],pars[3],value)
     return value
 
 def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
-                z=0, size=1001, name='boring',flarepars=None):
+                z=0, size=1001, z_d=0.23, name='boring',flarepars=None):
     '''Given a list of values for v_r and h_rot, make a grid of galaxy models
     with all possible combinations of those two parameters.
     '''
@@ -248,7 +261,8 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
             print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
                 name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
-                           h_dust=h_dust,kappa_0=kappa_0,flarepars=flarepars)
+                           h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
+                           flarepars=flarepars)
             namelist.append(name)
 
     return namelist
@@ -259,18 +273,21 @@ def plot_ice(results,title='',show=True):
     '''
 
     fig = plt.figure()
-    ax1 = fig.add_subplot(311)
-    ax2 = fig.add_subplot(312)
     ax3 = fig.add_subplot(313)
+    ax1 = fig.add_subplot(311,sharex=ax3)
+    ax2 = fig.add_subplot(312,sharex=ax3)
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    fig.subplots_adjust(hspace=0.0001)
     ax1.set_ylabel('$\mu_1$')
-    ax2.set_ylabel('$\mu_2$')
+    ax2.set_ylabel('$\sqrt{\mu_2}$')
     ax3.set_ylabel('$\mu_3$')
+    ax3.set_xlabel('radius [kpc]')
 
     fig.suptitle('{}\n{}'.format(title,time.asctime()))
     radius = results[0]
 
     for ax, data in zip([ax1, ax2, ax3],[results[1],results[2],results[3]]):
-        ax.set_xlabel('radius [kpc]')
         ax.errorbar(radius,data[0],yerr=data[1],fmt='.',ms=7)
         ax.plot(radius,data[2])
 
