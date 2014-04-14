@@ -7,6 +7,7 @@ import glob
 import time
 import pyfits
 import scipy.optimize as spo
+import os
 plt = matplotlib.pyplot
 glob = glob.glob
 
@@ -188,13 +189,14 @@ def cutting_session(slaydict, output_file, skip_radii=[],
     f.close()
 
     bar_dict = {}
+    chis = np.array([])
     if flare:
         flarepars = {'h_zR': parsf[-1], 'ftype':flare}
     else:
         flarepars = None
 
     for z in slaydict.keys():
-        simfile = make_boring([parsf[0]],[parsf[1]],name=name,size=size,z=z,
+        simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,size=size,z=z,
                               h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
                               flarepars=flarepars)[0]
         
@@ -202,8 +204,14 @@ def cutting_session(slaydict, output_file, skip_radii=[],
                              skip_radii=skip_radii,
                              flip=slaydict[z][1])
         bar_dict[z] = bar
+
+        for moment in bar[1:]:
+            red_chi = (moment[0] - moment[2])/moment[1]
+            chis = np.r_[chis,red_chi]
+
+    value = np.sum(chis**2)/(chis.size - pf.size - 1)
         
-    return parsf, bar_dict
+    return parsf, bar_dict, value
 
 def solo(p,slaydict,name,output_file,size,skip_radii,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
@@ -257,7 +265,7 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
     namelist = []
     for v_r in vr_list:
         for h_rot in h_rot_list:
-            name = '{:}_{:03n}_{:03n}.fits'.format(basename,v_r,h_rot*100)
+            name = '{}_{}.fits'.format(basename,int(round(time.time(), 3)*100))
             print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
                 name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
@@ -283,6 +291,9 @@ def plot_ice(results,title='',show=True):
     ax2.set_ylabel('$\sqrt{\mu_2}$')
     ax3.set_ylabel('$\mu_3$')
     ax3.set_xlabel('radius [kpc]')
+    ax1.set_ylim(-260.001,260.001)
+    ax2.set_ylim(0.001,39.999)
+    ax3.set_ylim(-1,0.999)
 
     fig.suptitle('{}\n{}'.format(title,time.asctime()))
     radius = results[0]
@@ -378,3 +389,35 @@ def least_func(p,x,y):
 
     testy = x*p[0] + p[1]
     return (testy - y)
+
+def many_zd(num):
+
+    # zds = np.random.random(num)*3.0
+    # kaps = np.random.random(num)*3.0
+
+    zds = np.linspace(0.15,1.5,num)
+    kaps = np.linspace(0.4,1.5,num)
+
+    print zds, kaps
+    raw_input('asda')
+
+    slaydict = {0: ['../../SALT_data/tiESO_z0_MgI_binz2.slay.fits', False], 
+                1: ['../../SALT_data/tiESO_z1_MgI_binz2.slay.fits', True], 
+                2: ['../../SALT_data/tiESO_z2_MgI_bin60.slay.fits', True]}
+    bars = []
+    values = np.array([])
+    outkap = np.array([])
+    outzd = np.array([])
+
+    for zd in zds:
+        for kap in kaps:
+            name = 'zd_{:5.3f}'.format(zd,int(round(time.time(),3)*100))
+            bar = cutting_session(slaydict,name+'.out',pars=[250,3.375,kap,8.18,zd],
+                                  skip_radii=[31,-33],fixed=[0,1,3],name=name)
+            os.system('rm sim_z?_[^f]*.fits')
+            bars.append([zd,kap,bar])
+            outkap = np.append(outkap,kap)
+            outzd = np.append(outzd,zd)
+            values = np.append(values,bar[2])
+
+    return bars, zds, kaps, [outzd, outkap, values]
