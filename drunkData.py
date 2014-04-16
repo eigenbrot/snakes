@@ -8,7 +8,16 @@ import time
 from sklearn.mixture import GMM
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 matplotlib.pyplot = plt
-matplotlib.rc('font',size=5)
+
+# Make the plots look nice
+matplotlib.rc('axes',labelsize=9)
+matplotlib.rc('xtick',labelsize=9)
+matplotlib.rc('ytick',labelsize=9)
+matplotlib.rc('legend',fontsize=7,frameon=False)
+matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
+matplotlib.rc('text',usetex=True)
+matplotlib.rc('axes',linewidth=0.6,labelsize=9)
+matplotlib.rc('lines',linewidth=0.6)
 
 def clean_model(model, tol=3.):
 
@@ -119,7 +128,7 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.):
     pp = PDF(pdfout)
 
     radii, _, _ = sa.openslay(slayfile,flip=flip)
-    
+
     hdulist = []
     widths = np.array([])
     for i, radius in enumerate(radii):
@@ -130,6 +139,7 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.):
                                                    cdf_window=cdf_window)
 
         widths = np.append(widths,rwidth)
+        fig.tight_layout(pad=0.5)
         fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
         pp.savefig(fig)
         hdu = pyfits.ImageHDU(np.transpose(
@@ -144,7 +154,7 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.):
     radiiHDU.header.update('FLIP',flip,comment='Flip radii around 0?')
     radiiHDU.header.update('CDF_WIN',cdf_window,comment='Limits on CDF window')
     radiiHDU.header.update('EXTNAME','Radii')
-    pyfits.HDUList([radiiHDU] + hdulist).writeto(fitsout)
+    pyfits.HDUList([radiiHDU] + hdulist).writeto(fitsout,clobber=True)
     pp.close()
 
     return
