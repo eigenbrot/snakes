@@ -3,8 +3,9 @@ import pyfits
 import matplotlib.pyplot as plt
 import scipy.stats as ss
 import ADESALT as sa
-from sklearn.mixture import GMM
+import ADEUtils as ADE
 import time
+from sklearn.mixture import GMM
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def get_line_distro(slayfile,radius,cent_lambda=5048.126,
@@ -15,7 +16,6 @@ def get_line_distro(slayfile,radius,cent_lambda=5048.126,
                                      window=window,flip=flip)
     factor = 1e6
     VV = V*factor
-#    print V, VV
     II = np.copy(I)
     II[II < 0] = 0.0
     II /= np.sum(II)
@@ -55,4 +55,20 @@ def get_line_distro(slayfile,radius,cent_lambda=5048.126,
 
     fig.show()
 
-    return 
+    return mV, model_pdf, M_best
+
+def get_window(x, p, cdf_window=0.1, ax=None):
+
+    cdf = np.cumsum(p/np.sum(p))
+
+    xlow = np.interp(cdf_window,cdf,x)
+    xhigh = np.interp(1-cdf_window,cdf,x)
+
+    if ax:
+        ax.plot(x,cdf,'k')
+        ax.plot(x,p/p.max(),'--k',alpha=0.5)
+        ax.axvline(x=xlow,alpha=0.7,linestyle='-.',color='k')
+        ax.axvline(x=xhigh,alpha=0.7,linestyle='-.',color='k')
+
+    return xlow, xhigh
+
