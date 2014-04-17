@@ -7,15 +7,15 @@ import ADEUtils as ADE
 import time
 from sklearn.mixture import GMM
 from matplotlib.backends.backend_pdf import PdfPages as PDF
-matplotlib.pyplot = plt
+plt = matplotlib.pyplot
 
 # Make the plots look nice
 matplotlib.rc('axes',labelsize=9)
 matplotlib.rc('xtick',labelsize=9)
 matplotlib.rc('ytick',labelsize=9)
 matplotlib.rc('legend',fontsize=7,frameon=False)
-matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
-matplotlib.rc('text',usetex=True)
+# matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
+# matplotlib.rc('text',usetex=True)
 matplotlib.rc('axes',linewidth=0.6,labelsize=9)
 matplotlib.rc('lines',linewidth=0.6)
 
@@ -28,14 +28,16 @@ def clean_model(model, tol=3.):
     for i in range(model.n_components):
         if np.abs(model.means_[i] - strong_mean) > strong_std*tol:
             model.weights_[i] = 0.0
+        if np.sqrt(model.covars_[i]) > 100.:
+            model.weights_[i] = 0.0
 
     return
 
 def MGD(slayfile,radius,cent_lambda=5048.126,
-        flip=False,window=15,tol=3.):
+        flip=False,window=15,tol=3.,baseline=1):
 
     V, I, err, rwidth = sa.plot_line(slayfile,radius,wavelength=cent_lambda,
-                                     velo=True,plot=False,baseline=1,
+                                     velo=True,plot=False,baseline=baseline,
                                      window=window,flip=flip)
     factor = 1e6
     VV = V*factor
@@ -64,7 +66,7 @@ def MGD(slayfile,radius,cent_lambda=5048.126,
     ax1.plot(mV,model_components,'--k')
     ax1.errorbar(V,I/np.max(I)*np.max(model_pdf),
                  yerr=err/np.max(I)*np.max(model_pdf),alpha=0.4)
-    ax1.hist(line_sample,50,normed=True,alpha=0.8,histtype='step')
+    ax1.hist(line_sample,100,normed=True,alpha=0.8,histtype='step')
     ax1.set_xlabel('Velocity [km/s]')
     ax1.set_ylabel('Normalized counts')
 
@@ -97,10 +99,13 @@ def get_window(x, p, cdf_window=0.1, ax=None):
 
     return xlow, xhigh
 
-def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.):
+def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
+            window=15,baseline=1):
 
     model_V, model_pdf, V, I, err, rwidth, fig = MGD(slayfile,radius,
-                                                     flip=flip, tol=tol)
+                                                     flip=flip, tol=tol,
+                                                     window=window,
+                                                     baseline=baseline)
     
     ax = fig.add_subplot(324)
     lowV, highV = get_window(model_V, model_pdf, 
@@ -114,47 +119,93 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.):
     ax2.axvline(x=lowV,alpha=0.7,linestyle='--')
     ax2.axvline(x=highV,alpha=0.7,linestyle='--')
     ax2.set_xlabel('Velocity [km/s]')
-    ax2.set_ylabel('Counds [ADU]')
+    ax2.set_ylabel('Counts [ADU]')
 
     # fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
     # fig.show()
 
     return moments, moment_err, rwidth, fig
 
-def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.):
+def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
+              window=15,baseline=1,skip_radii=[]):
 
     fitsout = baseoutput+'.fits'
     pdfout = baseoutput+'.pdf'
     pp = PDF(pdfout)
 
     radii, _, _ = sa.openslay(slayfile,flip=flip)
-
-    hdulist = []
+    
+    outradii = np.array([])
     widths = np.array([])
+    m1 = np.empty((2,radii.size - len(skip_radii)))
+    m2 = np.empty((2,radii.size - len(skip_radii)))
+    m3 = np.empty((2,radii.size - len(skip_radii)))
     for i, radius in enumerate(radii):
+        if int(np.floor(radius)) in skip_radii:
+            print "user skipping radius {} kpc".format(radius)
+            continue
         print 'Getting r = {:5.3} kpc'.format(radius)
-
+        
         moments, moment_err, rwidth, fig = cocaine(slayfile, radius, 
                                                    flip=flip,tol=tol, 
-                                                   cdf_window=cdf_window)
-
+                                                   cdf_window=cdf_window,
+                                                   baseline=baseline,
+                                                   window=window)
+        m1[:,i] = np.array([moments[0],moment_err[0]])
+        m2[:,i] = np.array([np.sqrt(moments[1]),
+                            moment_err[1]/(2*np.sqrt(moments[1]))])
+        m3[:,i] = np.array([moments[2],moment_err[2]])
         widths = np.append(widths,rwidth)
+        outradii = np.append(outradii,radius)
         fig.tight_layout(pad=0.5)
         fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
         pp.savefig(fig)
-        hdu = pyfits.ImageHDU(np.transpose(
-                np.dstack((moments,moment_err)),(0,2,1)))
-        hdu.header.update('EXTNAME','Radius_{}'.format(i))
-        hdu.header.update('RADIUS',radius,comment='Radius [kpc]')
-        hdulist.append(hdu)
-
-    radiiHDU = pyfits.PrimaryHDU(np.vstack((radii,widths)))
+        
+    radiiHDU = pyfits.PrimaryHDU(np.vstack((outradii,widths)))
     radiiHDU.header.update('SLAY',slayfile,comment='Slay file')
     radiiHDU.header.update('DATE',time.asctime(),comment='Date of extraction')
     radiiHDU.header.update('FLIP',flip,comment='Flip radii around 0?')
     radiiHDU.header.update('CDF_WIN',cdf_window,comment='Limits on CDF window')
     radiiHDU.header.update('EXTNAME','Radii')
-    pyfits.HDUList([radiiHDU] + hdulist).writeto(fitsout,clobber=True)
+    
+    m1HDU = pyfits.ImageHDU(m1)
+    m1HDU.header.update('EXTNAME','mu1')
+    m2HDU = pyfits.ImageHDU(m2)
+    m2HDU.header.update('EXTNAME','mu2')
+    m3HDU = pyfits.ImageHDU(m3)
+    m3HDU.header.update('EXTNAME','mu3')
+
+    pyfits.HDUList([radiiHDU,m1HDU,m2HDU,m3HDU]).writeto(fitsout,clobber=True)
     pp.close()
 
     return
+
+def plot_moments(moment_file):
+
+    hdus = pyfits.open(moment_file)
+    radii = hdus[0].data[0]
+    
+    fig = plt.figure()
+    ax3 = fig.add_subplot(313)
+    ax1 = fig.add_subplot(311,sharex=ax3)
+    ax2 = fig.add_subplot(312,sharex=ax3)
+    plt.setp(ax1.get_xticklabels(),visible=False)
+    plt.setp(ax2.get_xticklabels(),visible=False)
+    fig.subplots_adjust(hspace=0.0001)
+    ax3.set_xlabel('radius [kpc]')
+    # ax1.set_ylim(-260.001,260.001)
+    # ax2.set_ylim(15.00001,49.99999)
+    # ax3.set_ylim(-1,1.001)
+#    matplotlib.rc('text',usetex=False)
+    fig.suptitle('{}\n{}'.format(moment_file,time.asctime()))
+#    matplotlib.rc('text',usetex=True)
+
+    for moment, ax, name in zip(hdus[1:],[ax1,ax2,ax3],
+                                ['$\mu_1$','$\sqrt{\mu_2}$','$\mu_3$']):
+        
+        ax.errorbar(radii,moment.data[0],yerr=moment.data[1],fmt='.',ms=7)
+        ax.set_ylabel(name)
+
+    fig.show()
+
+    return fig
