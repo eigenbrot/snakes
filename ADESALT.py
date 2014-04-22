@@ -607,7 +607,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         seperr = False
 
     '''get the width of the bin in kpc'''
-    print np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]])
+#    print np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]])
     rwidthpx = np.diff(np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]]))[0]
     rwidth = rwidthpx*0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
     rwidth *= 34.1e3/206265. # distance (34.1Mpc) / 206265"
