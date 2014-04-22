@@ -28,7 +28,7 @@ def clean_model(model, tol=3.):
     for i in range(model.n_components):
         if np.abs(model.means_[i] - strong_mean) > strong_std*tol:
             model.weights_[i] = 0.0
-        if np.sqrt(model.covars_[i]) > 100.:
+        if np.sqrt(model.covars_[i]) > 120.:
             model.weights_[i] = 0.0
 
     return
@@ -100,29 +100,45 @@ def get_window(x, p, cdf_window=0.1, ax=None):
     return xlow, xhigh
 
 def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
-            window=15,baseline=1):
-
-    model_V, model_pdf, V, I, err, rwidth, fig = MGD(slayfile,radius,
-                                                     flip=flip, tol=tol,
-                                                     window=window,
-                                                     baseline=baseline)
+            window=15,baseline=1,interact=False):
     
-    ax = fig.add_subplot(324)
-    lowV, highV = get_window(model_V, model_pdf, 
-                             cdf_window=cdf_window, ax=ax)
+    again = True
+    argdict = {'flip': flip, 'tol': tol, 'window': window, 'baseline': baseline}
+    while again:
+        model_V, model_pdf, V, I, err, rwidth, fig = MGD(slayfile,radius,
+                                                         **argdict)
+        ax = fig.add_subplot(324)
+        lowV, highV = get_window(model_V, model_pdf, 
+                                 cdf_window=cdf_window, ax=ax)
 
-    idx = np.where((V >= lowV) & (V <= highV))
-    moments, moment_err = ADE.ADE_moments(V[idx],I[idx],err=err[idx])
+        idx = np.where((V >= lowV) & (V <= highV))
+        moments, moment_err = ADE.ADE_moments(V[idx],I[idx],err=err[idx])
     
-    ax2 = fig.add_subplot(313)
-    ax2.errorbar(V,I,yerr=err)
-    ax2.axvline(x=lowV,alpha=0.7,linestyle='--')
-    ax2.axvline(x=highV,alpha=0.7,linestyle='--')
-    ax2.set_xlabel('Velocity [km/s]')
-    ax2.set_ylabel('Counts [ADU]')
+        ax2 = fig.add_subplot(313)
+        ax2.errorbar(V,I,yerr=err)
+        ax2.axvline(x=lowV,alpha=0.7,linestyle='--')
+        ax2.axvline(x=highV,alpha=0.7,linestyle='--')
+        ax2.set_xlabel('Velocity [km/s]')
+        ax2.set_ylabel('Counts [ADU]')
 
-    # fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
-    # fig.show()
+        fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
+        fig.show()
+        
+        if interact == True:
+            print "Keys are {}".format(argdict.keys())
+            print "Change any you want and then hit 'r'. 'q' will quit"
+            scratch = raw_input(':')
+            while scratch != 'q' or scratch != 'r':
+                print 'Changing key {}'.format(scratch)
+                val = input('To (current val is {}): '.\
+                                format(argdict[scratch]))
+                argdict[scratch] = val
+                scratch = raw_input('again?:')
+            if scratch == 'r':
+                continue
+            elif scratch == 'q':
+                break
+        
 
     return moments, moment_err, rwidth, fig
 
@@ -137,9 +153,9 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
     
     outradii = np.array([])
     widths = np.array([])
-    m1 = np.empty((2,radii.size - len(skip_radii)))
-    m2 = np.empty((2,radii.size - len(skip_radii)))
-    m3 = np.empty((2,radii.size - len(skip_radii)))
+    m1 = np.empty((2,1))
+    m2 = np.empty((2,1))
+    m3 = np.empty((2,1))
     for i, radius in enumerate(radii):
         if int(np.floor(radius)) in skip_radii:
             print "user skipping radius {} kpc".format(radius)
@@ -151,21 +167,26 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
                                                    cdf_window=cdf_window,
                                                    baseline=baseline,
                                                    window=window)
-        m1[:,i] = np.array([moments[0],moment_err[0]])
-        m2[:,i] = np.array([np.sqrt(moments[1]),
-                            moment_err[1]/(2*np.sqrt(moments[1]))])
-        m3[:,i] = np.array([moments[2],moment_err[2]])
+        m1 = np.hstack((m1,np.array([[moments[0],moment_err[0]]]).T))
+        m2 = np.hstack((m2,
+                        np.array([[np.sqrt(moments[1]),
+                                   moment_err[1]/(2*np.sqrt(moments[1]))]]).T))
+        m3 = np.hstack((m3,np.array([[moments[2],moment_err[2]]]).T))
         widths = np.append(widths,rwidth)
         outradii = np.append(outradii,radius)
         fig.tight_layout(pad=0.5)
         fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
         pp.savefig(fig)
         
+    m1 = m1[:,1:]
+    m2 = m2[:,1:]
+    m3 = m3[:,1:]
     radiiHDU = pyfits.PrimaryHDU(np.vstack((outradii,widths)))
     radiiHDU.header.update('SLAY',slayfile,comment='Slay file')
     radiiHDU.header.update('DATE',time.asctime(),comment='Date of extraction')
     radiiHDU.header.update('FLIP',flip,comment='Flip radii around 0?')
     radiiHDU.header.update('CDF_WIN',cdf_window,comment='Limits on CDF window')
+    radiiHDU.header.update('TOL',tol,comment='Gaussian rejection tolerance')
     radiiHDU.header.update('EXTNAME','Radii')
     
     m1HDU = pyfits.ImageHDU(m1)
