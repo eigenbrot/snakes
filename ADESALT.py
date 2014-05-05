@@ -625,6 +625,9 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
         error = hdu.data[row*2 + 1]
 
     wave = np.arange(spectrum.size)*Cdelt + CRVAL
+    if baseline:
+        fit = ADE.polyclip(wave,spectrum,baseline)
+        spectrum -= fit(wave)
     
     idx = np.where((wave >= wavelength - window/2.) & (wave <= wavelength + window/2.))
     
@@ -634,9 +637,6 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     pwave = wave[idx]
     pspec = spectrum[idx]
     perr = error[idx]
-    if baseline:
-        fit = ADE.polyclip(pwave,pspec,baseline)
-        pspec -= fit(pwave)
 
     if not ax and plot:
         fig = plt.figure()
