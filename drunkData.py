@@ -14,8 +14,8 @@ matplotlib.rc('axes',labelsize=9)
 matplotlib.rc('xtick',labelsize=9)
 matplotlib.rc('ytick',labelsize=9)
 matplotlib.rc('legend',fontsize=7,frameon=False)
-# matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
-# matplotlib.rc('text',usetex=True)
+matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
+matplotlib.rc('text',usetex=True)
 matplotlib.rc('axes',linewidth=0.6,labelsize=9)
 matplotlib.rc('lines',linewidth=0.6)
 
@@ -121,8 +121,8 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
         ax2.set_xlabel('Velocity [km/s]')
         ax2.set_ylabel('Counts [ADU]')
 
-        fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
-        fig.show()
+        # fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
+        # fig.show()
         
         if interact == True:
             print "Keys are {}".format(argdict.keys())
@@ -138,6 +138,8 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
                 continue
             elif scratch == 'q':
                 break
+        else:
+            again = False
         
 
     return moments, moment_err, rwidth, fig
@@ -214,12 +216,12 @@ def plot_moments(moment_file):
     plt.setp(ax2.get_xticklabels(),visible=False)
     fig.subplots_adjust(hspace=0.0001)
     ax3.set_xlabel('radius [kpc]')
-    # ax1.set_ylim(-260.001,260.001)
-    # ax2.set_ylim(15.00001,49.99999)
-    # ax3.set_ylim(-1,1.001)
-#    matplotlib.rc('text',usetex=False)
+    ax1.set_ylim(-260.001,260.001)
+    ax2.set_ylim(15.00001,49.99999)
+    ax3.set_ylim(-1,1.001)
+    matplotlib.rc('text',usetex=False)
     fig.suptitle('{}\n{}'.format(moment_file,time.asctime()))
-#    matplotlib.rc('text',usetex=True)
+    matplotlib.rc('text',usetex=True)
 
     for moment, ax, name in zip(hdus[1:],[ax1,ax2,ax3],
                                 ['$\mu_1$','$\sqrt{\mu_2}$','$\mu_3$']):
