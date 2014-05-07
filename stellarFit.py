@@ -7,6 +7,8 @@ import matplotlib.collections as collections
 from ppxf import ppxf
 import ppxf_util as pputil
 from scipy import ndimage
+from pyraf import iraf
+iraf.noao.onedspec()
 
 glob = glob.glob
 
@@ -60,21 +62,21 @@ def test(spectrum,template,line=10, order=5, cut=0.75):
     # template = template[mask]
 
     fig = plt.figure()
-    ax = fig.add_subplot(211)
+    ax = fig.add_subplot(311)
     ax.plot(wave,galaxy)
     datafit = ADE.polyclip(wave,galaxy,order)
     ax.plot(wave,datafit(wave))
     galaxy /= datafit(wave)
-    ax2 = fig.add_subplot(212)
+    ax2 = fig.add_subplot(312)
 #    ax2.plot(wave,galaxy)
 
-    fig2 = plt.figure()
-    ax3 = fig2.add_subplot(211)
-    ax3.plot(twave,template)
-    tmpfit = ADE.polyclip(twave,template,order)
-    ax3.plot(twave,tmpfit(twave))
-    template /= tmpfit(twave)
-    ax4 = fig2.add_subplot(212)
+    # fig2 = plt.figure()
+    # ax3 = fig2.add_subplot(211)
+    # ax3.plot(twave,template)
+    # tmpfit = ADE.polyclip(twave,template,order)
+    # ax3.plot(twave,tmpfit(twave))
+    # template /= tmpfit(twave)
+    # ax4 = fig2.add_subplot(212)
 #    ax4.plot(twave,template)
     
     print wave.shape, twave.shape
@@ -90,7 +92,7 @@ def test(spectrum,template,line=10, order=5, cut=0.75):
 
     lamRange2 = np.array([twave.min(),twave.max()])
     template = ndimage.gaussian_filter1d(template,sigma)
-    ax4.plot(twave,template)
+#    ax4.plot(twave,template)
     logtmp, logLam2, velscale_tmp = pputil.log_rebin(lamRange2,
                                                      template,
                                                      velscale=velscale)
@@ -128,12 +130,29 @@ def test(spectrum,template,line=10, order=5, cut=0.75):
     ax2.add_collection(collection)
         
 
-    fig.show()
-    fig2.show()
+#    fig2.show()
 
     pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape), 
               velscale,start, 
               vsyst=dv,plot=True, goodpixels=goodpixels)
 
-    return pp
+    # pyfits.PrimaryHDU(templates.T).writeto('templates.fits',
+    #                                      clobber=True)
+    bfh = pyfits.PrimaryHDU(np.array(pp.bestfit[np.newaxis,:],dtype=np.float32))
+    bfh.header.update('CDELT1',data_hdu[0].header['CDELT1'])
+    bfh.header.update('CRVAL1',wave.min())
+    bfh.header.update('CRPIX1',1)
+    bfh.header.update('CTYPE1','LINEAR')
+    bfh.writeto('bestfit.fits',clobber=True)
+    iraf.noao.onedspec.dispcor('bestfit.fits','bestfit_lin.fits',
+                               linearize=True,log=False,flux=False,
+                               dw=data_hdu[0].header['CDELT1'],
+                               w1=wave.min(),w2=wave.max())
+    bestfit = pyfits.open('bestfit_lin.fits')[0].data[0]
+    ax3 = fig.add_subplot(313)
+    ax3.plot(wave,galaxy,'--',color='k',alpha=0.5)
+    ax3.plot(wave,bestfit)
+    fig.show()
+                               
+    return pp, bestfit
     
