@@ -28,7 +28,7 @@ def clean_model(model, tol=3.):
     for i in range(model.n_components):
         if np.abs(model.means_[i] - strong_mean) > strong_std*tol:
             model.weights_[i] = 0.0
-        if np.sqrt(model.covars_[i]) > 120.:
+        if np.sqrt(model.covars_[i]) > 80.:
             model.weights_[i] = 0.0
 
     return
@@ -47,7 +47,7 @@ def MGD(slayfile,radius,cent_lambda=5048.126,
     line_pdf = ss.rv_discrete(a=VV.min(),b=VV.max(),values=(VV,II))
     line_sample = line_pdf.rvs(size=10000)/factor
 
-    N = np.arange(1,11)
+    N = np.arange(1,10)
     models = [GMM(n).fit(line_sample) for n in N]
 
     AIC = [m.aic(line_sample) for m in models]
@@ -66,7 +66,7 @@ def MGD(slayfile,radius,cent_lambda=5048.126,
     ax1.plot(mV,model_components,'--k')
     ax1.errorbar(V,I/np.max(I)*np.max(model_pdf),
                  yerr=err/np.max(I)*np.max(model_pdf),alpha=0.4)
-    ax1.hist(line_sample,100,normed=True,alpha=0.8,histtype='step')
+    ax1.hist(line_sample,50,normed=True,alpha=0.8,histtype='step')
     ax1.set_xlabel('Velocity [km/s]')
     ax1.set_ylabel('Normalized counts')
 
