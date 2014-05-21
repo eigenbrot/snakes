@@ -292,9 +292,6 @@ def slayer(specimage,errimage,radii,guesses,outputfile,
     some of you lines suck. This is currently the perfered method.
     '''
 
-    if not nrows: 
-        nrows = radii[1] - radii[0]
-
     if not msfile:
         specfile = specimage.split('.fits')[0]+'.ms.fits'
         apextract(specimage,errimage,radii,nrows)
@@ -308,6 +305,9 @@ def slayer(specimage,errimage,radii,guesses,outputfile,
             radii.append((int(rstr[2]) + int(rstr[3]))/2)
             i +=1 
         print radii
+
+    if not nrows: 
+        nrows = radii[1] - radii[0]
 
     total_results = []
     total_errs = []
@@ -732,8 +732,8 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
         errfile = msfile.split('.ms.fits')[0]+'_error.ms.fits'
         error = pyfits.open(errfile)[0].data
 
-    fluxoutput = slayfile.split('.')[0]+'_bin{}.ms.fits'.format(SN_thresh)
-    erroutput = slayfile.split('.')[0]+'_bin{}_error.ms.fits'.format(SN_thresh)
+    fluxoutput = slayfile.split('/')[-1].split('.')[0]+'_bin{}.ms.fits'.format(SN_thresh)
+    erroutput = slayfile.split('/')[-1].split('.')[0]+'_bin{}_error.ms.fits'.format(SN_thresh)
 
     wave = np.arange(flux.shape[1])*crdelt + crval
 
@@ -757,8 +757,8 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
         while SN < SN_thresh:
             
             ap = flux[idx2,:]
-            fit = np.poly1d(np.polyfit(wave,ap,fit_deg))
-            ap -= fit(wave)
+            # fit = np.poly1d(np.polyfit(wave,ap,fit_deg))
+            # ap -= fit(wave)
             signal += np.sum(flux[idx2,sigidx])
 
             # peakwave = waveregion[np.where(region == region.max())[0]]
@@ -769,10 +769,10 @@ def SNbinning(slayfile, SN_thresh=40, fit_deg=2):
 #            signal = np.sum(np.abs(region[sigidx]))
 
             if seperr:
-                noise = np.sqrt(noise**2 + np.sum(error[idx2,sigidx]**2))
+                noise += np.sqrt(noise**2 + np.sum(error[idx2,sigidx]**2))
                 idx2 += 1
             else:
-                noise = np.sqrt(noise**2 + np.sum(flux[idx2+1,sigidx]**2))
+                noise += np.sqrt(noise**2 + np.sum(flux[idx2+1,sigidx]**2))
                 idx2 +=2
 
             SN = signal/noise
