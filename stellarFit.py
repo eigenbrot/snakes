@@ -67,7 +67,7 @@ def prep_templates(template_fits, outputfits, dw):
     tn2 = thud.header['NAXIS1']
     
 
-def fitms(spectrum,template, out_prefix, order=5, cut=0.75, pre=106):
+def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
 
     pd = PDF(out_prefix+'.pdf')
 
@@ -76,8 +76,11 @@ def fitms(spectrum,template, out_prefix, order=5, cut=0.75, pre=106):
     ddw = data_hdu[0].header['CDELT1']
     wave = data_hdu[0].header['CRVAL1'] + \
         np.arange(data_hdu[0].shape[1])*ddw
-    wave = wave[pre:]
+#    wave = wave[pre:]
     lamRange1 = np.array([wave.min(),wave.max()])
+    galaxy = data_hdu[0].data[0]#[pre:]
+    loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
+
     print data_hdu[0].shape
 
     c = 299792.458
@@ -86,48 +89,55 @@ def fitms(spectrum,template, out_prefix, order=5, cut=0.75, pre=106):
     FWHM_diff = np.sqrt(FWHM_gal**2 - FWHM_tmp**2)
     sigma = FWHM_diff/2.355/ddw
 
-    temp_hdu = pyfits.open(template)
+    temp_hdu = pyfits.open(template_list[0])
     twave = temp_hdu[1].header['CRVAL1'] + \
         np.arange(temp_hdu[1].data.size)*temp_hdu[1].header['CDELT1']
-    template = temp_hdu[1].data
+    mask = np.where((twave > 4650.) & (twave < 5500.))
+    template = temp_hdu[1].data[mask]
+    twave = twave[mask]
     lamRange2 = np.array([twave.min(),twave.max()])
     template = ndimage.gaussian_filter1d(template,sigma)
+    logtmp, logLam2, velscale_tmp = pputil.log_rebin(lamRange2,
+                                                     template,
+                                                     velscale=velscale)
 
     bestfits = np.empty((1,wave.size))
+    templates = np.empty((logtmp.size))
+    print templates.shape
 
-    for i in range(data_hdu[0].data.shape[0]):
-
-        fig = plt.figure()
-
-        galaxy = data_hdu[0].data[i][pre:]
-        datafit = ADE.polyclip(wave,galaxy,order)
-
-        ax = fig.add_subplot(211)
-        ax.plot(wave,galaxy)
-        ax.plot(wave,datafit(wave))
-        galaxy /= datafit(wave)
-
-        loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
-
-        logtmp, logLam2, velscale_tmp = pputil.log_rebin(lamRange2,
-                                                         template,
-                                                         velscale=velscale)
-
-        templates = np.empty((logtmp.size,len(temp_hdu)-1))
-
+    for template_file in template_list:
+        temp_hdu = pyfits.open(template_file)
         for i in range(len(temp_hdu)-1):
             hdu = temp_hdu[i+1]
-            twave = temp_hdu[1].header['CRVAL1'] + \
-                np.arange(temp_hdu[1].data.size)*temp_hdu[1].header['CDELT1']
-            td = hdu.data
+            twave = temp_hdu[i+1].header['CRVAL1'] + \
+                np.arange(temp_hdu[i+1].data.size)*temp_hdu[i+1].header['CDELT1']
+            mask = np.where((twave > 4650.) & (twave < 5500.))
+            twave = twave[mask]
+            td = hdu.data[mask]
             tfit = ADE.polyclip(twave,td,order)
             td /= tfit(twave)
             td = ndimage.gaussian_filter1d(td,sigma)
             logtd, logLam2, velscale = pputil.log_rebin(lamRange2,td,
                                                         velscale=velscale)
-            templates[:,i] = logtd/np.median(logtd)
+            templates = np.vstack((templates,logtd/np.median(logtd)))
     
-        print templates.shape
+    templates = templates[1:].T
+    print templates.shape
+
+    for i in range(data_hdu[0].data.shape[0]):
+
+        fig = plt.figure()
+
+        galaxy = data_hdu[0].data[i]#[pre:]
+#        datafit = ADE.polyclip(wave,galaxy,order)
+
+        ax = fig.add_subplot(211)
+        ax.plot(wave,galaxy)
+#        ax.plot(wave,datafit(wave))
+#        galaxy /= datafit(wave)
+
+        loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
+#        pyfits.PrimaryHDU(templates).writeto('templates.fits')
 
         dv = (logLam2[0] - logLam1[0])*c
         vel = c*1.008246
@@ -135,20 +145,27 @@ def fitms(spectrum,template, out_prefix, order=5, cut=0.75, pre=106):
         loggalaxy /= np.median(loggalaxy)
         goodpixels = np.where(np.abs(loggalaxy - np.mean(loggalaxy)) < \
                                   cut*np.std(loggalaxy))[0]
-       
+        goodpixels = goodpixels[goodpixels > pre]
+ 
         collection = collections.BrokenBarHCollection.span_where(
             np.arange(loggalaxy.size),
             ymin=0,ymax=4,
             where=np.abs(loggalaxy - np.mean(loggalaxy)) \
                 >= cut*np.std(loggalaxy), 
             facecolor='red',alpha=0.5)
-        
+        collection2 = collections.BrokenBarHCollection.span_where(
+            np.arange(loggalaxy.size),
+            ymin=0,ymax=4,
+            where=np.arange(loggalaxy.size) <= pre, 
+            facecolor='red',alpha=0.5)
+
         ax2 = fig.add_subplot(212)
         ax2.plot(np.arange(loggalaxy.size),loggalaxy)
         ax2.add_collection(collection)
+        ax2.add_collection(collection2)
         
-        pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape), 
-                  velscale,start, 
+        pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape)*1., 
+                  velscale,start,bias=0,degree=25,mdegree=0,
                   vsyst=dv,plot=True, goodpixels=goodpixels)
 
         print bestfits.shape, pp.bestfit.size
