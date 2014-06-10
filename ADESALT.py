@@ -890,3 +890,18 @@ def PVim(slayfile,velorange,central_wave = 5048.126):
     return ax
     
     
+def trim(input_fits, outputname, trim_amount):
+    '''Take any fits image with a wavelength solution and cut off the first
+    trim_amount pixels. The header is updated to keep the wavelength solution
+    correct'''
+
+    hdu = pyfits.open(input_fits)[0]
+    data = hdu.data
+    header = hdu.header
+    newdata = data[:,trim_amount:]
+    newval = header['CRVAL1'] + header['CDELT1']*trim_amount
+    header['CRVAL1'] = newval
+
+    pyfits.PrimaryHDU(newdata,header).writeto(outputname)
+
+    return
