@@ -4,6 +4,7 @@ import pyfits
 import math
 import os
 import scipy.optimize as spo
+import scipy.interpolate as spi
 import bottleneck as bn
 import multiprocessing as mp
 try:
@@ -675,6 +676,27 @@ def polyclip(x, y0, deg, niter=20, clip_high=3., clip_low=3.):
         y[lowidx] = fit(x[lowidx])
 
     return np.poly1d(coef)
+
+def splineclip(x, y0, k=3, w=None, bbox=[None,None], s=None,
+               clip_high=3., clip_low=3., niter=20):
+
+    '''We up-type y because poly1d will always return a float64 array
+    and we don't want casting errors later on'''
+    y = np.array(y0,copy=True,dtype=np.float64)
+
+    for i in range(niter):
+        fit = spi.UnivariateSpline(x,y,w=w,bbox=bbox,s=s,k=k)
+        residuals = y - fit(x)
+        sigma = np.std(residuals)
+        print i, sigma
+
+        high_idx = residuals > clip_high*sigma
+        low_idx = residuals < -1.*np.abs(clip_low)*sigma
+        
+        y[high_idx] = fit(x[high_idx])
+        y[low_idx] = fit(x[low_idx])
+
+    return spi.UnivariateSpline(x,y,w=w,bbox=bbox,s=s,k=k)
 
 def eplot(x,y=None):
     '''a simple script for quickly plotting some data.
