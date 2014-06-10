@@ -133,6 +133,7 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
 
         ax = fig.add_subplot(211)
         ax.plot(wave,galaxy)
+        ax.set_ylim(0,2)
 #        ax.plot(wave,datafit(wave))
 #        galaxy /= datafit(wave)
 
@@ -182,8 +183,8 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
     bfh.header.update('CRVAL1',wave.min())
     bfh.header.update('CRPIX1',1)
     bfh.header.update('CTYPE1','LINEAR')
-    bfh.writeto(out_prefix+'.fits',clobber=True)
-    iraf.noao.onedspec.dispcor(out_prefix+'.fits',out_prefix+'_lin.fits',
+    bfh.writeto(out_prefix+'.ms.fits',clobber=True)
+    iraf.noao.onedspec.dispcor(out_prefix+'.ms.fits',out_prefix+'_lin.ms.fits',
                                linearize=True,log=False,flux=False,
                                dw=ddw,w1=wave.min(),w2=wave.max(),nw='INDEF',
                                samedis=True)
