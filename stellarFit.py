@@ -18,30 +18,38 @@ def make_SSP_fits(input_file,output_fits):
     ages, metallicities, wavelengths, fluxes = np.loadtxt(input_file,
                                                           unpack=True)
 
-    hdulist = []
-
+    header = pyfits.header.Header()
+    stack = []
+    i = 0
+    pd = 0
+    pm = 0
     for age in np.unique(ages):
         aidx = np.where(ages == age)
         for Z in np.unique(metallicities[aidx]):
             print age, Z
-            Zidx = np.where(metallicities[aidx] == Z)
-            
+            Zidx = np.where(metallicities[aidx] == Z)   
             wave = wavelengths[aidx][Zidx]
             flux = fluxes[aidx][Zidx]
-            hdu = pyfits.ImageHDU(flux)
-            hdu.header.update('CDELT1',np.mean(np.diff(wave)))
-            hdu.header.update('CRVAL1',np.min(wave))
-            hdu.header.update('CRPIX1',1)
-            hdu.header.update('Z',Z,comment='Metallicity')
-            hdu.header.update('AGE',age,comment='Age [Gyr]')
-            hdulist.append(hdu)
+            stack.append(flux/np.mean(flux))
+            header.update('Z{}'.format(i),Z,comment='Metallicity')
+            header.update('AGE{}'.format(i),age,comment='Age [Gyr]')
+            d = np.mean(np.diff(wave))
+            m = np.min(wave)
+            if pd != d or pm != m:
+                print 'WARNING, {} != {} or {} != {}'.format(pd,d,pm,m)
+            pd = d
+            pm = m
+            i += 1
 
+    header.update('CDELT1',np.mean(np.diff(wave)))
+    header.update('CRVAL1',np.min(wave))
+    header.update('CRPIX1',1)
     
-    primary = pyfits.PrimaryHDU()
-    primary.header.update('INPUT',input_file,
-                          comment='File used to construct FITS')
-
-    pyfits.HDUList([primary] + hdulist).writeto(output_fits,clobber=True)
+    data = np.vstack(stack)
+    header.update('INPUT',input_file,
+                  comment='File used to construct FITS')
+    primary = pyfits.PrimaryHDU(data,header)
+    primary.writeto(output_fits,clobber=True)
 
     return
 
@@ -67,7 +75,7 @@ def prep_templates(template_fits, outputfits, dw):
     tn2 = thud.header['NAXIS1']
     
 
-def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
+def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
 
     pd = PDF(out_prefix+'.pdf')
 
@@ -77,23 +85,27 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
     wave = data_hdu[0].header['CRVAL1'] + \
         np.arange(data_hdu[0].shape[1])*ddw
 #    wave = wave[pre:]
-    lamRange1 = np.array([wave.min(),wave.max()])
+    lamRange1 = np.array([wave.min(),wave.max()])#/1.008246
     galaxy = data_hdu[0].data[0]#[pre:]
     loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
 
+    masklow = wave.min() - 500.
+    maskhigh = wave.max() + 500.
+
     print data_hdu[0].shape
+    print masklow,maskhigh
 
     c = 299792.458
-    FWHM_gal = 0.95 #AA
+    FWHM_gal = 0.95/1.008246 #AA
     FWHM_tmp = 0.55 #AA
     FWHM_diff = np.sqrt(FWHM_gal**2 - FWHM_tmp**2)
     sigma = FWHM_diff/2.355/ddw
 
     temp_hdu = pyfits.open(template_list[0])
-    twave = temp_hdu[1].header['CRVAL1'] + \
-        np.arange(temp_hdu[1].data.size)*temp_hdu[1].header['CDELT1']
-    mask = np.where((twave > 4650.) & (twave < 5500.))
-    template = temp_hdu[1].data[mask]
+    twave = temp_hdu[0].header['CRVAL1'] + \
+        np.arange(temp_hdu[0].data.shape[1])*temp_hdu[0].header['CDELT1']
+    mask = np.where((twave > masklow) & (twave < maskhigh))
+    template = temp_hdu[0].data[0][mask]
     twave = twave[mask]
     lamRange2 = np.array([twave.min(),twave.max()])
     template = ndimage.gaussian_filter1d(template,sigma)
@@ -106,23 +118,23 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
     print templates.shape
 
     for template_file in template_list:
-        temp_hdu = pyfits.open(template_file)
-        for i in range(len(temp_hdu)-1):
-            hdu = temp_hdu[i+1]
-            twave = temp_hdu[i+1].header['CRVAL1'] + \
-                np.arange(temp_hdu[i+1].data.size)*temp_hdu[i+1].header['CDELT1']
-            mask = np.where((twave > 4650.) & (twave < 5500.))
-            twave = twave[mask]
-            td = hdu.data[mask]
-            tfit = ADE.polyclip(twave,td,order)
-            td /= tfit(twave)
+        temp_hdu = pyfits.open(template_file)[0]
+        data = temp_hdu.data
+        header = temp_hdu.header
+        twave = header['CRVAL1'] + np.arange(data.shape[1])*header['CDELT1']
+        mask = (twave > masklow) & (twave < maskhigh)
+        twave = twave[mask]
+        for i in range(30,data.shape[0]):
+            td = data[i][mask]
+            # tfit = ADE.polyclip(twave,td,order)
+            # td /= tfit(twave)
             td = ndimage.gaussian_filter1d(td,sigma)
             logtd, logLam2, velscale = pputil.log_rebin(lamRange2,td,
                                                         velscale=velscale)
             templates = np.vstack((templates,logtd/np.median(logtd)))
     
     templates = templates[1:].T
-    print templates.shape
+    print templates.shape, twave.shape
 
     for i in range(data_hdu[0].data.shape[0]):
 
@@ -131,9 +143,10 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
         galaxy = data_hdu[0].data[i]#[pre:]
 #        datafit = ADE.polyclip(wave,galaxy,order)
 
-        ax = fig.add_subplot(211)
-        ax.plot(wave,galaxy)
-        ax.set_ylim(0,2)
+        # ax = fig.add_subplot(212)
+        # ax.plot(wave,galaxy)
+#        ax.plot(np.arange(templates[:,0].size),templates[:,0])
+#        ax.set_ylim(0,2)
 #        ax.plot(wave,datafit(wave))
 #        galaxy /= datafit(wave)
 
@@ -141,13 +154,21 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
 #        pyfits.PrimaryHDU(templates).writeto('templates.fits')
 
         dv = (logLam2[0] - logLam1[0])*c
+        print dv
         vel = c*1.008246
-        start = [0,180.]
+        start = [0.,2.]
         loggalaxy /= np.median(loggalaxy)
         goodpixels = np.where(np.abs(loggalaxy - np.mean(loggalaxy)) < \
                                   cut*np.std(loggalaxy))[0]
         goodpixels = goodpixels[goodpixels > pre]
- 
+
+        pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape)*1., 
+                  velscale,start,bias=None,degree=-1,mdegree=0,
+                  vsyst=dv,plot=True, goodpixels=goodpixels)
+        print bestfits.shape
+        bestfits = np.vstack((bestfits,pp.bestfit))
+        
+        ###PLOT###
         collection = collections.BrokenBarHCollection.span_where(
             np.arange(loggalaxy.size),
             ymin=0,ymax=4,
@@ -160,20 +181,34 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=225):
             where=np.arange(loggalaxy.size) <= pre, 
             facecolor='red',alpha=0.5)
 
-        ax2 = fig.add_subplot(212)
-        ax2.plot(np.arange(loggalaxy.size),loggalaxy)
+        plot_px = np.arange(loggalaxy.size)
+        plot_gal = ndimage.gaussian_filter1d(loggalaxy,3)
+
+        ax2 = fig.add_subplot(411)
+        ax2.plot(plot_px,plot_gal)
         ax2.add_collection(collection)
         ax2.add_collection(collection2)
-        
-        pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape)*1., 
-                  velscale,start,bias=0,degree=25,mdegree=0,
-                  vsyst=dv,plot=True, goodpixels=goodpixels)
 
-        print bestfits.shape, pp.bestfit.size
-        bestfits = np.vstack((bestfits,pp.bestfit))
-
-        ax2.plot(np.arange(loggalaxy.size),pp.bestfit)
+        ax2.plot(plot_px,pp.bestfit)
         ax2.set_ylim(0.8,1.2)
+        bbox2 = ax2.get_position().get_points().flatten()
+
+        plt.setp(ax2.get_xticklabels(),visible=False)
+        ax3 = fig.add_subplot(412,sharex=ax2)
+        bbox3 = ax3.get_position().get_points().flatten()
+        newpos = [bbox3[0],
+                  bbox2[1] - (bbox3[3] - bbox3[1]),
+                  bbox3[2] - bbox3[0],
+                  bbox3[3] - bbox3[1]]
+        ax3.set_position(newpos)
+        ax3.plot(plot_px,loggalaxy - pp.bestfit,'r',lw=0.7)     
+        ax3.set_ylim(-0.2,0.2)
+
+        ax = fig.add_subplot(212)
+        pidx = np.arange(1350,1550,1)
+        ax.plot(plot_px[pidx],plot_gal[pidx])
+        ax.plot(plot_px[pidx],pp.bestfit[pidx])
+
         pd.savefig(fig)
 
     bestfits = bestfits[1:]
