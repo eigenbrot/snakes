@@ -10,6 +10,7 @@ from scipy import ndimage
 from pyraf import iraf
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 iraf.noao.onedspec()
+import os
 
 glob = glob.glob
 
@@ -246,7 +247,7 @@ def flatten_spectra(input_file,output_file):
     pyfits.PrimaryHDU(data2[:,data2.shape[1]/3.:data2.shape[1]*2./3.],
                       header).writeto('tmp5.fits')
     iraf.imarith('tmp5.fits','*','tmp.fits','tmp6.fits')
-    # d6 = pyfits.open('tmp6.fits')[0].data
+    d6 = pyfits.open('tmp6.fits')[0].data
     # d7 = d6/np.mean(d6,axis=1)[:,np.newaxis]
     # pyfits.PrimaryHDU(d7,header).writeto('tmp7.fits')
     iraf.imarith(input_file,'/','tmp6.fits',output_file)
@@ -254,3 +255,35 @@ def flatten_spectra(input_file,output_file):
     
     return np.mean(d6,axis=1)[:,np.newaxis]
 
+def runtest(input_spectra,output_prefix):
+
+    templates = ['ELODIE_krz004.norm.ms.fits',
+                 'ELODIE_krz002.norm.ms.fits',
+                 'ELODIE_krz001.norm.ms.fits']
+
+    # First flatten the data
+    print 'Normalizing input spectra...'
+    input_prefix = os.path.basename(input_spectra).split('.ms.fits')[0]
+    flat_name = '{}.norm.ms.fits'.format(input_prefix)
+    means = flatten_spectra(input_spectra,flat_name)
+    
+    # Now fit stellar templates
+    print 'Fitting templates...'
+    fitms(flat_name,templates,output_prefix)
+
+    #grab the best fit, scale it by the slit function, and subtract it from
+    #the OG spectra
+    print 'Subtracting template...'
+    bestfit_file = '{}_lin.ms.fits'.format(output_prefix)
+    bfdata = pyfits.open(bestfit_file)[0].data
+    
+    spech = pyfits.open(flat_name)[0]
+    header = spech.header
+    spectra = spech.data
+
+    sub_spectra = (spectra - bfdata)*means
+
+    final_name = '{}.norm.sub.ms.fits'.format(input_prefix)
+    pyfits.PrimaryHDU(sub_spectra,header).writeto(final_name,clobber=True)
+
+    return
