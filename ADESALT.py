@@ -907,29 +907,3 @@ def trim(input_fits, outputname, trim_amount):
 
     return
 
-def flatten_spectra(input_file,output_file):
-
-    iraf.fit1d(input_file,'tmp.fits',type='fit',interact=False,
-               functio='legendre',order=2)
-    iraf.imarith(input_file,'/','tmp.fits','tmp2.fits')
-
-    hdu = pyfits.open('tmp2.fits')[0]
-    header = hdu.header
-    data = hdu.data
-    t = np.r_[data.T,data.T,data.T]
-    pyfits.PrimaryHDU(t.T,header).writeto('tmp3.fits')
-    
-    iraf.fit1d('tmp3.fits','tmp4.fits',type='fit',interact=False,
-               functio='spline3',order=100,low_rej=2.,high_rej=2.)
-    hdu2 = pyfits.open('tmp4.fits')[0]
-    data2 = hdu2.data
-    pyfits.PrimaryHDU(data2[:,data2.shape[1]/3.:data2.shape[1]*2./3.],
-                      header).writeto('tmp5.fits')
-    iraf.imarith('tmp5.fits','*','tmp.fits','tmp6.fits')
-    d6 = pyfits.open('tmp6.fits')[0].data
-    d7 = d6/np.mean(d6,axis=1)[:,np.newaxis]
-    pyfits.PrimaryHDU(d7,header).writeto('tmp7.fits')
-    iraf.imarith(input_file,'/','tmp7.fits',output_file)
-    os.system('rm tmp*.fits')
-    
-    return
