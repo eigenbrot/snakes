@@ -933,14 +933,12 @@ def contiuumSN(spec_image, err_image, window=[100,200],
         while SN < SN_thresh:
             
             ap = flux[idx1:idx2,window[0]:window[1]]
-            signal += np.sum(ap)
-            noise = np.sqrt(noise**2 + np.sum(
-                    error[idx1:idx2,window[0]:window[1]]**2))
+            signal = np.sum(ap)
+            noise = np.sqrt(np.sum(error[idx1:idx2,window[0]:window[1]]**2))
             SN = signal/noise
             # print ap, signal
             # print noise, SN
             # raw_input()
-            print '\t{} {}\n\t\t{}'.format(idx1,idx2,SN)
             
             idx2 += 1
             if idx2 > row_high:
@@ -952,10 +950,12 @@ def contiuumSN(spec_image, err_image, window=[100,200],
         fluxlist.append(np.sum(flux[idx1:idx2,:],axis=0))
         errlist.append(np.sqrt(np.sum(error[idx1:idx2,:]**2,axis=0)))
 
+        print '\t{} {}\n\t\t{}'.format(idx1,idx2,SN)
         idx1 = idx2
         idx2 += 1
         binnum += 1
 
+    print binnum - 1
     header.update('SEPERR',True)
     pyfits.PrimaryHDU(np.vstack(fluxlist),header).writeto(flux_output,clobber=True)
     pyfits.PrimaryHDU(np.vstack(errlist),header).writeto(error_output,clobber=True)
