@@ -623,6 +623,95 @@ fig.show() # This is what actually draws the plot
 # do use plt.plot and fig.plot a lot, though). After that, check Stack
 # Overflow or ask the UW Astro Python user's group.
 
-
+########################
+#       WORKFLOW       #
+########################
+#
+# Finally, we'll talk a little bit about different ways to code in
+# python. This is a largely subjective section, but it might give you some
+# ideas you can fold into your own work environment.
+#
+# There are essentially two ways (that I can think of) you can write and run
+# python code. We'll discuss each one briefly:
+#
+# 1. Non-interactively
+#
+# This would involve writing a bunch of code in the top level (i.e., no
+# indentation) of a file and then running the whole file each time you want to
+# do anything. There might be some function definitions in the file, but they
+# are only used by other code in the file. You then run the code from your
+# unix shell and see the results. An example:
+#
+#   ----func.py----
+#   #!/usr/bin/python 
+#   import numpy as np
+#   
+#   def a_function(x):
+#       return x**2
+#
+#   x = np.arange(10)
+#
+#   print a_function(x)
+#   ----------------
+#
+# (unix shell)->python func.py
+# [0 1 4 9 16 25 36 49 64 81]
+#
+# 
+# 2. Interactively
+#
+# This involves writing a module that only contains function definitions
+# (i.e., no "top level" code). You then import your module into a python
+# session and access the functions as you see fit. An example:
+#
+#   ----func2.py-----
+#   import numpy as np
+#
+#   def func(x):
+#       return x**2
+#
+#   def reverse_str(string):
+#       return string[::-1]
+# 
+#   ------------------
+#
+# >>>import func2 as f2
+# >>>import numpy as np
+# >>>x = np.arange(10)
+# >>>f2.func(x)
+# [0 1 4 9 16 25 36 49 64 81]
+# >>>f2.func('test')
+# 'tset'
+# <MAKE SOME CHANGES TO func2.py>
+# >>>reload(f2)
+# etc.
+#
+# Personally I prefer method 2 for a few reasons. Firstly, I can interact with
+# different parts of my code in whatever order I want. For example, I can try
+# out a function on a bunch of different inputs that I make up on the fly. I
+# can also test differnent functions independently without needing to edit the
+# actual code and re-running the whole thing. 
+# 
+# I also really like interactive code development because I can do quick tests
+# of snippets of code that I want to put in my module. For example, if I'm not
+# sure exactly what the inputs and outputs of np.random.random() are then I
+# can quickly call that function or its help screen from within the python
+# shell I'm already using.
+#
+# There are upsides and downsides to both methods. So why not use a hybrid of
+# the two! Here's how: write your module in the interactive way (that is, only
+# function or class definitions), but at the end of the file write:
+#
+# if __name__ == '__main__':
+#     some python code
+#
+# That if statement is only true when you run the module from a unix shell, so
+# the code below it won't be executed when you import the module into a python
+# session. The idea here is that you develope your code in an interactive way,
+# but once you've got all your functions working just right you don't want to
+# have to call them all in the right order every time you want results. So put
+# their calling sequence in the above if statement. That way you can use the
+# module from the unix shell as "finished" code (i.e., no interaction), but
+# can still go into a python session to test things out if you need to.
 
 # A. Eigenbrot, Madison, 2013
