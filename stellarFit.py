@@ -76,7 +76,7 @@ def prep_templates(template_fits, outputfits, dw):
     tn2 = thud.header['NAXIS1']
     
 
-def fitms(spectrum,error,template_list, out_prefix, order=5, cut=0.75, pre=0):
+def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25, degree=4):
 
     pd = PDF(out_prefix+'.pdf')
 
@@ -165,44 +165,44 @@ def fitms(spectrum,error,template_list, out_prefix, order=5, cut=0.75, pre=0):
         start = [0.,2.]
         loggalaxy /= np.median(loggalaxy)
         logerror /= np.median(loggalaxy)
-        goodpixels = np.where(np.abs(loggalaxy - np.mean(loggalaxy)) < \
+        
+        goodfit = ADE.polyclip(np.arange(loggalaxy.size),loggalaxy,2)
+        goodpixels = np.where(np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) < \
                                   cut*np.std(loggalaxy))[0]
         goodpixels = goodpixels[goodpixels > pre]
 
         pp = ppxf(templates,loggalaxy, logerror, 
-                  velscale,start,bias=None,degree=-1,mdegree=0,
+                  velscale,start,bias=None,degree=degree,mdegree=mdegree,
                   vsyst=dv,plot=True, goodpixels=goodpixels)
         print bestfits.shape
         bestfits = np.vstack((bestfits,pp.bestfit))
         
         ###PLOT###
+        plot_px = np.exp(logLam1)
+        plot_gal = ndimage.gaussian_filter1d(loggalaxy,3)
         collection = collections.BrokenBarHCollection.span_where(
-            np.arange(loggalaxy.size),
+            plot_px,
             ymin=0,ymax=4,
-            where=np.abs(loggalaxy - np.mean(loggalaxy)) \
+            where=np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) \
                 >= cut*np.std(loggalaxy), 
             facecolor='red',alpha=0.5)
         collection2 = collections.BrokenBarHCollection.span_where(
-            np.arange(loggalaxy.size),
+            plot_px,
             ymin=0,ymax=4,
             where=np.arange(loggalaxy.size) <= pre, 
             facecolor='red',alpha=0.5)
 
-        plot_px = np.arange(loggalaxy.size)
-        plot_gal = ndimage.gaussian_filter1d(loggalaxy,3)
 
         ax2 = fig.add_subplot(411)
-        ax2.plot(plot_px,plot_gal)
+        ax2.plot(np.exp(logLam1),plot_gal)
         ax2.add_collection(collection)
         ax2.add_collection(collection2)
 
-        lamx = plot_px*velscale*lambda0/c + lambda0
-
         ax2.plot(plot_px,pp.bestfit)
-        ax2.set_ylim(0.8,1.2)
         ax2.set_xlim(plot_px[0],plot_px[-1])
         ax5 = ax2.twiny()
-        ax5.set_xlim(lamx[0],lamx[-1])
+        ax5.set_xlim(0,loggalaxy.size)
+        ax2.set_ylim(0.6,1.4)
         bbox2 = ax2.get_position().get_points().flatten()
 
         plt.setp(ax2.get_xticklabels(),visible=False)
