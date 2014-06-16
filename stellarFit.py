@@ -76,14 +76,16 @@ def prep_templates(template_fits, outputfits, dw):
     tn2 = thud.header['NAXIS1']
     
 
-def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
+def fitms(spectrum,error,template_list, out_prefix, order=5, cut=0.75, pre=0):
 
     pd = PDF(out_prefix+'.pdf')
 
     #make the galaxy wavelength vector
     data_hdu = pyfits.open(spectrum)
+    error_hdu = pyfits.open(error)
     ddw = data_hdu[0].header['CDELT1']
-    wave = data_hdu[0].header['CRVAL1'] + \
+    lambda0 = data_hdu[0].header['CRVAL1']
+    wave =  lambda0+ \
         np.arange(data_hdu[0].shape[1])*ddw
 #    wave = wave[pre:]
     lamRange1 = np.array([wave.min(),wave.max()])#/1.008246
@@ -137,11 +139,12 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
     templates = templates[1:].T
     print templates.shape, twave.shape
 
-    for i in range(data_hdu[0].data.shape[0]):
+    for i in range(1):#data_hdu[0].data.shape[0]):
 
         fig = plt.figure()
 
         galaxy = data_hdu[0].data[i]#[pre:]
+        noise = error_hdu[0].data[i]
 #        datafit = ADE.polyclip(wave,galaxy,order)
 
         # ax = fig.add_subplot(212)
@@ -152,18 +155,21 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
 #        galaxy /= datafit(wave)
 
         loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
+        logerror, _, _ = pputil.log_rebin(lamRange1,noise)
 #        pyfits.PrimaryHDU(templates).writeto('templates.fits')
+        print velscale
 
         dv = (logLam2[0] - logLam1[0])*c
         print dv
         vel = c*1.008246
         start = [0.,2.]
         loggalaxy /= np.median(loggalaxy)
+        logerror /= np.median(loggalaxy)
         goodpixels = np.where(np.abs(loggalaxy - np.mean(loggalaxy)) < \
                                   cut*np.std(loggalaxy))[0]
         goodpixels = goodpixels[goodpixels > pre]
 
-        pp = ppxf(templates,loggalaxy, np.ones(loggalaxy.shape)*1., 
+        pp = ppxf(templates,loggalaxy, logerror, 
                   velscale,start,bias=None,degree=-1,mdegree=0,
                   vsyst=dv,plot=True, goodpixels=goodpixels)
         print bestfits.shape
@@ -190,8 +196,13 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
         ax2.add_collection(collection)
         ax2.add_collection(collection2)
 
+        lamx = plot_px*velscale*lambda0/c + lambda0
+
         ax2.plot(plot_px,pp.bestfit)
         ax2.set_ylim(0.8,1.2)
+        ax2.set_xlim(plot_px[0],plot_px[-1])
+        ax5 = ax2.twiny()
+        ax5.set_xlim(lamx[0],lamx[-1])
         bbox2 = ax2.get_position().get_points().flatten()
 
         plt.setp(ax2.get_xticklabels(),visible=False)
@@ -204,11 +215,16 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
         ax3.set_position(newpos)
         ax3.plot(plot_px,loggalaxy - pp.bestfit,'r',lw=0.7)     
         ax3.set_ylim(-0.2,0.2)
+        ax3.set_xlim(plot_px[0],plot_px[-1])
 
         ax = fig.add_subplot(212)
         pidx = np.arange(1350,1550,1)
         ax.plot(plot_px[pidx],plot_gal[pidx])
         ax.plot(plot_px[pidx],pp.bestfit[pidx])
+        ax4 = ax.twiny()
+        velx = np.arange(pidx.size)*velscale
+        velx -= velx[-1]/2.
+        ax4.set_xlim(velx[0],velx[-1])
 
         pd.savefig(fig)
 
@@ -228,7 +244,7 @@ def fitms(spectrum,template_list, out_prefix, order=5, cut=0.75, pre=0):
 
     return
     
-def flatten_spectra(input_file,output_file):
+def flatten_spectra(input_file,output_file, error=None):
 
     iraf.fit1d(input_file,'tmp.fits',type='fit',interact=False,
                functio='legendre',order=2)
@@ -251,7 +267,7 @@ def flatten_spectra(input_file,output_file):
     # d7 = d6/np.mean(d6,axis=1)[:,np.newaxis]
     # pyfits.PrimaryHDU(d7,header).writeto('tmp7.fits')
     iraf.imarith(input_file,'/','tmp6.fits',output_file)
-    os.system('rm tmp*.fits')
+#    os.system('rm tmp*.fits')
     
     return np.mean(d6,axis=1)[:,np.newaxis]
 
