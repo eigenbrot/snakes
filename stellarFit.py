@@ -139,7 +139,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
     templates = templates[1:].T
     print templates.shape, twave.shape
 
-    for i in range(1):#data_hdu[0].data.shape[0]):
+    for i in range(data_hdu[0].data.shape[0]):
 
         fig = plt.figure()
 
@@ -167,9 +167,14 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         logerror /= np.median(loggalaxy)
         
         goodfit = ADE.polyclip(np.arange(loggalaxy.size),loggalaxy,2)
-        goodpixels = np.where(np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) < \
+        tmpgood = np.where(np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) < \
                                   cut*np.std(loggalaxy))[0]
-        goodpixels = goodpixels[goodpixels > pre]
+        tmpgood = tmpgood[tmpgood > pre]
+
+        goodsmooth = np.zeros(loggalaxy.size)
+        goodsmooth[tmpgood] = 1.
+        goodsmooth = ndimage.gaussian_filter1d(goodsmooth,11)
+        goodpixels = np.where(goodsmooth > 0.9)[0]
 
         pp = ppxf(templates,loggalaxy, logerror, 
                   velscale,start,bias=None,degree=degree,mdegree=mdegree,
@@ -183,8 +188,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         collection = collections.BrokenBarHCollection.span_where(
             plot_px,
             ymin=0,ymax=4,
-            where=np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) \
-                >= cut*np.std(loggalaxy), 
+            where=goodsmooth < 0.9,
             facecolor='red',alpha=0.5)
         collection2 = collections.BrokenBarHCollection.span_where(
             plot_px,
