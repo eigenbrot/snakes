@@ -291,7 +291,7 @@ def runtest(input_spectra,output_prefix):
     print 'Fitting templates...'
     error = '{}_error.{}'.format(input_spectra.split('.')[0],
                                 '.'.join(input_spectra.split('.')[1:]))
-#    fitms(input_spectra,error,templates,output_prefix,cut=0.4,mdegree=0,degree=120)
+    fitms(input_spectra,error,templates,output_prefix,cut=0.4,mdegree=0,degree=120)
 
     #grab the best fit, scale it by the slit function, and subtract it from
     #the OG spectra
