@@ -222,7 +222,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         ax3.set_xlim(plot_px[0],plot_px[-1])
 
         ax = fig.add_subplot(212)
-        pidx = np.arange(1350,1550,1)
+        pidx = np.arange(1400,1600,1)
         ax.plot(plot_px[pidx],plot_gal[pidx])
         ax.plot(plot_px[pidx],pp.bestfit[pidx])
         ax4 = ax.twiny()
@@ -282,14 +282,16 @@ def runtest(input_spectra,output_prefix):
                  'ELODIE_krz001.norm.ms.fits']
 
     # First flatten the data
-    print 'Normalizing input spectra...'
+    # print 'Normalizing input spectra...'
     input_prefix = os.path.basename(input_spectra).split('.ms.fits')[0]
-    flat_name = '{}.norm.ms.fits'.format(input_prefix)
-    means = flatten_spectra(input_spectra,flat_name)
+    # flat_name = '{}.norm.ms.fits'.format(input_prefix)
+    # means = flatten_spectra(input_spectra,flat_name)
     
     # Now fit stellar templates
     print 'Fitting templates...'
-    fitms(flat_name,templates,output_prefix)
+    error = '{}_error.{}'.format(input_spectra.split('.')[0],
+                                '.'.join(input_spectra.split('.')[1:]))
+#    fitms(input_spectra,error,templates,output_prefix,cut=0.4,mdegree=0,degree=120)
 
     #grab the best fit, scale it by the slit function, and subtract it from
     #the OG spectra
@@ -297,11 +299,11 @@ def runtest(input_spectra,output_prefix):
     bestfit_file = '{}_lin.ms.fits'.format(output_prefix)
     bfdata = pyfits.open(bestfit_file)[0].data
     
-    spech = pyfits.open(flat_name)[0]
+    spech = pyfits.open(input_spectra)[0]
     header = spech.header
     spectra = spech.data
 
-    sub_spectra = (spectra - bfdata)*means
+    sub_spectra = (spectra - bfdata)
 
     final_name = '{}.norm.sub.ms.fits'.format(input_prefix)
     pyfits.PrimaryHDU(sub_spectra,header).writeto(final_name,clobber=True)
