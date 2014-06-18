@@ -2,6 +2,7 @@ import numpy as np
 import ADEUtils as ADE
 import ADESALT as sa
 import Salty2 as salty
+import drunkData as dd
 import matplotlib
 import glob
 import time
@@ -12,7 +13,7 @@ plt = matplotlib.pyplot
 glob = glob.glob
 
 
-def moments_notice(slayfile, simfile, plotprefix=False,
+def moments_notice(drunkfile, simfile, plotprefix=False,
                    flip=False, cent_lambda = 5048.126, skip_radii = []):
     '''Take an extracted spectrum (slayfile) and model galaxy (simfile) and
     compute the first 3 statistical moments for both at all radii sampled by
@@ -24,14 +25,14 @@ def moments_notice(slayfile, simfile, plotprefix=False,
     as possible. The exception is the first moment.
     '''
 
-    radii, _, _ = sa.openslay(slayfile,flip=flip,moments=False)
+    radii, rwidths, vwidths, m1, m2, m3 = dd.open_drunk(drunkfile)
 
-    big_dm1 = np.array([])
-    big_dm1e = np.array([])
-    big_dm2 = np.array([])
-    big_dm2e = np.array([])
-    big_dm3 = np.array([])
-    big_dm3e = np.array([])
+    big_dm1 = m1[0]
+    big_dm1e = m1[1]
+    big_dm2 = m2[0]
+    big_dm2e = m2[1]
+    big_dm3 = m3[0]
+    big_dm3e = m3[1]
     big_mm1 = np.array([])
     big_mm2 = np.array([])
     big_mm3 = np.array([])
@@ -39,62 +40,70 @@ def moments_notice(slayfile, simfile, plotprefix=False,
     if plotprefix:
         pp = PDF(plotprefix+'_lines.pdf')
 
-    for radius in radii:
+    for radius, rwidth, vwidth in zip(radii,rwidths,vwidths):
         
         if int(np.floor(radius)) in skip_radii:
             print "user skipping radius {} kpc".format(radius)
             continue
 
-        dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,
-                                            wavelength=cent_lambda,velo=True,
-                                            plot=False,baseline=1,flip=flip)
+        # dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,
+        #                                     wavelength=cent_lambda,velo=True,
+        #                                     plot=False,baseline=1,flip=flip)
 
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
                                        width=rwidth,observe=True,fit=False) 
-
-        conv_dI = dI/np.mean(dI)
-        conv_mI = mI/np.mean(mI)
-        mI_pad = pad(mI,dI.size)
-        corr = np.convolve(conv_dI,mI_pad[::-1],'same')
-        idx = np.where(corr == corr.max())[0][0]
-        corr_peak = dV[idx]
+        # conv_dI = dI/np.mean(dI)
+        # conv_mI = mI/np.mean(mI)
+        # mI_pad = pad(mI,dI.size)
+        # corr = np.convolve(conv_dI,mI_pad[::-1],'same')
+        # idx = np.where(corr == corr.max())[0][0]
+        # corr_peak = dV[idx]
         
-        fit_mV = dV + corr_peak
-        cdf = np.cumsum(mI_pad/np.sum(mI_pad))
+        # fit_mV = dV + corr_peak
+        # cdf = np.cumsum(mI_pad/np.sum(mI_pad))
         
         # Limits defined by model data
-        lowV = np.interp(0.1,cdf,fit_mV)
-        highV = np.interp(0.9,cdf,fit_mV)
-        dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
-        mmoment_idx = np.where((fit_mV >= lowV) & (fit_mV <= highV))
-        print dmoment_idx
+        # lowV = np.interp(0.1,cdf,fit_mV)
+        # highV = np.interp(0.9,cdf,fit_mV)
+        # dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
+        # mmoment_idx = np.where((fit_mV >= lowV) & (fit_mV <= highV))
+        # print dmoment_idx
 
-        if dmoment_idx[0].size <= 2:
-            print "skipping {} kpc".format(radius)
-            continue
+        # if dmoment_idx[0].size <= 2:
+        #     print "skipping {} kpc".format(radius)
+        #     continue
         
-        dmoments, dmerrs = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx],
-                                         err=derr[dmoment_idx])
-        mmoments = ADE.ADE_moments(fit_mV[mmoment_idx],mI_pad[mmoment_idx])
+        # dmoments, dmerrs = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx],
+        #                                  err=derr[dmoment_idx])
+        # mmoments = ADE.ADE_moments(fit_mV[mmoment_idx],mI_pad[mmoment_idx])
 
         '''We need to compute the peak of the model line separately because we
         shifted it to find the window used for the higher order moments'''
-        (mpeak, _, _, _) = ADE.ADE_moments(mV,mI)
+        (mpeak, _, _) = ADE.ADE_moments(mV,mI)
 
-        print "moments: {}\nerrs: {}\nmmoments: {}".\
-            format(dmoments,dmerrs,mmoments)
+        mpeak_V = mV[np.argmin(np.abs(mV - mpeak))]
+        print mpeak_V
+        lowV = mpeak_V - vwidth/2.
+        highV = mpeak_V + vwidth/2.
+        mmoment_idx = np.where((mV >= lowV) & (mV <= highV))
+        print mmoment_idx
+        mmoments = ADE.ADE_moments(mV[mmoment_idx],mI[mmoment_idx])
+
+        # print "moments: {}\nerrs: {}\nmmoments: {}".\
+        #     format(dmoments,dmerrs,mmoments)
         
-        big_dm1 = np.append(big_dm1,dmoments[0])
+        print mmoments
+#        big_dm1 = np.append(big_dm1,dmoments[0])
         big_mm1 = np.append(big_mm1,mpeak)
-        big_dm1e = np.append(big_dm1e,dmerrs[0])
+#        big_dm1e = np.append(big_dm1e,dmerrs[0])
 
-        big_dm2 = np.append(big_dm2,np.sqrt(dmoments[1]))
+#        big_dm2 = np.append(big_dm2,np.sqrt(dmoments[1]))
         big_mm2 = np.append(big_mm2,np.sqrt(mmoments[1]))
-        big_dm2e = np.append(big_dm2e,dmerrs[1]/(2*np.sqrt(mmoments[1])))
+#        big_dm2e = np.append(big_dm2e,dmerrs[1]/(2*np.sqrt(mmoments[1])))
 
-        big_dm3 = np.append(big_dm3,dmoments[2])
+#        big_dm3 = np.append(big_dm3,dmoments[2])
         big_mm3 = np.append(big_mm3,mmoments[2])
-        big_dm3e = np.append(big_dm3e,dmerrs[2])
+#        big_dm3e = np.append(big_dm3e,dmerrs[2])
 
         plot_radii = np.append(plot_radii,radius)
 
@@ -141,7 +150,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(slaydict, output_file, skip_radii=[], 
+def cutting_session(drunkdict, output_file, skip_radii=[], 
                     pars=[239.,5.5,1.62,8.43], name='boring',
                     size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
@@ -149,7 +158,7 @@ def cutting_session(slaydict, output_file, skip_radii=[],
     simultaneously with judicious use of the slay dict, which is expected to
     have the following format:
     
-        slaydict = {hight: ['slayfile.fits',Flip_boolean]},
+        drunkdict = {hight: ['drunkfile.fits',Flip_boolean]},
 
     where height is a number (in scale heights) and Flip_boolean tells the
     program it needs to flip the radii around zero.
@@ -179,7 +188,7 @@ def cutting_session(slaydict, output_file, skip_radii=[],
             +'# pars: {}\n'.format(pars)
             +'# p0: {}\n'.format(p0))
 
-    pf = spo.fmin(solo,p0,args=(slaydict,name,f,size,skip_radii,pars,fixed,flare))
+    pf = spo.fmin(solo,p0,args=(drunkdict,name,f,size,skip_radii,pars,fixed,flare))
     
     pfl = list(pf)
 
@@ -195,14 +204,14 @@ def cutting_session(slaydict, output_file, skip_radii=[],
     else:
         flarepars = None
 
-    for z in slaydict.keys():
+    for z in drunkdict.keys():
         simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,size=size,z=z,
                               h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
                               flarepars=flarepars)[0]
         
-        bar = moments_notice(slaydict[z][0],simfile,
+        bar = moments_notice(drunkdict[z][0],simfile,
                              skip_radii=skip_radii,
-                             flip=slaydict[z][1])
+                             flip=drunkdict[z][1])
         bar_dict[z] = bar
 
         for moment in bar[1:]:
@@ -213,7 +222,7 @@ def cutting_session(slaydict, output_file, skip_radii=[],
         
     return parsf, bar_dict, value
 
-def solo(p,slaydict,name,output_file,size,skip_radii,par0,fixed,flare):
+def solo(p,drunkdict,name,output_file,size,skip_radii,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -236,14 +245,14 @@ def solo(p,slaydict,name,output_file,size,skip_radii,par0,fixed,flare):
 
     output_file.write(str('{:11.4f} '*len(pars)).format(*pars))
 
-    for z in slaydict.keys():
+    for z in drunkdict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
                               h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],flarepars=flarepars)[0]
         
-        radii, m1, m2, m3 = moments_notice(slaydict[z][0],simfile,
+        radii, m1, m2, m3 = moments_notice(drunkdict[z][0],simfile,
                                            skip_radii=skip_radii,
-                                           flip=slaydict[z][1])
+                                           flip=drunkdict[z][1])
 
         for moment in [m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
@@ -275,7 +284,7 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
 
     return namelist
     
-def plot_ice(results,title='',show=True):
+def plot_ice(results,title=' ',show=True):
     '''Given the results of moments_notice(), plot model vs. data for all
     three moments. Show the plots and return them.
     '''
@@ -292,7 +301,7 @@ def plot_ice(results,title='',show=True):
     ax3.set_ylabel('$\mu_3$')
     ax3.set_xlabel('radius [kpc]')
     ax1.set_ylim(-260.001,260.001)
-    ax2.set_ylim(0.001,39.999)
+#    ax2.set_ylim(0.001,39.999)
     ax3.set_ylim(-1,0.999)
 
     fig.suptitle('{}\n{}'.format(title,time.asctime()))

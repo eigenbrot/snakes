@@ -124,7 +124,8 @@ def meatspin(specfile,inguess,tied=None,interact=False,fig_path='./specfigs'):
     header = hdus.header
     try:
         seperr = header['SEPERR']
-        errorfile = specfile.split('.ms.fits')[0] + '_error.ms.fits'
+        errorfile = '{}_error.{}'.format(specfile.split('.')[0],
+                                         '.'.join(specfile.split('.')[1:]))
         print "taking errors from {}".format(errorfile)
         ehdus = pyfits.open(errorfile)[0]
     except KeyError:
@@ -619,7 +620,8 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     # complain
     if seperr:
         spectrum = np.array(hdu.data[row],dtype='=f8')
-        errorfile = '.'.join(datafile.split('.')[:-2])+'_error.ms.fits'
+        errorfile = '{}_error.{}'.format(datafile.split('.')[0],
+                                         '.'.join(datafile.split('.')[1:]))
         error = pyfits.open(errorfile)[0].data[row]
     else:
         spectrum = np.array(hdu.data[row*2],dtype='=f8')
@@ -941,8 +943,8 @@ def contiuumSN(spec_image, err_image, window=[100,200],
             # raw_input()
             
             idx2 += 1
-            if idx2 > row_high:
-                break
+            # if idx2 > row_high:
+            #     break
 
         header.update('APNUM{}'.format(binnum),
                       '{:} {:} {:n} {:n}'.format(binnum,binnum,idx1,idx2,))

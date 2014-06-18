@@ -66,7 +66,7 @@ def MGD(slayfile,radius,cent_lambda=5048.126,
     ax1.plot(mV,model_components,'--k')
     ax1.errorbar(V,I/np.max(I)*np.max(model_pdf),
                  yerr=err/np.max(I)*np.max(model_pdf),alpha=0.4)
-    ax1.hist(line_sample,55,normed=True,alpha=0.8,histtype='step')
+    ax1.hist(line_sample,30,normed=True,alpha=0.8,histtype='step')
     ax1.set_xlabel('Velocity [km/s]')
     ax1.set_ylabel('Normalized counts')
 
@@ -142,7 +142,7 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
             again = False
         
 
-    return moments, moment_err, rwidth, fig
+    return moments, moment_err, rwidth, highV - lowV, fig
 
 def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
               window=15,baseline=1,skip_radii=[]):
@@ -155,6 +155,7 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
     
     outradii = np.array([])
     widths = np.array([])
+    vwidths = np.array([])
     m1 = np.empty((2,1))
     m2 = np.empty((2,1))
     m3 = np.empty((2,1))
@@ -164,17 +165,18 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
             continue
         print 'Getting r = {:5.3} kpc'.format(radius)
         
-        moments, moment_err, rwidth, fig = cocaine(slayfile, radius, 
-                                                   flip=flip,tol=tol, 
-                                                   cdf_window=cdf_window,
-                                                   baseline=baseline,
-                                                   window=window)
+        moments, moment_err, rwidth, vwidth, fig = cocaine(slayfile, radius, 
+                                                           flip=flip,tol=tol, 
+                                                           cdf_window=cdf_window,
+                                                           baseline=baseline,
+                                                           window=window)
         m1 = np.hstack((m1,np.array([[moments[0],moment_err[0]]]).T))
         m2 = np.hstack((m2,
                         np.array([[np.sqrt(moments[1]),
                                    moment_err[1]/(2*np.sqrt(moments[1]))]]).T))
         m3 = np.hstack((m3,np.array([[moments[2],moment_err[2]]]).T))
         widths = np.append(widths,rwidth)
+        vwidths = np.append(vwidths,vwidth)
         outradii = np.append(outradii,radius)
         fig.tight_layout(pad=0.5)
         fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
@@ -183,7 +185,7 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
     m1 = m1[:,1:]
     m2 = m2[:,1:]
     m3 = m3[:,1:]
-    radiiHDU = pyfits.PrimaryHDU(np.vstack((outradii,widths)))
+    radiiHDU = pyfits.PrimaryHDU(np.vstack((outradii,widths,vwidths)))
     radiiHDU.header.update('SLAY',slayfile,comment='Slay file')
     radiiHDU.header.update('DATE',time.asctime(),comment='Date of extraction')
     radiiHDU.header.update('FLIP',flip,comment='Flip radii around 0?')
@@ -194,12 +196,13 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
     m1HDU = pyfits.ImageHDU(m1)
     m1HDU.header.update('EXTNAME','mu1')
     m2HDU = pyfits.ImageHDU(m2)
-    m2HDU.header.update('EXTNAME','mu2')
+    m2HDU.header.update('EXTNAME','sqrt(mu2)')
     m3HDU = pyfits.ImageHDU(m3)
     m3HDU.header.update('EXTNAME','mu3')
 
     pyfits.HDUList([radiiHDU,m1HDU,m2HDU,m3HDU]).writeto(fitsout,clobber=True)
     pp.close()
+    plt.close('all')
 
     return
 
@@ -232,3 +235,17 @@ def plot_moments(moment_file):
     fig.show()
 
     return fig
+
+def open_drunk(drunkfile):
+
+    hdus = pyfits.open(drunkfile)
+    
+    radii = hdus[0].data[0]
+    vwidths = hdus[0].data[2]
+    rwidths = hdus[0].data[1]
+
+    m1 = hdus[1].data
+    m2 = hdus[2].data
+    m3 = hdus[3].data
+
+    return radii, rwidths, vwidths, m1, m2, m3

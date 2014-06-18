@@ -222,7 +222,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         ax3.set_xlim(plot_px[0],plot_px[-1])
 
         ax = fig.add_subplot(212)
-        pidx = np.arange(1400,1600,1)
+        pidx = np.arange(1525,1725,1)
         ax.plot(plot_px[pidx],plot_gal[pidx])
         ax.plot(plot_px[pidx],pp.bestfit[pidx])
         ax4 = ax.twiny()
@@ -231,6 +231,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         ax4.set_xlim(velx[0],velx[-1])
 
         pd.savefig(fig)
+        plt.close(fig)
 
     bestfits = bestfits[1:]
     pd.close()
@@ -244,7 +245,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
                                linearize=True,log=False,flux=False,
                                dw=ddw,w1=wave.min(),w2=wave.max(),nw='INDEF',
                                samedis=True)
-
+    plt.close('all')
 
     return
     
@@ -277,9 +278,13 @@ def flatten_spectra(input_file,output_file, error=None):
 
 def runtest(input_spectra,output_prefix):
 
-    templates = ['ELODIE_krz004.norm.ms.fits',
-                 'ELODIE_krz002.norm.ms.fits',
-                 'ELODIE_krz001.norm.ms.fits']
+    # templates = ['ELODIE_krz004.norm.ms.fits',
+    #              'ELODIE_krz002.norm.ms.fits',
+    #              'ELODIE_krz001.norm.ms.fits']
+
+    templates = ['../../ppxf/ELODIE/ELODIE_krz001.ms.fits',
+                 '../../ppxf/ELODIE/ELODIE_krz002.ms.fits',
+                 '../../ppxf/ELODIE/ELODIE_krz004.ms.fits']
 
     # First flatten the data
     # print 'Normalizing input spectra...'
@@ -305,7 +310,7 @@ def runtest(input_spectra,output_prefix):
 
     sub_spectra = (spectra - bfdata)
 
-    final_name = '{}.norm.sub.ms.fits'.format(input_prefix)
+    final_name = '{}.sub.ms.fits'.format(input_prefix)
     pyfits.PrimaryHDU(sub_spectra,header).writeto(final_name,clobber=True)
 
     return
