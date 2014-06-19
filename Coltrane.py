@@ -7,6 +7,7 @@ import matplotlib
 import glob
 import time
 import pyfits
+import bottleneck as bn
 import scipy.optimize as spo
 import os
 plt = matplotlib.pyplot
@@ -256,10 +257,10 @@ def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
 
         for moment in [m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
-            output_file.write('{:11.4f} '.format(np.sum(red_chi**2)))
+            output_file.write('{:11.4f} '.format(bn.nansum(red_chi**2)))
             chis = np.r_[chis,red_chi]
 
-    value = np.sum(chis**2)/(chis.size - p.size - 1)
+    value = bn.nansum(chis**2)/(chis.size - p.size - 1)
     output_file.write('{:11.4f}\n'.format(value))
     print '\nsimfile: {}\nv_r: {}\nh_rot: {}\nkappa_0: {}\nh_dust: {}\nvalue: {}\n'.\
         format(simfile,pars[0],pars[1],pars[2],pars[3],value)
