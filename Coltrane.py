@@ -150,7 +150,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(drunkdict, output_file, skip_radii=[], 
+def cutting_session(drunkdict, output_file, 
                     pars=[239.,5.5,1.62,8.43], name='boring',
                     size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
@@ -158,7 +158,7 @@ def cutting_session(drunkdict, output_file, skip_radii=[],
     simultaneously with judicious use of the slay dict, which is expected to
     have the following format:
     
-        drunkdict = {hight: ['drunkfile.fits',Flip_boolean]},
+        drunkdict = {hight: ['drunkfile.fits',Flip_boolean,[skip_radii]]},
 
     where height is a number (in scale heights) and Flip_boolean tells the
     program it needs to flip the radii around zero.
@@ -188,7 +188,7 @@ def cutting_session(drunkdict, output_file, skip_radii=[],
             +'# pars: {}\n'.format(pars)
             +'# p0: {}\n'.format(p0))
 
-    pf = spo.fmin(solo,p0,args=(drunkdict,name,f,size,skip_radii,pars,fixed,flare))
+    pf = spo.fmin(solo,p0,args=(drunkdict,name,f,size,pars,fixed,flare))
     
     pfl = list(pf)
 
@@ -210,7 +210,7 @@ def cutting_session(drunkdict, output_file, skip_radii=[],
                               flarepars=flarepars)[0]
         
         bar = moments_notice(drunkdict[z][0],simfile,
-                             skip_radii=skip_radii,
+                             skip_radii=drunkdict[z][2],
                              flip=drunkdict[z][1])
         bar_dict[z] = bar
 
@@ -222,7 +222,7 @@ def cutting_session(drunkdict, output_file, skip_radii=[],
         
     return parsf, bar_dict, value
 
-def solo(p,drunkdict,name,output_file,size,skip_radii,par0,fixed,flare):
+def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -251,7 +251,7 @@ def solo(p,drunkdict,name,output_file,size,skip_radii,par0,fixed,flare):
                               h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],flarepars=flarepars)[0]
         
         radii, m1, m2, m3 = moments_notice(drunkdict[z][0],simfile,
-                                           skip_radii=skip_radii,
+                                           skip_radii=drunkdict[z][2],
                                            flip=drunkdict[z][1])
 
         for moment in [m1,m2,m3]:
