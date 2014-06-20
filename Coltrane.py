@@ -47,37 +47,9 @@ def moments_notice(drunkfile, simfile, plotprefix=False,
             print "user skipping radius {} kpc".format(radius)
             continue
 
-        # dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,
-        #                                     wavelength=cent_lambda,velo=True,
-        #                                     plot=False,baseline=1,flip=flip)
-
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
                                        width=rwidth,observe=True,fit=False,
                                        verbose=False) 
-        # conv_dI = dI/np.mean(dI)
-        # conv_mI = mI/np.mean(mI)
-        # mI_pad = pad(mI,dI.size)
-        # corr = np.convolve(conv_dI,mI_pad[::-1],'same')
-        # idx = np.where(corr == corr.max())[0][0]
-        # corr_peak = dV[idx]
-        
-        # fit_mV = dV + corr_peak
-        # cdf = np.cumsum(mI_pad/np.sum(mI_pad))
-        
-        # Limits defined by model data
-        # lowV = np.interp(0.1,cdf,fit_mV)
-        # highV = np.interp(0.9,cdf,fit_mV)
-        # dmoment_idx = np.where((dV >= lowV) & (dV <= highV))
-        # mmoment_idx = np.where((fit_mV >= lowV) & (fit_mV <= highV))
-        # print dmoment_idx
-
-        # if dmoment_idx[0].size <= 2:
-        #     print "skipping {} kpc".format(radius)
-        #     continue
-        
-        # dmoments, dmerrs = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx],
-        #                                  err=derr[dmoment_idx])
-        # mmoments = ADE.ADE_moments(fit_mV[mmoment_idx],mI_pad[mmoment_idx])
 
         '''We need to compute the peak of the model line separately because we
         shifted it to find the window used for the higher order moments'''
@@ -90,21 +62,11 @@ def moments_notice(drunkfile, simfile, plotprefix=False,
 #        print mmoment_idx
         mmoments = ADE.ADE_moments(mV[mmoment_idx],mI[mmoment_idx])
 
-        # print "moments: {}\nerrs: {}\nmmoments: {}".\
-        #     format(dmoments,dmerrs,mmoments)
         
 #        print mmoments
-#        big_dm1 = np.append(big_dm1,dmoments[0])
         big_mm1 = np.append(big_mm1,mpeak)
-#        big_dm1e = np.append(big_dm1e,dmerrs[0])
-
-#        big_dm2 = np.append(big_dm2,np.sqrt(dmoments[1]))
         big_mm2 = np.append(big_mm2,np.sqrt(mmoments[1]))
-#        big_dm2e = np.append(big_dm2e,dmerrs[1]/(2*np.sqrt(mmoments[1])))
-
-#        big_dm3 = np.append(big_dm3,dmoments[2])
         big_mm3 = np.append(big_mm3,mmoments[2])
-#        big_dm3e = np.append(big_dm3e,dmerrs[2])
 
         plot_radii = np.append(plot_radii,radius)
 
@@ -276,8 +238,6 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
     for v_r in vr_list:
         for h_rot in h_rot_list:
             name = '{}_{}.fits'.format(basename,int(round(time.time(), 3)*100))
-#            print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
-#                name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
                            h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
                            flarepars=flarepars,full=False,verbose=False)
