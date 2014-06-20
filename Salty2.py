@@ -114,7 +114,7 @@ def find_Vc(r, v, err, back=True):
 
 
 def simcurve(size,Z,v_r,h_rot,
-             ax=False,scale=1.,
+             ax=False,scale=1.,full=True,verbose=True,
              kappa_0=1.62,z_d=0.21,h_dust=8.43,label='',rot_label=False,
              p=False,rot_curve=False,output='test.fits',
              spiralpars=None,flarepars=None,ringpars=None,warppars=None):
@@ -166,7 +166,7 @@ def simcurve(size,Z,v_r,h_rot,
         elif flarepars['ftype'] == 'linear':
             flare = quickmatch(distances,Z,h_z,**flarepars)
         else:
-            print "Flare type not recognized. Accepted types are 'exp' or 'linear'."
+            if verbose: print "Flare type not recognized. Accepted types are 'exp' or 'linear'."
             flare = 1.
         kaparray *= flare
         Iarray *= flare
@@ -233,16 +233,21 @@ def simcurve(size,Z,v_r,h_rot,
     ahdu = pyfits.ImageHDU(angles)
     rothdu = pyfits.ImageHDU(TVC)
     
-    frachdu.header.update('Z',Z,comment='kpc')
-    frachdu.header.update('h_rot',h_rot,comment='kpc')
-    frachdu.header.update('v_r',v_r,comment='v_r')
-    frachdu.header.update('z_d',z_d,comment='Dust scale height in kpc')
-    frachdu.header.update('h_z',h_z,comment='Gas scale height in kpc')
-    frachdu.header.update('h_s',h_s,comment='Gas and dust scale length in kpc')
-    frachdu.header.update('scale',scale,comment='pixel scale in kpc/px')
+    frachdu.header.update('Z',round(Z,4),comment='kpc')
+    frachdu.header.update('h_rot',round(h_rot,4),comment='kpc')
+    frachdu.header.update('v_r',round(v_r,4),comment='v_r')
+    frachdu.header.update('z_d',round(z_d,4),comment='Dust scale height in kpc')
+    frachdu.header.update('h_z',round(h_z,4),comment='Gas scale height in kpc')
+    frachdu.header.update('h_s',round(h_s,4),
+                          comment='Gas and dust scale length in kpc')
+    frachdu.header.update('scale',round(scale,4),
+                          comment='pixel scale in kpc/px')
 
-    hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
-               vshdu, LOShdu, dhdu, ahdu, rothdu]
+    if full:
+        hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
+                   vshdu, LOShdu, dhdu, ahdu, rothdu]
+    else:
+        hdulist = [frachdu, vshdu, dhdu]
 
     if spiralpars:
         spiralhdu = pyfits.ImageHDU(spiral)
@@ -453,7 +458,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
         color = l.get_color()
         ax.plot(v,gauss,':',color=color)
         ax.axvline(x=v_c,color=color,linestyle='--')
-        print r,pars
+        if verbose: print r,pars
 
     ax.legend(loc=0,title='r [kpc]')
 
@@ -472,7 +477,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
 def line_profile(fitsfile,radius,Iwidth=17.,
                  width=1.,plot=True,fit=True,
-                 observe=True):
+                 observe=True,verbose=True):
     """ Radius is in kpc"""
 
 
@@ -488,11 +493,11 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     the simulation'''
     if col1 == col2:
         col2 += 1
-        print 'Desired width is less than simulation resolution. Using a width of {} kpc instead'.format(hdus[0].header['SCALE'])
+        if verbose: print 'Desired width is less than simulation resolution. Using a width of {} kpc instead'.format(hdus[0].header['SCALE'])
 
     numsamp = 1000
 
-    print 'building histogram'
+    if verbose: print 'building histogram'
     vhist, bins = np.histogram(
         np.mean(vs[:,col1:col2],axis=1),
         bins=20,
@@ -513,17 +518,17 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         raw_input('asdas')
 
     scale = np.mean(np.diff(v))
-    print scale
+    if verbose: print scale
     Iwidthpx = Iwidth/scale
     _, kernel = ADE.ADE_gauss(numsamp,numsamp/2-1,0,FWHM=Iwidthpx,NORM=True)
-    print kernel.sum()
+    if verbose: print kernel.sum()
 #    ADE.eplot(np.arange(kernel.size)*scale,kernel)
     lineshape = np.convolve(kernel,ihist,'same')
 
-#     print 'building {} gaussians'.format(ihist.size)
+#     if verbose: print 'building {} gaussians'.format(ihist.size)
 #     for i in range(ihist.size):
-# #        print ihist[i]
-#         print i
+# #        if verbose: print ihist[i]
+#         if verbose: print i
 #         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
 #         gauss_arr = np.vstack((gauss_arr,gauss))
 #         if i % 25 == 0 and plot: 
@@ -538,14 +543,14 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     # lineshape2 = np.sum(gauss_arr,axis=0)
 
     if observe:
-        print 'simulating effects of RSS'
+        if verbose: print 'simulating effects of RSS'
         v, lineshape = observify(v,lineshape)
 #        ov, lineshape2 = observify(v,lineshape2)
     # else:
     #     ov = v
         
     if fit:
-        print 'fitting'
+        if verbose: print 'fitting'
         fitpars = spo.curve_fit(gaussfunc,v,lineshape,
                                 p0=(lineshape.max(),
                                     v[np.where(lineshape == \
@@ -590,8 +595,8 @@ def radius_to_column(dist,radius):
     try: column = cidx[pcidx[scidx]][0]
     except IndexError:
         column = dist.shape[1] - 1
-        print "Invalid radius, using max radius of {} instead".format(dist[int(dist.shape[0]/2),column])
-#    print "Using column {} where distance is {}".format(column,dist[int(dist.shape[0]/2),column])
+        if verbose: print "Invalid radius, using max radius of {} instead".format(dist[int(dist.shape[0]/2),column])
+#    if verbose: print "Using column {} where distance is {}".format(column,dist[int(dist.shape[0]/2),column])
 
     return column
 

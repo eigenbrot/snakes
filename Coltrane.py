@@ -52,7 +52,8 @@ def moments_notice(drunkfile, simfile, plotprefix=False,
         #                                     plot=False,baseline=1,flip=flip)
 
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
-                                       width=rwidth,observe=True,fit=False) 
+                                       width=rwidth,observe=True,fit=False,
+                                       verbose=False) 
         # conv_dI = dI/np.mean(dI)
         # conv_mI = mI/np.mean(mI)
         # mI_pad = pad(mI,dI.size)
@@ -83,17 +84,16 @@ def moments_notice(drunkfile, simfile, plotprefix=False,
         (mpeak, _, _) = ADE.ADE_moments(mV,mI)
 
         mpeak_V = mV[np.argmin(np.abs(mV - mpeak))]
-        print mpeak_V
         lowV = mpeak_V - vwidth/2.
         highV = mpeak_V + vwidth/2.
         mmoment_idx = np.where((mV >= lowV) & (mV <= highV))
-        print mmoment_idx
+#        print mmoment_idx
         mmoments = ADE.ADE_moments(mV[mmoment_idx],mI[mmoment_idx])
 
         # print "moments: {}\nerrs: {}\nmmoments: {}".\
         #     format(dmoments,dmerrs,mmoments)
         
-        print mmoments
+#        print mmoments
 #        big_dm1 = np.append(big_dm1,dmoments[0])
         big_mm1 = np.append(big_mm1,mpeak)
 #        big_dm1e = np.append(big_dm1e,dmerrs[0])
@@ -276,11 +276,11 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
     for v_r in vr_list:
         for h_rot in h_rot_list:
             name = '{}_{}.fits'.format(basename,int(round(time.time(), 3)*100))
-            print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
-                name,v_r,h_rot)
+#            print 'building model {}:\nv_r = {} km/s\nh_rot = {} kpc'.format(
+#                name,v_r,h_rot)
             salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
                            h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
-                           flarepars=flarepars)
+                           flarepars=flarepars,full=False,verbose=False)
             namelist.append(name)
 
     return namelist
