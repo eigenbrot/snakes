@@ -87,22 +87,35 @@ class mark_VI(object):
 
         return out
 
-def test(sample,burn=10):
+def test(drunkdict,pardict,sample,burn=10):
 
-    pardict = {'h_dust': [True, 8.43], 
-               'Vr': [False, 200, 300], 
-               'hrot': [True, 5.45], 
-               'kappa_0': [True, 0.652], 
-               'z_d': [True, 0.43]}
-    drunkdict = {0:['ESO_z0_drunk.fits',False,[]]}
+    # pardict = {'h_dust': [True, 8.43], 
+    #            'Vr': [False, 200, 300], 
+    #            'hrot': [False, 4, 5.], 
+    #            'kappa_0': [True, 0.652], 
+    #            'z_d': [True, 0.43]}
+    # drunkdict = {0:['ESO_z0_drunk.fits',False,[]]}
+
     sax = mark_VI(drunkdict,pardict,'test',1001)
     S = pymc.MCMC(sax.model)
     S.sample(sample,burn=burn)
-    Vr_sample = S.trace('Vr')[:]
+    traces = {}
+    bestfit = {}
+    for k in pardict.keys():
+        if not pardict[k][0]:
+            trace = S.trace(k)[:]
+            mean = np.mean(trace)
+            traces[k] = trace
+            bestfit[k] = mean
+            pardict[k][1] = mean
+
+    # Vr_sample = S.trace('Vr')[:]
+    # hrot_sample = S.trace('hrot')[:]
     
-    Vr = np.mean(Vr_sample)
+    # Vr = np.mean(Vr_sample)
+    # hrot = np.mean(hrot_sample)
     
-    simfile = trane.make_boring([Vr],
+    simfile = trane.make_boring([pardict['Vr'][1]],
                                 [pardict['hrot'][1]],
                                 h_dust=pardict['h_dust'][1],
                                 kappa_0=pardict['kappa_0'][1],
@@ -117,10 +130,14 @@ def test(sample,burn=10):
     bar = trane.moments_notice(drunkdict[0][0],simfile,
                                skip_radii=drunkdict[0][2],
                                flip=drunkdict[0][1])
-    
-    ax = plt.figure().add_subplot(111)
-    ax.hist(Vr_sample,bins=50,histtype='step')
-    ax.set_title('V$_r$')
-    ax.figure.show()
 
-    return Vr, bar
+    # fig = plt.figure()
+    # ax = fig.add_subplot(211)
+    # ax.hist(Vr_sample,bins=50,histtype='step')
+    # ax.set_title('V$_r$')
+    # ax2 = fig.add_subplot(212)
+    # ax2.hist(hrot_sample,bins=50,histtype='step')
+    # ax2.set_title('h$_{rot}$')
+    # fig.show()
+
+    return bestfit, bar
