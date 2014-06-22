@@ -57,11 +57,11 @@ class mark_VI(object):
                                         kappa_0=self.funcdict['kappa_0'],
                                         z_d=self.funcdict['z_d'],
                                         name=name,size=size,z=0,
-                                        flarepars=False)[0]
+                                        flarepars=False,nofits=True)[0]
 
             bar = trane.moments_notice(drunkdict[0][0],simfile,
                                skip_radii=drunkdict[0][2],
-                               flip=drunkdict[0][1])
+                               flip=drunkdict[0][1],nofits=True)
 
             out = np.r_[bar[1][2],bar[2][2],bar[3][2]]
 
@@ -101,13 +101,14 @@ def test(drunkdict,pardict,sample,burn=10):
     S.sample(sample,burn=burn)
     traces = {}
     bestfit = {}
+    outdict = pardict.copy()
     for k in pardict.keys():
         if not pardict[k][0]:
             trace = S.trace(k)[:]
             mean = np.mean(trace)
             traces[k] = trace
             bestfit[k] = mean
-            pardict[k][1] = mean
+            outdict[k][1] = mean
 
     # Vr_sample = S.trace('Vr')[:]
     # hrot_sample = S.trace('hrot')[:]
@@ -115,11 +116,11 @@ def test(drunkdict,pardict,sample,burn=10):
     # Vr = np.mean(Vr_sample)
     # hrot = np.mean(hrot_sample)
     
-    simfile = trane.make_boring([pardict['Vr'][1]],
-                                [pardict['hrot'][1]],
-                                h_dust=pardict['h_dust'][1],
-                                kappa_0=pardict['kappa_0'][1],
-                                z_d=pardict['z_d'][1],
+    simfile = trane.make_boring([outdict['Vr'][1]],
+                                [outdict['hrot'][1]],
+                                h_dust=outdict['h_dust'][1],
+                                kappa_0=outdict['kappa_0'][1],
+                                z_d=outdict['z_d'][1],
                                 name='test',size=1001,z=0,
                                 flarepars=False)[0]
     
@@ -140,4 +141,4 @@ def test(drunkdict,pardict,sample,burn=10):
     # ax2.set_title('h$_{rot}$')
     # fig.show()
 
-    return bestfit, bar
+    return bestfit, bar, traces

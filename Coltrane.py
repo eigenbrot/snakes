@@ -14,7 +14,7 @@ plt = matplotlib.pyplot
 glob = glob.glob
 
 
-def moments_notice(drunkfile, simfile, plotprefix=False,
+def moments_notice(drunkfile, simfile, plotprefix=False,nofits=False,
                    flip=False, cent_lambda = 5048.126, skip_radii = []):
     '''Take an extracted spectrum (slayfile) and model galaxy (simfile) and
     compute the first 3 statistical moments for both at all radii sampled by
@@ -49,7 +49,7 @@ def moments_notice(drunkfile, simfile, plotprefix=False,
 
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
                                        width=rwidth,observe=True,fit=False,
-                                       verbose=False) 
+                                       verbose=False,nofits=nofits) 
 
         '''We need to compute the peak of the model line separately because we
         shifted it to find the window used for the higher order moments'''
@@ -228,22 +228,26 @@ def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
         format(simfile,pars[0],pars[1],pars[2],pars[3],value)
     return value
 
-def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,
+def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,nofits=False,
                 z=0, size=1001, z_d=0.23, name='boring',flarepars=None):
     '''Given a list of values for v_r and h_rot, make a grid of galaxy models
     with all possible combinations of those two parameters.
     '''
     basename = 'sim_z{:n}_{}'.format(z,name)
-    namelist = []
+    outlist = []
     for v_r in vr_list:
         for h_rot in h_rot_list:
             name = '{}_{}.fits'.format(basename,int(round(time.time(), 3)*100))
-            salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
-                           h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
-                           flarepars=flarepars,full=False,verbose=False)
-            namelist.append(name)
+            sim = salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
+                                 h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
+                                 flarepars=flarepars,full=False,
+                                 verbose=False,nofits=nofits)
+            if nofits:
+                outlist.append(sim)
+            else:
+                outlist.append(name)
 
-    return namelist
+    return outlist
     
 def plot_ice(results,title=' ',show=True):
     '''Given the results of moments_notice(), plot model vs. data for all

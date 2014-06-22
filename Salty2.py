@@ -116,7 +116,7 @@ def find_Vc(r, v, err, back=True):
 def simcurve(size,Z,v_r,h_rot,
              ax=False,scale=1.,full=True,verbose=True,
              kappa_0=1.62,z_d=0.21,h_dust=8.43,label='',rot_label=False,
-             p=False,rot_curve=False,output='test.fits',
+             p=False,rot_curve=False,output='test.fits',nofits=False,
              spiralpars=None,flarepars=None,ringpars=None,warppars=None):
 
     #Z is in kpc, not scale heights
@@ -222,96 +222,97 @@ def simcurve(size,Z,v_r,h_rot,
                 .format(Z/h_z, v_r, h_rot, w, N, pitch,view_ang,kappa_0,z_d)
             ax.text(15, -20, s,horizontalalignment='left',va='top',fontsize=12)
         
+    if not nofits:
+        frachdu = pyfits.PrimaryHDU(fracarray)
+        tauhdu = pyfits.ImageHDU(tauarray)
+        kaphdu = pyfits.ImageHDU(kaparray)
+        Ihdu = pyfits.ImageHDU(Iarray)
+        vshdu = pyfits.ImageHDU(v_sarray)
+        LOShdu = pyfits.ImageHDU(LOSfracarray)
+        dhdu = pyfits.ImageHDU(distances)
+        ahdu = pyfits.ImageHDU(angles)
+        rothdu = pyfits.ImageHDU(TVC)
+        
+        frachdu.header.update('Z',round(Z,4),comment='kpc')
+        frachdu.header.update('h_rot',round(h_rot,4),comment='kpc')
+        frachdu.header.update('v_r',round(v_r,4),comment='v_r')
+        frachdu.header.update('z_d',round(z_d,4),comment='Dust scale height in kpc')
+        frachdu.header.update('h_z',round(h_z,4),comment='Gas scale height in kpc')
+        frachdu.header.update('h_s',round(h_s,4),
+                              comment='Gas and dust scale length in kpc')
+        frachdu.header.update('scale',round(scale,4),
+                              comment='pixel scale in kpc/px')
 
-    frachdu = pyfits.PrimaryHDU(fracarray)
-    tauhdu = pyfits.ImageHDU(tauarray)
-    kaphdu = pyfits.ImageHDU(kaparray)
-    Ihdu = pyfits.ImageHDU(Iarray)
-    vshdu = pyfits.ImageHDU(v_sarray)
-    LOShdu = pyfits.ImageHDU(LOSfracarray)
-    dhdu = pyfits.ImageHDU(distances)
-    ahdu = pyfits.ImageHDU(angles)
-    rothdu = pyfits.ImageHDU(TVC)
-    
-    frachdu.header.update('Z',round(Z,4),comment='kpc')
-    frachdu.header.update('h_rot',round(h_rot,4),comment='kpc')
-    frachdu.header.update('v_r',round(v_r,4),comment='v_r')
-    frachdu.header.update('z_d',round(z_d,4),comment='Dust scale height in kpc')
-    frachdu.header.update('h_z',round(h_z,4),comment='Gas scale height in kpc')
-    frachdu.header.update('h_s',round(h_s,4),
-                          comment='Gas and dust scale length in kpc')
-    frachdu.header.update('scale',round(scale,4),
-                          comment='pixel scale in kpc/px')
+        if full:
+            hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
+                       vshdu, LOShdu, dhdu, ahdu, rothdu]
+        else:
+            hdulist = [frachdu, vshdu, dhdu]
 
-    if full:
-        hdulist = [frachdu, tauhdu, kaphdu, Ihdu, 
-                   vshdu, LOShdu, dhdu, ahdu, rothdu]
-    else:
-        hdulist = [frachdu, vshdu, dhdu]
+        if spiralpars:
+            spiralhdu = pyfits.ImageHDU(spiral)
+            spiralhdu.header.update('EXTNAME','SPIRAL')
+            hdulist.append(spiralhdu)
+            frachdu.header.update('w',spiralpars['w'],comment='Spiral weight')
+            frachdu.header.update('N',spiralpars['N'],comment='Number of spiral arms')
+            frachdu.header.update('pitch',spiralpars['pitch'],comment='Spiral wind degree')
+            frachdu.header.update('VIEWANG',spiralpars['view_ang'],comment='Viewing angle')
 
-    if spiralpars:
-        spiralhdu = pyfits.ImageHDU(spiral)
-        spiralhdu.header.update('EXTNAME','SPIRAL')
-        hdulist.append(spiralhdu)
-        frachdu.header.update('w',spiralpars['w'],comment='Spiral weight')
-        frachdu.header.update('N',spiralpars['N'],comment='Number of spiral arms')
-        frachdu.header.update('pitch',spiralpars['pitch'],comment='Spiral wind degree')
-        frachdu.header.update('VIEWANG',spiralpars['view_ang'],comment='Viewing angle')
+        if flarepars:
+            flarehdu = pyfits.ImageHDU(flare)
+            flarehdu.header.update('EXTNAME','FLARE')
+            hdulist.append(flarehdu)
+            frachdu.header.update('FTYPE',flarepars['ftype'],comment='Type of flare')
+            frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length [kpc]')
 
-    if flarepars:
-        flarehdu = pyfits.ImageHDU(flare)
-        flarehdu.header.update('EXTNAME','FLARE')
-        hdulist.append(flarehdu)
-        frachdu.header.update('FTYPE',flarepars['ftype'],comment='Type of flare')
-        frachdu.header.update('h_zR',flarepars['h_zR'],comment='Scale height scale length [kpc]')
+        if ringpars:
+            ringhdu = pyfits.ImageHDU(ring)
+            ringhdu.header.update('EXTNAME','RING')
+            hdulist.append(ringhdu)
+            frachdu.header.update('r_R',ringpars['r_R'],comment='Ring radius [kpc]')
+            frachdu.header.update('r_sig',ringpars['r_sig'],comment='Ring width [kpc]')
+            frachdu.header.update('r_w',ringpars['r_w'],comment='Ring strength')
 
-    if ringpars:
-        ringhdu = pyfits.ImageHDU(ring)
-        ringhdu.header.update('EXTNAME','RING')
-        hdulist.append(ringhdu)
-        frachdu.header.update('r_R',ringpars['r_R'],comment='Ring radius [kpc]')
-        frachdu.header.update('r_sig',ringpars['r_sig'],comment='Ring width [kpc]')
-        frachdu.header.update('r_w',ringpars['r_w'],comment='Ring strength')
-
-    if warppars:
-        warphdu = pyfits.ImageHDU(warp)
-        warphdu.header.update('EXTNAME','WARP')
-        hdulist.append(warphdu)
-        frachdu.header.update('warpfac',warppars['warp_factor'],comment='Warp factor')
-        frachdu.header.update('warpang',warppars['warp_ang'],comment='Warp angle')
+        if warppars:
+            warphdu = pyfits.ImageHDU(warp)
+            warphdu.header.update('EXTNAME','WARP')
+            hdulist.append(warphdu)
+            frachdu.header.update('warpfac',warppars['warp_factor'],comment='Warp factor')
+            frachdu.header.update('warpang',warppars['warp_ang'],comment='Warp angle')
 
     # Add WCS coordinates (kpc) to headers
-    for HDU in hdulist:
-
-        HDU.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
-        HDU.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
-        HDU.header.update('CRVAL1',0.0,
+        for HDU in hdulist:
+            
+            HDU.header.update('CRPIX1',size/2,comment='WCS: X reference pixel')
+            HDU.header.update('CRPIX2',size/2,comment='WCS: Y reference pixel')
+            HDU.header.update('CRVAL1',0.0,
                               comment='WCS: X reference coordinate value')
-        HDU.header.update('CRVAL2',0.0,
+            HDU.header.update('CRVAL2',0.0,
                               comment='WCS: Y reference coordinate value')
-        HDU.header.update('CDELT1',scale,comment='WCS: X pixel size')
-        HDU.header.update('CDELT2',scale,comment='WCS: Y pixel size')
-        HDU.header.update('CTYPE1','LINEAR',comment='X type')
-        HDU.header.update('CTYPE2','LINEAR',comment='Y type')
+            HDU.header.update('CDELT1',scale,comment='WCS: X pixel size')
+            HDU.header.update('CDELT2',scale,comment='WCS: Y pixel size')
+            HDU.header.update('CTYPE1','LINEAR',comment='X type')
+            HDU.header.update('CTYPE2','LINEAR',comment='Y type')
+            
+        if rot_curve: frachdu.header.update('rotcurve','yes')
+        else: frachdu.header.update('rotcurve','False')
 
-    if rot_curve: frachdu.header.update('rotcurve','yes')
-    else: frachdu.header.update('rotcurve','False')
+        frachdu.header.update('EXTNAME','FRAC')
+        tauhdu.header.update('EXTNAME','TAU')
+        kaphdu.header.update('EXTNAME','KAP')
+        Ihdu.header.update('EXTNAME','SB')
+        vshdu.header.update('EXTNAME','V_S')
+        LOShdu.header.update('EXTNAME','LOSFRAC')
+        dhdu.header.update('EXTNAME','DIST')
+        ahdu.header.update('EXTNAME','ANG')
+        rothdu.header.update('EXTNAME','ROT')
 
-    frachdu.header.update('EXTNAME','FRAC')
-    tauhdu.header.update('EXTNAME','TAU')
-    kaphdu.header.update('EXTNAME','KAP')
-    Ihdu.header.update('EXTNAME','SB')
-    vshdu.header.update('EXTNAME','V_S')
-    LOShdu.header.update('EXTNAME','LOSFRAC')
-    dhdu.header.update('EXTNAME','DIST')
-    ahdu.header.update('EXTNAME','ANG')
-    rothdu.header.update('EXTNAME','ROT')
+        pyhdus = pyfits.HDUList(hdulist)
+        pyhdus.writeto(output,clobber=True)
+        pyhdus.close()
 
-    pyhdus = pyfits.HDUList(hdulist)
-    pyhdus.writeto(output,clobber=True)
-    pyhdus.close()
-
-    return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
+#    return scale*(np.arange(size)-size/2), np.sum(LOSfracarray,axis=0), TVC
+    return v_sarray, fracarray, distances
 
 def LSP(distances, angles, w, N, pitch, view_ang):
     '''Generates an array that redistributes light into spiral arms via the
@@ -477,14 +478,17 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 
 def line_profile(fitsfile,radius,Iwidth=17.,
                  width=1.,plot=True,fit=True,
-                 observe=True,verbose=True):
+                 observe=True,verbose=True,
+                 nofits=False):
     """ Radius is in kpc"""
 
-
-    hdus = pyfits.open(fitsfile)
-    vs = hdus['V_S'].data
-    frac = hdus[0].data
-    dist = hdus['DIST'].data
+    if nofits:
+        vs, frac, dist = fitsfile
+    else:
+        hdus = pyfits.open(fitsfile)
+        vs = hdus['V_S'].data
+        frac = hdus[0].data
+        dist = hdus['DIST'].data
 
     col1 = radius_to_column(dist,radius - width/2)
     col2 = radius_to_column(dist,radius + width/2)
@@ -575,7 +579,12 @@ def line_profile(fitsfile,radius,Iwidth=17.,
 
         fig.show()
 
-    hdus.close()
+    if nofits:
+        del vs
+        del frac
+        del dist
+    else:
+        hdus.close()
     del gauss_arr
     return v, lineshape, fitpars
 
