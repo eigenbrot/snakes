@@ -5,6 +5,7 @@ import pymc
 import functools
 import matplotlib.pyplot as plt
 import drunkData as dd
+import copy
 
 class mark_VI(object):
     
@@ -95,21 +96,19 @@ def test(drunkdict,pardict,sample,burn=10):
     #            'kappa_0': [True, 0.652], 
     #            'z_d': [True, 0.43]}
     # drunkdict = {0:['ESO_z0_drunk.fits',False,[]]}
-
     sax = mark_VI(drunkdict,pardict,'test',1001)
     S = pymc.MCMC(sax.model)
     S.sample(sample,burn=burn)
     traces = {}
     bestfit = {}
-    outdict = pardict.copy()
-    for k in pardict.keys():
-        if not pardict[k][0]:
+    outdict = copy.deepcopy(pardict)
+    for k in outdict.keys():
+        if not outdict[k][0]:
             trace = S.trace(k)[:]
             mean = np.mean(trace)
             traces[k] = trace
             bestfit[k] = mean
             outdict[k][1] = mean
-
     # Vr_sample = S.trace('Vr')[:]
     # hrot_sample = S.trace('hrot')[:]
     
