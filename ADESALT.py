@@ -467,9 +467,10 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     avg_centers = np.sum(amps*velocenters,axis=1)/np.sum(amps,axis=1)
     std_centers = np.std(velocenters,axis=1)
 
-    offset = helpoff(pxradii,avg_centers)
+    #offset = helpoff(pxradii,avg_centers)
     #offset = 271.750855446
-    #print "Offset is "+str(offset)
+    offset = 267.0
+    print "Offset is "+str(offset)
     
     kpcradii = pxradii - offset
     kpcradii *= 0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
@@ -508,12 +509,12 @@ def helpoff(radii,centers):
     pidx = np.where(radii >= 0.0)
     nidx = np.where(radii < 0.0)
     
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    # ax.plot(radii[pidx],np.abs(centers[pidx]))
-    # ax.plot(np.abs(radii[nidx]),np.abs(centers[nidx]))
-    # fig.show()
-
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(radii[pidx],np.abs(centers[pidx]))
+    ax.plot(np.abs(radii[nidx]),np.abs(centers[nidx]))
+    fig.show()
+    raw_input('asdas')
     return xf[0]
 
 def offunc(x,radii,centers):
