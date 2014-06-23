@@ -15,7 +15,7 @@ matplotlib.rc('xtick',labelsize=9)
 matplotlib.rc('ytick',labelsize=9)
 matplotlib.rc('legend',fontsize=7,frameon=False)
 matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
-matplotlib.rc('text',usetex=True)
+#matplotlib.rc('text',usetex=True)
 matplotlib.rc('axes',linewidth=0.6,labelsize=9)
 matplotlib.rc('lines',linewidth=0.6)
 
@@ -236,7 +236,7 @@ def plot_moments(moment_file):
 
     return fig
 
-def open_drunk(drunkfile):
+def open_drunk(drunkfile,skip_radii=[]):
 
     hdus = pyfits.open(drunkfile)
     
@@ -247,5 +247,14 @@ def open_drunk(drunkfile):
     m1 = hdus[1].data
     m2 = hdus[2].data
     m3 = hdus[3].data
+
+    for i, r in enumerate(radii):
+        if int(np.floor(r)) in skip_radii:
+            radii = np.delete(radii,i)
+            rwidths = np.delete(rwidths,i)
+            vwidths = np.delete(vwidths,i)
+            m1 = np.delete(m1,i,axis=1)
+            m2 = np.delete(m2,i,axis=1)
+            m3 = np.delete(m3,i,axis=1)
 
     return radii, rwidths, vwidths, m1, m2, m3
