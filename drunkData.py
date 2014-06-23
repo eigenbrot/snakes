@@ -14,7 +14,7 @@ matplotlib.rc('axes',labelsize=9)
 matplotlib.rc('xtick',labelsize=9)
 matplotlib.rc('ytick',labelsize=9)
 matplotlib.rc('legend',fontsize=7,frameon=False)
-matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
+#matplotlib.rc('font',size=9,family='serif',serif=['Computer Modern Roman'])
 #matplotlib.rc('text',usetex=True)
 matplotlib.rc('axes',linewidth=0.6,labelsize=9)
 matplotlib.rc('lines',linewidth=0.6)
@@ -170,6 +170,10 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
                                                            cdf_window=cdf_window,
                                                            baseline=baseline,
                                                            window=window)
+
+        if np.isnan(np.sum(moments)):
+            print 'skipping radius {} kpc due to NaN condition'.format(radius)
+            continue
         m1 = np.hstack((m1,np.array([[moments[0],moment_err[0]]]).T))
         m2 = np.hstack((m2,
                         np.array([[np.sqrt(moments[1]),
