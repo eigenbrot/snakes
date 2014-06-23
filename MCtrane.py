@@ -15,6 +15,7 @@ class mark_VI(object):
         self.funcdict = self.make_func_pars(pardict)
         function = self.make_function(drunkdict,name,size,priors)
         data = self.get_data(drunkdict)
+        print data.shape
         detvar = pymc.Normal('gal',mu=function, tau=0.01, 
                              value=data,observed=True)
         self.model = {}
@@ -68,6 +69,7 @@ class mark_VI(object):
                                            flip=drunkdict[z][1],nofits=True)
 
                 out = np.r_[out,m1[2],m2[2],m3[2]]
+            print out.shape
 
             return out
 
@@ -86,7 +88,8 @@ class mark_VI(object):
 
         out = np.array([])
         for z in drunkdict.keys():
-            _,_,_, m1, m2, m3 = dd.open_drunk(drunkdict[z][0])
+            _,_,_, m1, m2, m3 = dd.open_drunk(drunkdict[z][0],
+                                              skip_radii=drunkdict[z][2])
             out = np.r_[out,m1[0],m2[0],m3[0]]
 
         return out

@@ -114,7 +114,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     return par1_arr, par2_arr, value_arr
 
 def cutting_session(drunkdict, output_file, 
-                    pars=[239.,5.5,1.62,8.43], name='boring',
+                    pars=[239.,5.5,1.62,8.43,0.43], name='boring',
                     size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
     a moment sense) to a set of data. Any number of heights can be fit
@@ -168,7 +168,8 @@ def cutting_session(drunkdict, output_file,
         flarepars = None
 
     for z in drunkdict.keys():
-        simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,size=size,z=z,
+        simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,
+                              size=size,z=z,
                               h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
                               flarepars=flarepars)[0]
         
@@ -211,11 +212,12 @@ def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
     for z in drunkdict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
-                              h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],flarepars=flarepars)[0]
+                              h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],
+                              flarepars=flarepars,nofits=True)[0]
         
         radii, m1, m2, m3 = moments_notice(drunkdict[z][0],simfile,
                                            skip_radii=drunkdict[z][2],
-                                           flip=drunkdict[z][1])
+                                           flip=drunkdict[z][1],nofits=True)
 
         for moment in [m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
@@ -224,8 +226,8 @@ def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
 
     value = bn.nansum(chis**2)/(chis.size - p.size - 1)
     output_file.write('{:11.4f}\n'.format(value))
-    print '\nsimfile: {}\nv_r: {}\nh_rot: {}\nkappa_0: {}\nh_dust: {}\nvalue: {}\n'.\
-        format(simfile,pars[0],pars[1],pars[2],pars[3],value)
+    print 'v_r: {}\nh_rot: {}\nkappa_0: {}\nh_dust: {}\nz_dust: {}\nvalue: {}\n'.\
+        format(pars[0],pars[1],pars[2],pars[3],pars[4],value)
     return value
 
 def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,nofits=False,
