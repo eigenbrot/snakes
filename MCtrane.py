@@ -52,19 +52,22 @@ class mark_VI(object):
             print pdict
             for k in pdict.keys():
                 self.funcdict[k] = pdict[k]
-            simfile = trane.make_boring([self.funcdict['Vr']],
-                                        [self.funcdict['hrot']],
-                                        h_dust=self.funcdict['h_dust'],
-                                        kappa_0=self.funcdict['kappa_0'],
-                                        z_d=self.funcdict['z_d'],
-                                        name=name,size=size,z=0,
-                                        flarepars=False,nofits=True)[0]
+            out = np.array([])
+            for z in drunkdict.keys():
+                
+                simfile = trane.make_boring([self.funcdict['Vr']],
+                                            [self.funcdict['hrot']],
+                                            h_dust=self.funcdict['h_dust'],
+                                            kappa_0=self.funcdict['kappa_0'],
+                                            z_d=self.funcdict['z_d'],
+                                            name=name,size=size,z=z,
+                                            flarepars=False,nofits=True)[0]
+                
+                _, m1, m2, m3 = trane.moments_notice(drunkdict[z][0],simfile,
+                                           skip_radii=drunkdict[z][2],
+                                           flip=drunkdict[z][1],nofits=True)
 
-            bar = trane.moments_notice(drunkdict[0][0],simfile,
-                               skip_radii=drunkdict[0][2],
-                               flip=drunkdict[0][1],nofits=True)
-
-            out = np.r_[bar[1][2],bar[2][2],bar[3][2]]
+                out = np.r_[out,m1[2],m2[2],m3[2]]
 
             return out
 
@@ -110,18 +113,21 @@ def test(drunkdict,pardict,output,sample,burn=10):
             bestfit[k] = mean
             outdict[k][1] = mean
     
-    simfile = trane.make_boring([outdict['Vr'][1]],
-                                [outdict['hrot'][1]],
-                                h_dust=outdict['h_dust'][1],
-                                kappa_0=outdict['kappa_0'][1],
-                                z_d=outdict['z_d'][1],
-                                name='final',size=1001,z=0,
-                                flarepars=False)[0]
+    bars = []
+    for z in drunkdict.keys():
+        simfile = trane.make_boring([outdict['Vr'][1]],
+                                    [outdict['hrot'][1]],
+                                    h_dust=outdict['h_dust'][1],
+                                    kappa_0=outdict['kappa_0'][1],
+                                    z_d=outdict['z_d'][1],
+                                    name='final',size=1001,z=z,
+                                    flarepars=False)[0]
     
-    bar = trane.moments_notice(drunkdict[0][0],simfile,
-                               skip_radii=drunkdict[0][2],
-                               flip=drunkdict[0][1])
+        bar = trane.moments_notice(drunkdict[z][0],simfile,
+                                   skip_radii=drunkdict[z][2],
+                                   flip=drunkdict[z][1])
 
+        bars.append(bar)
 
     pp = PDF(output)
     for k in traces.keys():
@@ -134,4 +140,4 @@ def test(drunkdict,pardict,output,sample,burn=10):
 
     pp.close()
 
-    return bestfit, bar, traces
+    return bestfit, bars, traces
