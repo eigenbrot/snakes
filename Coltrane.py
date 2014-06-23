@@ -14,7 +14,7 @@ plt = matplotlib.pyplot
 glob = glob.glob
 
 
-def moments_notice(drunkfile, simfile, plotprefix=False,nofits=False,
+def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
                    flip=False, cent_lambda = 5048.126, skip_radii = []):
     '''Take an extracted spectrum (slayfile) and model galaxy (simfile) and
     compute the first 3 statistical moments for both at all radii sampled by
@@ -26,7 +26,7 @@ def moments_notice(drunkfile, simfile, plotprefix=False,nofits=False,
     as possible. The exception is the first moment.
     '''
 
-    radii, rwidths, vwidths, m1, m2, m3 = dd.open_drunk(drunkfile)
+    radii, rwidths, vwidths, m1, m2, m3 = drunkdata
 
     big_dm1 = m1[0]
     big_dm1e = m1[1]
@@ -151,7 +151,13 @@ def cutting_session(drunkdict, output_file,
             +'# pars: {}\n'.format(pars)
             +'# p0: {}\n'.format(p0))
 
-    pf = spo.fmin(solo,p0,args=(drunkdict,name,f,size,pars,fixed,flare))
+    datadict = {}
+    for z in drunkdict.keys():
+        datadict[z] = [dd.open_drunk(drunkdict[z][0],
+                                     skip_radii=drunkdict[z][2]),
+                       drunkdict[z][1],
+                       drunkdict[z][2]]
+    pf = spo.fmin(solo,p0,args=(datadict,name,f,size,pars,fixed,flare))
     
     pfl = list(pf)
 
@@ -167,15 +173,15 @@ def cutting_session(drunkdict, output_file,
     else:
         flarepars = None
 
-    for z in drunkdict.keys():
+    for z in datadict.keys():
         simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,
                               size=size,z=z,
                               h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
                               flarepars=flarepars)[0]
         
-        bar = moments_notice(drunkdict[z][0],simfile,
-                             skip_radii=drunkdict[z][2],
-                             flip=drunkdict[z][1])
+        bar = moments_notice(datadict[z][0],simfile,
+                             skip_radii=datadict[z][2],
+                             flip=datadict[z][1])
         bar_dict[z] = bar
 
         for moment in bar[1:]:
@@ -186,7 +192,7 @@ def cutting_session(drunkdict, output_file,
         
     return parsf, bar_dict, value
 
-def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
+def solo(p,datadict,name,output_file,size,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -209,17 +215,17 @@ def solo(p,drunkdict,name,output_file,size,par0,fixed,flare):
 
     output_file.write(str('{:11.4f} '*len(pars)).format(*pars))
 
-    for z in drunkdict.keys():
+    for z in datadict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
                               h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],
                               flarepars=flarepars,nofits=True)[0]
         
-        radii, m1, m2, m3 = moments_notice(drunkdict[z][0],simfile,
-                                           skip_radii=drunkdict[z][2],
-                                           flip=drunkdict[z][1],nofits=True)
+        radii, m1, m2, m3 = moments_notice(datadict[z][0],simfile,
+                                           skip_radii=datadict[z][2],
+                                           flip=datadict[z][1],nofits=True)
 
-        for moment in [m1,m2,m3]:
+        for moment in [m1]:
             red_chi = (moment[0] - moment[2])/moment[1]
             output_file.write('{:11.4f} '.format(bn.nansum(red_chi**2)))
             chis = np.r_[chis,red_chi]

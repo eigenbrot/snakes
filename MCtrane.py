@@ -13,7 +13,8 @@ class mark_VI(object):
         
         priors = self.make_priors(pardict)
         self.funcdict = self.make_func_pars(pardict)
-        function = self.make_function(drunkdict,name,size,priors)
+        datadict = self.make_data_dict(drunkdict)
+        function = self.make_function(datadict,name,size,priors)
         data = self.get_data(drunkdict)
         print data.shape
         detvar = pymc.Normal('gal',mu=function, tau=0.01, 
@@ -47,14 +48,24 @@ class mark_VI(object):
 
         return funcdict
     
-    def make_function(self,drunkdict,name,size,priordict):
+    def make_data_dict(self,drunkdict):
+
+        datadict = {}
+        for z in drunkdict.keys():
+            datadict[z] = [dd.open_drunk(drunkdict[z][0],skip_radii=drunkdict[z][2]),
+                           drunkdict[z][1],
+                           drunkdict[z][2]]
+
+        return datadict
+
+    def make_function(self,datadict,name,size,priordict):
         
         def modelled_galaxy_eval(**pdict):
             print pdict
             for k in pdict.keys():
                 self.funcdict[k] = pdict[k]
             out = np.array([])
-            for z in drunkdict.keys():
+            for z in datadict.keys():
                 
                 simfile = trane.make_boring([self.funcdict['Vr']],
                                             [self.funcdict['hrot']],
@@ -64,9 +75,9 @@ class mark_VI(object):
                                             name=name,size=size,z=z,
                                             flarepars=False,nofits=True)[0]
                 
-                _, m1, m2, m3 = trane.moments_notice(drunkdict[z][0],simfile,
-                                           skip_radii=drunkdict[z][2],
-                                           flip=drunkdict[z][1],nofits=True)
+                _, m1, m2, m3 = trane.moments_notice(datadict[z][0],simfile,
+                                           skip_radii=datadict[z][2],
+                                           flip=datadict[z][1],nofits=True)
 
                 out = np.r_[out,m1[2],m2[2],m3[2]]
             print out.shape
@@ -117,7 +128,12 @@ def test(drunkdict,pardict,output,sample,burn=10):
             outdict[k][1] = mean
     
     bars = []
+    datadict = {}
     for z in drunkdict.keys():
+        datadict[z] = [dd.open_drunk(drunkdict[z][0],skip_radii=drunkdict[z][2]),
+                       drunkdict[z][1],
+                       drunkdict[z][2]]
+    for z in datadict.keys():
         simfile = trane.make_boring([outdict['Vr'][1]],
                                     [outdict['hrot'][1]],
                                     h_dust=outdict['h_dust'][1],
@@ -126,9 +142,9 @@ def test(drunkdict,pardict,output,sample,burn=10):
                                     name='final',size=1001,z=z,
                                     flarepars=False)[0]
     
-        bar = trane.moments_notice(drunkdict[z][0],simfile,
-                                   skip_radii=drunkdict[z][2],
-                                   flip=drunkdict[z][1])
+        bar = trane.moments_notice(datadict[z][0],simfile,
+                                   skip_radii=datadict[z][2],
+                                   flip=datadict[z][1])
 
         bars.append(bar)
 
