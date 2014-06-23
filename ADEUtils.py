@@ -7,11 +7,6 @@ import scipy.optimize as spo
 import scipy.interpolate as spi
 import bottleneck as bn
 import multiprocessing as mp
-try:
-    from numba.decorators import jit, autojit
-    from numba import float32, int16
-except ImportError:
-    fast_annulize = annulize
 
 debug=0
 
@@ -515,57 +510,64 @@ def annulize(data, num_an, distances=np.array([0])):
                     
     return(r_vec,fluxes,errors)
 
-def fast_annulize(data, numan, distances=np.array([0])):
+try:
+    from numba.decorators import jit, autojit
+    from numba import float32, int16
+    def fast_annulize(data, numan, distances=np.array([0])):
+        
+        if debug: print'annulizing...'
+        if debug: print"data type is "+str(data.dtype)
+        
+        dims = data.shape
 
-    if debug: print'annulizing...'
-    if debug: print"data type is "+str(data.dtype)
-
-    dims = data.shape
-
-    '''check to see if we got some transformed distances and generate
-    a basic distance array if we didn't'''
-    if not(distances.any()):
-        center = centroid(data)
-        if debug: print "center at "+str(center)
-        distances = dist_gen(data, center)
+        '''check to see if we got some transformed distances and generate
+        a basic distance array if we didn't'''
+        if not(distances.any()):
+            center = centroid(data)
+            if debug: print "center at "+str(center)
+            distances = dist_gen(data, center)
 
 
-    rlimit = distances.max()
-    ddata = np.array(data,dtype=np.float32)
+        rlimit = distances.max()
+        ddata = np.array(data,dtype=np.float32)
 
-    return fast_helper(ddata, distances, rlimit, numan)
+        return fast_helper(ddata, distances, rlimit, numan)
 
-@jit(argtypes=[float32[:,:],float32[:,:],float32,int16], restype=float32[:,:])
-def fast_helper(data, distances, rlimit, numan):
+    @jit(argtypes=[float32[:,:],float32[:,:],float32,int16], 
+         restype=float32[:,:])
+    def fast_helper(data, distances, rlimit, numan):
     
-    size = data.shape
-    rstep = rlimit / numan
+        size = data.shape
+        rstep = rlimit / numan
 
-    r1 = 0.0
-    r2 = float(rstep) # we need to cast this as a float so that numba doesn't
-                      # complain
+        r1 = 0.0
+        r2 = float(rstep) # we need to cast this as a float so that numba
+                          # doesn't complain
 
-    r_vec = np.zeros(numan,dtype=np.float32)
-    mean_vec = np.zeros(numan,dtype=np.float32)
-    error_vec = np.zeros(numan,dtype=np.float32)
+        r_vec = np.zeros(numan,dtype=np.float32)
+        mean_vec = np.zeros(numan,dtype=np.float32)
+        error_vec = np.zeros(numan,dtype=np.float32)
 
-    for k in range(numan):
-        anlist = []
-        for i in range(size[0]):
-            for j in range(size[1]):
-                if distances[i,j] > r1:
-                    if distances[i,j] <= r2:
-                        anlist.append(data[i,j])
+        for k in range(numan):
+            anlist = []
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    if distances[i,j] > r1:
+                        if distances[i,j] <= r2:
+                            anlist.append(data[i,j])
         
-        anarray = np.array(anlist,dtype=np.float32)
-        mean_vec[k] = bn.nansum(anarray)
-        error_vec[k] = bn.nanstd(anarray)
-        r_vec[k] = (r1 + r2)*0.5
+            anarray = np.array(anlist,dtype=np.float32)
+            mean_vec[k] = bn.nansum(anarray)
+            error_vec[k] = bn.nanstd(anarray)
+            r_vec[k] = (r1 + r2)*0.5
         
-        r1 = r2
-        r2 += rstep
+            r1 = r2
+            r2 += rstep
 
-    return np.array([r_vec,mean_vec,error_vec])
+        return np.array([r_vec,mean_vec,error_vec])
+
+except ImportError:
+    fast_annulize = annulize
 
 def mediclean(data, zhi=0, keep=False):
     '''
