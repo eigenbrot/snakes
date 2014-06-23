@@ -1,11 +1,11 @@
 import numpy as np
 import Coltrane as trane
 import pymc
-#import Msix
 import functools
 import matplotlib.pyplot as plt
 import drunkData as dd
 import copy
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 class mark_VI(object):
     
@@ -88,7 +88,7 @@ class mark_VI(object):
 
         return out
 
-def test(drunkdict,pardict,sample,burn=10):
+def test(drunkdict,pardict,output,sample,burn=10):
 
     # pardict = {'h_dust': [True, 8.43], 
     #            'Vr': [False, 200, 300], 
@@ -109,35 +109,29 @@ def test(drunkdict,pardict,sample,burn=10):
             traces[k] = trace
             bestfit[k] = mean
             outdict[k][1] = mean
-    # Vr_sample = S.trace('Vr')[:]
-    # hrot_sample = S.trace('hrot')[:]
-    
-    # Vr = np.mean(Vr_sample)
-    # hrot = np.mean(hrot_sample)
     
     simfile = trane.make_boring([outdict['Vr'][1]],
                                 [outdict['hrot'][1]],
                                 h_dust=outdict['h_dust'][1],
                                 kappa_0=outdict['kappa_0'][1],
                                 z_d=outdict['z_d'][1],
-                                name='test',size=1001,z=0,
+                                name='final',size=1001,z=0,
                                 flarepars=False)[0]
     
-    # simfile = trane.make_boring([Vr],[pars[1]],name='final',
-    #                             size=1001,z=0,h_dust=pars[3],kappa_0=pars[2],
-    #                             z_d=pars[4],flarepars=False)[0]
-
     bar = trane.moments_notice(drunkdict[0][0],simfile,
                                skip_radii=drunkdict[0][2],
                                flip=drunkdict[0][1])
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(211)
-    # ax.hist(Vr_sample,bins=50,histtype='step')
-    # ax.set_title('V$_r$')
-    # ax2 = fig.add_subplot(212)
-    # ax2.hist(hrot_sample,bins=50,histtype='step')
-    # ax2.set_title('h$_{rot}$')
-    # fig.show()
+
+    pp = PDF(output)
+    for k in traces.keys():
+        ax = plt.figure().add_subplot(111)
+        ax.hist(traces[k],bins=50,histtype='step')
+        ax.set_xlabel(k)
+        ax.set_ylabel('PDF')
+        ax.set_title('Most likely value:\n{:9.4f}'.format(bestfit[k]))
+        pp.savefig(ax.figure)
+
+    pp.close()
 
     return bestfit, bar, traces
