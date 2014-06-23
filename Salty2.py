@@ -239,7 +239,9 @@ def simcurve(size,Z,v_r,h_rot,
         frachdu.header.update('z_d',round(z_d,4),comment='Dust scale height in kpc')
         frachdu.header.update('h_z',round(h_z,4),comment='Gas scale height in kpc')
         frachdu.header.update('h_s',round(h_s,4),
-                              comment='Gas and dust scale length in kpc')
+                              comment='Gas scale length in kpc')
+        frachdu.header.update('h_dust',round(h_dust,4),comment='Dust scale length in kpc')
+        frachdu.header.update('kappa_0',round(kappa_0,4),comment='Central dust opacity')
         frachdu.header.update('scale',round(scale,4),
                               comment='pixel scale in kpc/px')
 
