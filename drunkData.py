@@ -100,10 +100,11 @@ def get_window(x, p, cdf_window=0.1, ax=None):
     return xlow, xhigh
 
 def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
-            window=15,baseline=1,interact=False):
+            window=15,baseline=1,interact=False,cent_lambda=5048.126):
     
     again = True
-    argdict = {'flip': flip, 'tol': tol, 'window': window, 'baseline': baseline}
+    argdict = {'flip': flip, 'tol': tol, 'window': window, 'baseline': baseline,
+               'cent_lambda':cent_lambda}
     while again:
         model_V, model_pdf, V, I, err, rwidth, fig = MGD(slayfile,radius,
                                                          **argdict)
@@ -145,7 +146,7 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
     return moments, moment_err, rwidth, highV - lowV, fig
 
 def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
-              window=15,baseline=1,skip_radii=[]):
+              window=15,baseline=1,skip_radii=[],cent_lambda=5048.126):
 
     fitsout = baseoutput+'.fits'
     pdfout = baseoutput+'.pdf'
@@ -169,7 +170,8 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
                                                            flip=flip,tol=tol, 
                                                            cdf_window=cdf_window,
                                                            baseline=baseline,
-                                                           window=window)
+                                                           window=window,
+                                                           cent_lambda=cent_lambda)
 
         if np.isnan(np.sum(moments)):
             print 'skipping radius {} kpc due to NaN condition'.format(radius)
