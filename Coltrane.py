@@ -48,18 +48,22 @@ def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
             continue
 
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
-                                       width=rwidth,observe=True,fit=False,
+                                       width=rwidth,observe=False,fit=False,
                                        verbose=False,nofits=nofits) 
 
         '''We need to compute the peak of the model line separately because we
         shifted it to find the window used for the higher order moments'''
         (mpeak, _, _) = ADE.ADE_moments(mV,mI)
 
+        vwidth = 135.
         mpeak_V = mV[np.argmin(np.abs(mV - mpeak))]
         lowV = mpeak_V - vwidth/2.
         highV = mpeak_V + vwidth/2.
+        # cdf = np.cumsum(mI/np.sum(mI))
+        # lowV, highV = np.interp([0.005,0.995],cdf,mV)
+        
         mmoment_idx = np.where((mV >= lowV) & (mV <= highV))
-#        print mmoment_idx
+#        print vwidth, highV - lowV, mmoment_idx[0].size
         mmoments = ADE.ADE_moments(mV[mmoment_idx],mI[mmoment_idx])
 
         
@@ -225,7 +229,7 @@ def solo(p,datadict,name,output_file,size,par0,fixed,flare):
                                            skip_radii=datadict[z][2],
                                            flip=datadict[z][1],nofits=True)
 
-        for moment in [m1]:
+        for moment in [m2]:#m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
             output_file.write('{:11.4f} '.format(bn.nansum(red_chi**2)))
             chis = np.r_[chis,red_chi]
@@ -248,7 +252,7 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,nofits=False,
             name = '{}_{}.fits'.format(basename,int(round(time.time(), 3)*100))
             sim = salty.simcurve(size,z,v_r,h_rot,output=name,scale=0.0999,
                                  h_dust=h_dust,kappa_0=kappa_0,z_d=z_d,
-                                 flarepars=flarepars,full=False,
+                                 flarepars=flarepars,full=True,
                                  verbose=False,nofits=nofits)
             if nofits:
                 outlist.append(sim)
@@ -257,7 +261,7 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,nofits=False,
 
     return outlist
     
-def plot_ice(results,title=' ',show=True):
+def plot_ice(results,title=' ',show=True, rot=False):
     '''Given the results of moments_notice(), plot model vs. data for all
     three moments. Show the plots and return them.
     '''
@@ -273,8 +277,8 @@ def plot_ice(results,title=' ',show=True):
     ax2.set_ylabel('$\sqrt{\mu_2}$')
     ax3.set_ylabel('$\mu_3$')
     ax3.set_xlabel('radius [kpc]')
-    ax1.set_ylim(-260.001,260.001)
-#    ax2.set_ylim(0.001,39.999)
+    ax1.set_ylim(-260.001,280.001)
+    ax2.set_ylim(0.001,49.999)
     ax3.set_ylim(-1,0.999)
 
     fig.suptitle('{}\n{}'.format(title,time.asctime()))
@@ -284,18 +288,23 @@ def plot_ice(results,title=' ',show=True):
         ax.errorbar(radius,data[0],yerr=data[1],fmt='.',ms=7)
         ax.plot(radius,data[2])
 
+    if rot:
+        pidx = radius > 0
+        rc = rot[0]*np.tanh(radius[pidx]/rot[1])
+        ax1.plot(radius[pidx],rc,'-r')
+
     if show: fig.show()
 
     return ax1, ax2, ax3
 
-def multi_plot(bar_dict):
+def multi_plot(bar_dict,label=''):
     '''Takes a bar_dict from a multiple-height run of cutting session and
     plots the first three moments for each height.
     '''
 
     figlist = []
     for z in bar_dict.keys():
-        fig = plot_ice(bar_dict[z],'z={}'.format(z))
+        fig = plot_ice(bar_dict[z],'{}\nz={}'.format(label,z))
         figlist.append(fig)
 
     return figlist

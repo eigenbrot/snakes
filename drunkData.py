@@ -21,6 +21,9 @@ matplotlib.rc('lines',linewidth=0.6)
 
 def clean_model(model, tol=3.):
 
+
+    # print 'Means are:\n{}\t{}\nwhich one should be the primary?'.format(model.means_,model.weights_)
+    # strong_idx = int(raw_input(''))
     strong_idx = np.argmax(model.weights_)
     strong_mean = model.means_[strong_idx]
     strong_std = np.sqrt(model.covars_[strong_idx])
@@ -122,18 +125,21 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
         ax2.set_xlabel('Velocity [km/s]')
         ax2.set_ylabel('Counts [ADU]')
 
-        # fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
-        # fig.show()
         
         if interact == True:
+            fig.suptitle('r = {:5.3f} kpc\n{:}'.format(radius,time.asctime()))
+            fig.show()
             print "Keys are {}".format(argdict.keys())
             print "Change any you want and then hit 'r'. 'q' will quit"
-            scratch = raw_input(':')
-            while scratch != 'q' or scratch != 'r':
+            scratch = str(raw_input(':'))
+            while scratch != 'q' and scratch != 'r':
                 print 'Changing key {}'.format(scratch)
                 val = input('To (current val is {}): '.\
                                 format(argdict[scratch]))
-                argdict[scratch] = val
+                try:
+                    argdict[scratch] = val
+                except KeyError:
+                    print 'Could not find key {}'.format(scratch)
                 scratch = raw_input('again?:')
             if scratch == 'r':
                 continue
@@ -146,7 +152,7 @@ def cocaine(slayfile, radius, flip=False, cdf_window=0.05, tol=3.,
     return moments, moment_err, rwidth, highV - lowV, fig
 
 def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
-              window=15,baseline=1,skip_radii=[],cent_lambda=5048.126):
+              window=15,baseline=1,skip_radii=[],cent_lambda=5048.126,interact=False):
 
     fitsout = baseoutput+'.fits'
     pdfout = baseoutput+'.pdf'
@@ -171,7 +177,8 @@ def get_drunk(slayfile, baseoutput, flip=False, cdf_window=0.05, tol=3.,
                                                            cdf_window=cdf_window,
                                                            baseline=baseline,
                                                            window=window,
-                                                           cent_lambda=cent_lambda)
+                                                           cent_lambda=cent_lambda,
+                                                           interact=interact)
 
         if np.isnan(np.sum(moments)):
             print 'skipping radius {} kpc due to NaN condition'.format(radius)
@@ -264,3 +271,27 @@ def open_drunk(drunkfile,skip_radii=[]):
             m3 = np.delete(m3,i,axis=1)
 
     return radii, rwidths, vwidths, m1, m2, m3
+
+def plot_widths(drunkdict):
+
+    ax = plt.figure().add_subplot(111)
+    for z in drunkdict.keys():
+        
+        radii, _, vwidths, _, _, _ = open_drunk(drunkdict[z][0])
+        print np.floor(radii)
+        pidx = radii > 0
+        nidx = radii <= 0
+        line = ax.plot(radii[pidx],vwidths[pidx],'o',label=z)
+        ax.plot(radii[nidx]*-1.,vwidths[nidx],'o',mfc='none',mec=line[0].get_color())
+        for skipr in drunkdict[z][2]:
+            print z, skipr
+            sidx = np.where(np.floor(radii) == skipr)[0]
+            print sidx, radii[sidx]
+            ax.plot(np.abs(radii[sidx]),vwidths[sidx],'x',ms=20,color=line[0].get_color())
+
+    ax.set_xlabel('Radius [kpc]')
+    ax.set_ylabel('$\Delta$V [km/s]')
+    ax.set_title('Filled > 0\nopen <= 0')
+    ax.legend(loc=0,numpoints=1,title='$z/h_z$')
+
+    ax.figure.show()

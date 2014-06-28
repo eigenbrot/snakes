@@ -64,7 +64,9 @@ class mark_VI(object):
             print pdict
             for k in pdict.keys():
                 self.funcdict[k] = pdict[k]
-            out = np.array([])
+            bigm1 = np.array([])
+            bigm2 = np.array([])
+            bigm3 = np.array([])
             for z in datadict.keys():
                 
                 simfile = trane.make_boring([self.funcdict['Vr']],
@@ -79,9 +81,16 @@ class mark_VI(object):
                                            skip_radii=datadict[z][2],
                                            flip=datadict[z][1],nofits=True)
 
-                out = np.r_[out,m1[2],m2[2],m3[2]]
-            print out.shape
+                bigm1 = np.append(bigm1,m1[2])
+                bigm2 = np.append(bigm2,m2[2])
+                bigm3 = np.append(bigm3,m3[2])
 
+            out = np.r_[bigm1,bigm2,bigm3]
+            if np.isnan(np.sum(out)):
+                print '!!!!!!!!NAN!!!!!!!!'
+                print out
+                raw_input('')
+            print out.shape
             return out
 
         base_func = functools.partial(modelled_galaxy_eval,**priordict)
@@ -97,12 +106,17 @@ class mark_VI(object):
 
     def get_data(self,drunkdict):
 
-        out = np.array([])
+        bigm1 = np.array([])
+        bigm2 = np.array([])
+        bigm3 = np.array([])
         for z in drunkdict.keys():
             _,_,_, m1, m2, m3 = dd.open_drunk(drunkdict[z][0],
                                               skip_radii=drunkdict[z][2])
-            out = np.r_[out,m1[0],m2[0],m3[0]]
-
+            bigm1 = np.append(bigm1,m1[0])
+            bigm2 = np.append(bigm2,m2[0])
+            bigm3 = np.append(bigm3,m3[0])
+        
+        out = np.r_[bigm1,bigm2,bigm3]
         return out
 
 def test(drunkdict,pardict,output,sample,burn=10):

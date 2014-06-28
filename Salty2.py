@@ -159,7 +159,7 @@ def simcurve(size,Z,v_r,h_rot,
         Iarray *= spiral
 
     if flarepars:
-        kaparray /= np.exp(-1*(np.abs(Z)/h_z))
+        kaparray /= np.exp(-1*(np.abs(Z)/z_d))
         Iarray /= np.exp(-1*(np.abs(Z)/h_z))
         if flarepars['ftype'] == 'exp':
             flare = disco(distances,Z,h_z,**flarepars)
@@ -340,7 +340,7 @@ def disco(distances, Z, h_z, **flarepars):
     h_zprime = np.exp(distances/h_zR)
     ideal_flare = np.exp(-1*Z / h_zprime) # The ideal flare formulation
 
-    return ideal_flare * h_z / h_zprime
+    return ideal_flare #* h_z / h_zprime
     
 
 def quickmatch(distances, Z, h_z, **flarepars):
@@ -356,7 +356,7 @@ def quickmatch(distances, Z, h_z, **flarepars):
     h_zprime = h_z + h_zR*distances
     ideal_flare = np.exp(-1*Z / h_zprime)
 
-    return ideal_flare * h_z / h_zprime
+    return ideal_flare# * h_z / h_zprime
 
 def bigben(distances, **ringpars):
     '''Generates an array that can be used to redistribute light into a
@@ -532,13 +532,13 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     lineshape = np.convolve(kernel,ihist,'same')
 
 #     if verbose: print 'building {} gaussians'.format(ihist.size)
-#     for i in range(ihist.size):
-# #        if verbose: print ihist[i]
-#         if verbose: print i
-#         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
-#         gauss_arr = np.vstack((gauss_arr,gauss))
-#         if i % 25 == 0 and plot: 
-#             ax0.plot(v,gauss)
+    for i in range(ihist.size):
+#        if verbose: print ihist[i]
+        if verbose: print i
+        r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
+        gauss_arr = np.vstack((gauss_arr,gauss))
+        if i % 25 == 0 and plot: 
+            ax0.plot(v,gauss)
 
     if plot: 
         fig0.show()
