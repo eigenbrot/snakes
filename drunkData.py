@@ -93,6 +93,10 @@ def get_window(x, p, cdf_window=0.1, ax=None):
     xlow = np.interp(cdf_window,cdf,x)
     xhigh = np.interp(1-cdf_window,cdf,x)
 
+    xmid = np.interp(0.5,cdf,x)
+    xlow = xmid - 135./2.
+    xhigh = xmid + 135./2.
+
     if ax:
         ax.plot(x,cdf,'k')
         ax.plot(x,p/p.max(),'--k',alpha=0.5)
@@ -260,6 +264,26 @@ def open_drunk(drunkfile,skip_radii=[]):
     m1 = hdus[1].data
     m2 = hdus[2].data
     m3 = hdus[3].data
+
+    m3weights = m3[1]**-2.
+    m3mean = np.sum(m3weights*m3[0])/np.sum(m3weights)
+    m3sizefrac = (m3[0].size - 1.)/m3[0].size*1.0
+    m3wstd = np.sqrt(np.sum(m3weights*(m3[0] - m3mean)**2)/(m3sizefrac*np.sum(m3weights)))
+    idx = np.where(np.abs(m3[1]) <= 3)
+    m3err = np.sqrt(np.sum(m3[1][idx]**2)/m3[1][idx].size)
+    #m3ratio = m3err/np.std(m3[1])
+    m3ratio = m3err/m3wstd
+    m3[1] /= m3ratio
+
+    m2weights = m2[1]**-2.
+    m2mean = np.sum(m2weights*m2[0])/np.sum(m2weights)
+    m2sizefrac = (m2[0].size - 1.)/m2[0].size*1.0
+    m2wstd = np.sqrt(np.sum(m2weights*(m2[0] - m2mean)**2)/(m2sizefrac*np.sum(m2weights)))
+    m2err = np.sqrt(np.sum(m2[1][idx]**2)/m2[0][idx].size)
+    m2ratio = m2err/m2wstd
+    #m2ratio = m2err/np.std(m2[1])
+    #m2[1] /= m2ratio
+    print "m3ratio: ",m3ratio
 
     for i, r in enumerate(radii):
         if int(np.floor(r)) in skip_radii:
