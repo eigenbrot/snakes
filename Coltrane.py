@@ -229,7 +229,7 @@ def solo(p,datadict,name,output_file,size,par0,fixed,flare):
                                            skip_radii=datadict[z][2],
                                            flip=datadict[z][1],nofits=True)
 
-        for moment in [m2]:#m1,m2,m3]:
+        for moment in [m1,m2]:#m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
             output_file.write('{:11.4f} '.format(bn.nansum(red_chi**2)))
             chis = np.r_[chis,red_chi]
