@@ -15,7 +15,7 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 import time
 import ADEUtils as ADE
 import bottleneck as bn
-from pyraf import iraf
+#from pyraf import iraf
 
 centlambda = [4901.416,5048.126]
 tau = np.pi*2.

@@ -481,7 +481,7 @@ def profile_curve(fitsfile,in_radii,Iwidth=17,fig=False,sub=False,title=''):
 def line_profile(fitsfile,radius,Iwidth=17.,
                  width=1.,plot=True,fit=True,
                  observe=True,verbose=True,
-                 nofits=False):
+                 nofits=False,ax=None,axlabel=None,comp=True):
     """ Radius is in kpc"""
 
     if nofits:
@@ -515,13 +515,16 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     gauss_arr = np.empty(numsamp)
 
     if plot:
-        fig0 = plt.figure()
-        ax0 = fig0.add_subplot(111)
-        ax0.set_xlabel('Velocity [km/s]')
-        ax0.set_ylabel('Flux')
-        ax0.plot(v,ihist,'--')
-        fig0.show()
-        raw_input('asdas')
+        if ax:
+            ax0 = ax
+        else:
+            fig0 = plt.figure()
+            ax0 = fig0.add_subplot(111)
+            ax0.set_xlabel('Velocity [km/s]')
+            ax0.set_ylabel('Flux')
+        #ax0.plot(v,ihist,'-',label=axlabel)
+        #fig0.show()
+        #raw_input('asdas')
 
     scale = np.mean(np.diff(v))
     if verbose: print scale
@@ -532,16 +535,17 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     lineshape = np.convolve(kernel,ihist,'same')
 
 #     if verbose: print 'building {} gaussians'.format(ihist.size)
-    for i in range(ihist.size):
-#        if verbose: print ihist[i]
-        if verbose: print i
-        r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
-        gauss_arr = np.vstack((gauss_arr,gauss))
-        if i % 25 == 0 and plot: 
-            ax0.plot(v,gauss)
-
-    if plot: 
-        fig0.show()
+#     for i in range(ihist.size):
+# #        if verbose: print ihist[i]
+#         if verbose: print i
+#         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
+#         gauss_arr = np.vstack((gauss_arr,gauss))
+#         if i % 25 == 0 and plot and comp: 
+#             ax0.plot(v,gauss,'--',alpha=1)
+#     return ax0
+#if plot: 
+#       fig0.show()
+#       raw_input('asdas')
     # gauss_arr = gauss_arr[1:]
 
     # gauss_arr /= np.sum(gauss_arr)
@@ -551,6 +555,8 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     if observe:
         if verbose: print 'simulating effects of RSS'
         v, lineshape = observify(v,lineshape)
+        #ax0.plot(v,lineshape,'-',label=axlabel)
+        #return ax0
 #        ov, lineshape2 = observify(v,lineshape2)
     # else:
     #     ov = v

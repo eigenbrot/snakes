@@ -16,7 +16,6 @@ class mark_VI(object):
         datadict = self.make_data_dict(drunkdict)
         function = self.make_function(datadict,name,size,priors)
         data = self.get_data(drunkdict)
-        print data.shape
         detvar = pymc.Normal('gal',mu=function, tau=0.01, 
                              value=data,observed=True)
         self.model = {}
@@ -61,7 +60,7 @@ class mark_VI(object):
     def make_function(self,datadict,name,size,priordict):
         
         def modelled_galaxy_eval(**pdict):
-            print pdict
+            #print pdict
             for k in pdict.keys():
                 self.funcdict[k] = pdict[k]
             bigm1 = np.array([])
@@ -85,12 +84,12 @@ class mark_VI(object):
                 bigm2 = np.append(bigm2,m2[2])
                 bigm3 = np.append(bigm3,m3[2])
 
-            out = np.r_[bigm1,bigm2,bigm3]
+                out = np.r_[bigm1,bigm2]#,bigm3]
             if np.isnan(np.sum(out)):
                 print '!!!!!!!!NAN!!!!!!!!'
                 print out
                 raw_input('')
-            print out.shape
+            #print out.shape
             return out
 
         base_func = functools.partial(modelled_galaxy_eval,**priordict)
@@ -116,7 +115,7 @@ class mark_VI(object):
             bigm2 = np.append(bigm2,m2[0])
             bigm3 = np.append(bigm3,m3[0])
         
-        out = np.r_[bigm1,bigm2,bigm3]
+        out = np.r_[bigm1,bigm2]#,bigm3]
         return out
 
 def test(drunkdict,pardict,output,sample,burn=10):

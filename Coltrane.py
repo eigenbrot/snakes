@@ -48,7 +48,7 @@ def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
             continue
 
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
-                                       width=rwidth,observe=False,fit=False,
+                                       width=rwidth,observe=True,fit=False,
                                        verbose=False,nofits=nofits) 
 
         '''We need to compute the peak of the model line separately because we
@@ -149,7 +149,7 @@ def cutting_session(drunkdict, output_file,
     p0 = [pars[i] for i in range(len(pars)) if i not in fixed]
 
     print 'p0 is {}'.format(p0)
-    raw_input('please confirm')
+    #raw_input('please confirm')
     f = open(output_file,'w')
     f.write('# Generated on {}\n'.format(time.asctime())
             +'# pars: {}\n'.format(pars)
@@ -161,6 +161,7 @@ def cutting_session(drunkdict, output_file,
                                      skip_radii=drunkdict[z][2]),
                        drunkdict[z][1],
                        drunkdict[z][2]]
+    print "minimizing..."
     pf = spo.fmin(solo,p0,args=(datadict,name,f,size,pars,fixed,flare))
     
     pfl = list(pf)
@@ -261,37 +262,47 @@ def make_boring(vr_list, h_rot_list, h_dust=8.43, kappa_0=1.62,nofits=False,
 
     return outlist
     
-def plot_ice(results,title=' ',show=True, rot=False):
+def plot_ice(results,title=' ',show=True, rot=False, ax=False, label=''):
     '''Given the results of moments_notice(), plot model vs. data for all
     three moments. Show the plots and return them.
     '''
 
-    fig = plt.figure()
-    ax3 = fig.add_subplot(313)
-    ax1 = fig.add_subplot(311,sharex=ax3)
-    ax2 = fig.add_subplot(312,sharex=ax3)
-    plt.setp(ax1.get_xticklabels(), visible=False)
-    plt.setp(ax2.get_xticklabels(), visible=False)
-    fig.subplots_adjust(hspace=0.0001)
-    ax1.set_ylabel('$\mu_1$')
-    ax2.set_ylabel('$\sqrt{\mu_2}$')
-    ax3.set_ylabel('$\mu_3$')
-    ax3.set_xlabel('radius [kpc]')
-    ax1.set_ylim(-260.001,280.001)
-    ax2.set_ylim(0.001,49.999)
-    ax3.set_ylim(-1,0.999)
+    if ax:
+        ax1, ax2, ax3 = ax
+    else:
+        fig = plt.figure()
+        ax3 = fig.add_subplot(313)
+        ax1 = fig.add_subplot(311,sharex=ax3)
+        ax2 = fig.add_subplot(312,sharex=ax3)
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        plt.setp(ax2.get_xticklabels(), visible=False)
+        fig.subplots_adjust(hspace=0.0001)
+        ax1.set_ylabel('$\mu_1$')
+        ax2.set_ylabel('$\sqrt{\mu_2}$')
+        ax3.set_ylabel('$\mu_3$')
+        ax3.set_xlabel('radius [kpc]')
+        ax1.set_ylim(0.001,290.001)
+        ax2.set_ylim(0.001,49.999)
+        ax3.set_ylim(-1,0.999)
+        fig.suptitle('{}\n{}'.format(title,time.asctime()))
 
-    fig.suptitle('{}\n{}'.format(title,time.asctime()))
     radius = results[0]
-
-    for ax, data in zip([ax1, ax2, ax3],[results[1],results[2],results[3]]):
-        ax.errorbar(radius,data[0],yerr=data[1],fmt='.',ms=7)
-        ax.plot(radius,data[2])
+    sortidx = np.argsort(np.abs(radius))
+    
+    for ax, data, flip in zip([ax1, ax2, ax3],[results[1],results[2],results[3]],[True,False,True]):
+        pdata = data[0]
+        perr = data[1]
+        pmod = data[2]
+        if flip:
+            pdata = np.abs(pdata)
+            pmod = np.abs(pmod)
+        ax.errorbar(np.abs(radius),pdata,yerr=perr,fmt='.b',ms=7)
+        ax.plot(np.abs(radius)[sortidx],pmod[sortidx],label=label)
 
     if rot:
-        pidx = radius > 0
-        rc = rot[0]*np.tanh(radius[pidx]/rot[1])
-        ax1.plot(radius[pidx],rc,'-r')
+        rotr = np.linspace(0,np.abs(radius).max())
+        rc = rot[0]*np.tanh(rotr/rot[1])
+        ax1.plot(rotr,rc,'-r')
 
     if show: fig.show()
 
