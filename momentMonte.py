@@ -104,7 +104,11 @@ def do_a_line(moment_list,N):
         sn_res = np.empty((N,4))
         for j in range(N):
             noise = get_noise(l,SNR)
-            sn_res[j] = ADE.ADE_moments(x,l + noise)
+            ln = l + noise
+            cdf = np.cumsum(ln/np.sum(ln))
+            low, high = np.interp([0.01,0.99],cdf,x)
+            idx = np.where((x > low) & (x <= high))
+            sn_res[j] = ADE.ADE_moments(x[idx],ln[idx])
             
         measured_vals = bn.nanmean(sn_res,axis=0)
         measured_stds = bn.nanstd(sn_res,axis=0)
@@ -124,7 +128,7 @@ def plot_results(SNRs, results, moment_list):
         ax = plt.figure().add_subplot(111)
         y = results[:,i,0]/moment_list[i+1]
         err = results[:,i,1]/moment_list[i+1]
-        ax.errorbar(SNRs,y,yerr=err)
+        ax.errorbar(SNRs,np.log(y),yerr=err/y)
         ax.set_xlabel('SNR')
         ax.set_ylabel('$\mu_{{{0},meas}}/\mu_{{{0},true}}$'.format(i+1))
         ax.figure.show()
