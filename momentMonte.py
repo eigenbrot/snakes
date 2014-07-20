@@ -2,6 +2,7 @@ import numpy as np
 import ADEUtils as ADE
 import matplotlib.pyplot as plt
 import bottleneck as bn
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def hermnorm(N):
     # return the negatively normalized hermite polynomials up to order N-1
@@ -79,7 +80,8 @@ def pdf_mvsk(mvsk):
 
 def make_line(moment_list):
 
-    x = np.arange(1000.)*1.
+    resolution = 12.06 #Pixel resolution of our data, in km/s
+    x = np.arange(0,500.,12.06) - 250.
     
     func = pdf_mvsk(moment_list[1:])
     g = func(x)
@@ -94,12 +96,13 @@ def get_noise(line, SNR):
 
     return noise
 
-def do_a_line(moment_list,N):
+def do_a_line(moment_list,N,line_output,monte_output):
 
     x, l = make_line(moment_list)
-
     SNRs = np.linspace(1,20,50)
     results = np.empty((SNRs.size,4,2))
+    lp = PDF(line_output)
+
     for i, SNR in enumerate(SNRs):
         sn_res = np.empty((N,4))
         for j in range(N):
@@ -109,7 +112,7 @@ def do_a_line(moment_list,N):
             low, high = np.interp([0.01,0.99],cdf,x)
             idx = np.where((x > low) & (x <= high))
             sn_res[j] = ADE.ADE_moments(x[idx],ln[idx])
-            
+
         measured_vals = bn.nanmean(sn_res,axis=0)
         measured_stds = bn.nanstd(sn_res,axis=0)
         # print sn_res
@@ -118,6 +121,14 @@ def do_a_line(moment_list,N):
         results[i,:,0] = measured_vals
         results[i,:,1] = measured_stds
         
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('Velocity [km/s]')
+        ax.set_ylabel('Flux')
+        ax.set_title('SNR = {:5.2f}'.format(SNR))
+        ax.plot(x,ln)
+        lp.savefig(ax.figure)
+
+    lp.close()
     return SNRs, results
 
     
