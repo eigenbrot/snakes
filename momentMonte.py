@@ -99,7 +99,7 @@ def get_noise(line, SNR):
 def do_a_line(moment_list,N,line_output,monte_output):
 
     x, l = make_line(moment_list)
-    SNRs = np.linspace(1,20,50)
+    SNRs = np.linspace(2,20,50)
     results = np.empty((SNRs.size,4,2))
     lp = PDF(line_output)
 
@@ -129,19 +129,36 @@ def do_a_line(moment_list,N,line_output,monte_output):
         lp.savefig(ax.figure)
 
     lp.close()
+    
+    mp = PDF(monte_output)
+    plots = plot_results(SNRs, results, moment_list)
+    for i, plot in enumerate(plots):
+        if i == 2:
+            plot.set_ylim(-2,2)
+        if i == 3:
+            plot.set_ylim(-2,5)
+        mp.savefig(plot.figure)
+    mp.close()
+    plt.close('all')
     return SNRs, results
 
     
 def plot_results(SNRs, results, moment_list):
+    
+    output = []
 
     for i in range(4):
 
         ax = plt.figure().add_subplot(111)
         y = results[:,i,0]/moment_list[i+1]
         err = results[:,i,1]/moment_list[i+1]
-        ax.errorbar(SNRs,np.log(y),yerr=err/y)
+        ax.errorbar(SNRs,y,yerr=err)
         ax.set_xlabel('SNR')
         ax.set_ylabel('$\mu_{{{0},meas}}/\mu_{{{0},true}}$'.format(i+1))
-        ax.figure.show()
+        ax.text(0.85,0.80,
+                '$\mu_1 = {}$\n$\mu_2 = {}$\n$\mu_3 = {}$\n$\mu_4 = {}$'.\
+                    format(*moment_list[1:]),
+                transform=ax.transAxes,fontdict={'size':14})
+        output.append(ax)
 
-    return
+    return output
