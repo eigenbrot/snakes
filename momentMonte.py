@@ -2,6 +2,7 @@ import numpy as np
 import ADEUtils as ADE
 import matplotlib.pyplot as plt
 import bottleneck as bn
+import time
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def hermnorm(N):
@@ -88,25 +89,27 @@ def make_line(moment_list):
     
     return x, moment_list[0]*g/np.max(g)
 
-def get_noise(line, SNR):
+def get_noise(x, line, SNR):
 
-    signal = np.sqrt(np.sum(line**2))
-    noise = 2.*np.random.ranf(line.size) - 1.
-    noise *= signal/(SNR*np.sqrt(np.sum(noise**2)))
-
+    cdf = np.cumsum(line/np.sum(line))
+    low, high = np.interp([0.16,0.84],cdf,x)
+    idx = np.where((x > low) & (x <= high))
+    sig = np.sum(line[idx]**2)
+    noise = (2.*np.random.ranf(line.size) - 1.)
+    noise *= np.sqrt(sig/SNR**2)
     return noise
 
 def do_a_line(moment_list,N,line_output,monte_output):
 
     x, l = make_line(moment_list)
-    SNRs = np.linspace(2,20,50)
+    SNRs = np.linspace(5,100,50)
     results = np.empty((SNRs.size,4,2))
     lp = PDF(line_output)
 
     for i, SNR in enumerate(SNRs):
         sn_res = np.empty((N,4))
         for j in range(N):
-            noise = get_noise(l,SNR)
+            noise = get_noise(x, l,SNR)
             ln = l + noise
             cdf = np.cumsum(ln/np.sum(ln))
             low, high = np.interp([0.01,0.99],cdf,x)
@@ -162,3 +165,48 @@ def plot_results(SNRs, results, moment_list):
         output.append(ax)
 
     return output
+
+def test_window(moment_list, N, SNR, output):
+
+    x, l = make_line(moment_list)
+    windows = np.linspace(0.8,0.99,50)
+    results = np.empty((windows.size,4,2))
+    pp = PDF(output)
+
+    for i, window in enumerate(windows):
+        win_res = np.empty((N,4))
+        for j in range(N):
+            noise = get_noise(x, l,SNR)
+            ln = l + noise
+            cdf = np.cumsum(ln/np.sum(ln))
+            low, high = np.interp([1-window,window],cdf,x)
+            idx = np.where((x > low) & (x <= high))
+            win_res[j] = ADE.ADE_moments(x[idx],ln[idx])
+
+        measured_vals = bn.nanmean(win_res,axis=0)
+        measured_stds = bn.nanstd(win_res,axis=0)
+        # print win_res
+        # print measured_vals
+        # print measured_stds
+        # raw_input('')
+        results[i,:,0] = measured_vals
+        results[i,:,1] = measured_stds    
+
+    fig = plt.figure(figsize=(8,10))
+    fig.suptitle('{}\nSNR = {}'.format(time.asctime(),SNR))
+    ax = fig.add_subplot(211)
+    ax.set_xlabel('Window (1-X/X)')
+    ax.set_ylabel('SNR')
+    ax2 = fig.add_subplot(212)
+    ax2.set_xlabel('Window (1-X/X)')
+    ax2.set_ylabel('$\mu_{i,meas}/\mu_{i,true}$')
+
+    for i in range(4):
+        sn =  np.sqrt((results[:,i,0]/results[:,i,1])**2)
+        ax.plot(windows,sn,label='$\mu_{{{}}}$'.format(i+1))
+        ax2.plot(windows,results[:,i,0]/moment_list[i+1],label='$\mu_{{{}}}$'.format(i+1))
+        
+    ax.legend(loc=0)
+    ax2.legend(loc=0)
+#    ax.figure.show()
+    return windows, results, fig
