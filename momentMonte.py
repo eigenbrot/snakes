@@ -1,6 +1,7 @@
 import numpy as np
 import ADEUtils as ADE
 import matplotlib.pyplot as plt
+import Salty2 as salty
 import bottleneck as bn
 import time
 from matplotlib.backends.backend_pdf import PdfPages as PDF
@@ -79,6 +80,15 @@ def pdf_mvsk(mvsk):
         return totp(xn)*np.exp(-xn*xn/2.0)/np.sqrt(2*np.pi)/sig
     return pdffunc
 
+def get_line(simfile, radius, observe=True):
+
+    rwidth = 10.
+    mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
+                                   width=rwidth,observe=observe,fit=False,
+                                   verbose=False,nofits=False)
+
+    return mV, mI
+
 def make_line(moment_list):
 
     resolution = 12.06 #Pixel resolution of our data, in km/s
@@ -91,6 +101,8 @@ def make_line(moment_list):
 
 def get_noise(x, line, SNR):
 
+    if SNR == np.inf:
+        return np.zeros(x.shape)
     cdf = np.cumsum(line/np.sum(line))
     low, high = np.interp([0.16,0.84],cdf,x)
     idx = np.where((x > low) & (x <= high))
@@ -171,7 +183,11 @@ def test_window(moment_list, N, SNR, output):
     x, l = make_line(moment_list)
     windows = np.linspace(0.8,0.99,50)
     results = np.empty((windows.size,4,2))
-    pp = PDF(output)
+    if output: pp = PDF(output)
+    ax0 = plt.figure().add_subplot(111)
+    ax0.set_title('{}\nSNR = {}'.format(time.asctime(),SNR))
+    ax0.set_xlabel('Velocity [km/s]')
+    ax0.set_ylabel('Flux')
 
     for i, window in enumerate(windows):
         win_res = np.empty((N,4))
@@ -183,6 +199,13 @@ def test_window(moment_list, N, SNR, output):
             idx = np.where((x > low) & (x <= high))
             win_res[j] = ADE.ADE_moments(x[idx],ln[idx])
 
+        if i == 0:
+            ax0.plot(x,ln)
+        if i % 5 == 0 or i == windows.size - 1:
+            line = ax0.plot(x,l)[0]
+            ax0.axvline(x=low,label='{:5.3f}'.format(window),color=line.get_color())
+            ax0.axvline(x=high,color=line.get_color())
+            del ax0.lines[-3]
         measured_vals = bn.nanmean(win_res,axis=0)
         measured_stds = bn.nanstd(win_res,axis=0)
         # print win_res
@@ -191,7 +214,8 @@ def test_window(moment_list, N, SNR, output):
         # raw_input('')
         results[i,:,0] = measured_vals
         results[i,:,1] = measured_stds    
-
+        
+    ax0.legend(loc=0,frameon=False,fontsize=10,title='Window')
     fig = plt.figure(figsize=(8,10))
     fig.suptitle('{}\nSNR = {}'.format(time.asctime(),SNR))
     ax = fig.add_subplot(211)
@@ -208,5 +232,88 @@ def test_window(moment_list, N, SNR, output):
         
     ax.legend(loc=0)
     ax2.legend(loc=0)
-#    ax.figure.show()
-    return windows, results, fig
+    if output:
+        pp.savefig(fig)
+        pp.savefig(ax0.figure)
+        pp.close()
+    plt.close('all')
+    return windows, results, [fig, ax0.figure()]
+
+def test_window_sim(simfile, radius, N, SNR, output, observe=True):
+
+    x, l = get_line(simfile, radius, observe=observe)
+    windows = np.linspace(0.8,0.999,50)
+#    windows = np.linspace(20,400,50.)
+    results = np.empty((windows.size,4,2))
+    if output: pp = PDF(output)
+    ax0 = plt.figure().add_subplot(111)
+    ax0.set_title('{}\nSNR={}'.format(time.asctime(),SNR))
+    ax0.set_xlabel('Velocity [km/s]')
+    ax0.set_ylabel('Flux')
+
+    true_moments = ADE.ADE_moments(x,l)
+
+    for i, window in enumerate(windows):
+        win_res = np.empty((N,4))
+        for j in range(N):
+            noise = get_noise(x, l,SNR)
+            ln = l + noise
+            peak, _, _, _ = ADE.ADE_moments(x,ln)
+            cdf = np.cumsum(ln/np.sum(ln))
+            low, high = np.interp([1-window,window],cdf,x)
+            # low = peak - window/2.
+            # high = peak + window/2.
+            idx = np.where((x > low) & (x <= high))
+            win_res[j] = ADE.ADE_moments(x[idx],ln[idx])
+
+        if i == 0:
+            ax0.plot(x,ln)
+        if i % 5 == 0 or i == windows.size - 1:
+            line = ax0.plot(x,l)[0]
+            ax0.axvline(x=low,label='{:5.3f}'.format(window),color=line.get_color())
+            ax0.axvline(x=high,color=line.get_color())
+            del ax0.lines[-3]
+        measured_vals = bn.nanmean(win_res,axis=0)
+        measured_stds = bn.nanstd(win_res,axis=0)
+        # print win_res
+        # print measured_vals
+        # print measured_stds
+        # raw_input('')
+        results[i,:,0] = measured_vals
+        results[i,:,1] = measured_stds    
+        
+    ax0.legend(loc=0,frameon=False,fontsize=10,title='Window')
+    fig = plt.figure(figsize=(8,10))
+    fig.suptitle('{}\nSNR={}'.format(time.asctime(),SNR))
+    ax = fig.add_subplot(211)
+    ax.set_xlabel('Window (1-X/X)')
+    ax.set_ylabel('SNR')
+    ax2 = fig.add_subplot(212)
+    ax2.set_xlabel('Window (1-X/X)')
+    ax2.set_ylabel('$\mu_{i,meas}/\mu_{i,true}$')
+
+    for i in range(4):
+        sn =  np.sqrt((results[:,i,0]/results[:,i,1])**2)
+        ax.plot(windows,sn,label='$\mu_{{{}}}$'.format(i+1))
+        ax2.plot(windows,results[:,i,0]/true_moments[i],label='$\mu_{{{}}}$'.format(i+1))
+        
+    ax2.legend(loc=0)
+    ax2.set_ylim(-5,5)
+    if output:
+        pp.savefig(fig)
+        pp.savefig(ax0.figure)
+        pp.close()
+    plt.close('all')
+    return windows, results, [fig, ax0.figure]
+
+def many_window(moment_list,SNRlist,output):
+
+    pp = PDF(output)
+    N = 1000
+    for SNR in SNRlist:
+        r = test_window(moment_list, N, SNR, False)
+        pp.savefig(r[-1][0])
+        pp.savefig(r[-1][1])
+    
+    pp.close()
+    return
