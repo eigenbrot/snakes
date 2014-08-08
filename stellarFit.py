@@ -157,16 +157,16 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
         loggalaxy, logLam1, velscale = pputil.log_rebin(lamRange1,galaxy)
         logerror, _, _ = pputil.log_rebin(lamRange1,noise)
 #        pyfits.PrimaryHDU(templates).writeto('templates.fits')
-        print velscale
+        print 'velscale:', velscale
 
         dv = (logLam2[0] - logLam1[0])*c
-        print dv
+        print 'dv:', dv
         vel = c*1.008246
         start = [0.,2.]
         loggalaxy /= np.median(loggalaxy)
         logerror /= np.median(loggalaxy)
         
-        goodfit = ADE.polyclip(np.arange(loggalaxy.size),loggalaxy,2)
+        goodfit = ADE.polyclip(np.arange(loggalaxy.size),loggalaxy,4)
         tmpgood = np.where(np.abs(loggalaxy - goodfit(np.arange(loggalaxy.size))) < \
                                   cut*np.std(loggalaxy))[0]
         tmpgood = tmpgood[tmpgood > pre]
@@ -199,6 +199,7 @@ def fitms(spectrum,error,template_list, out_prefix, cut=0.75, pre=0, mdegree=25,
 
         ax2 = fig.add_subplot(411)
         ax2.plot(np.exp(logLam1),plot_gal)
+        ax2.plot(np.exp(logLam1),goodfit(np.arange(plot_px.size)))
         ax2.add_collection(collection)
         ax2.add_collection(collection2)
 
@@ -296,7 +297,7 @@ def runtest(input_spectra,output_prefix):
     print 'Fitting templates...'
     error = '{}_error.{}'.format(input_spectra.split('.')[0],
                                 '.'.join(input_spectra.split('.')[1:]))
-    fitms(input_spectra,error,templates,output_prefix,cut=0.4,mdegree=0,degree=120)
+    fitms(input_spectra,error,templates,output_prefix,cut=1.,mdegree=25,degree=3)
 
     #grab the best fit, scale it by the slit function, and subtract it from
     #the OG spectra
