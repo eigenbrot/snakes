@@ -111,7 +111,6 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     fiber = fiber_HDU.data
     
     direct[np.where(direct < dir_cut)] = 0.0
-#    fiber[np.where(fiber < 300)] = 0.0
     
     if pot:
         # direct_time_str = direct_HDU.header['TIME-OBS']
@@ -313,8 +312,11 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     # tput_f5b = np.interp(rf5,f_r_c,f_EE)
     # tput_f4b = np.interp(rf4,f_r_c,f_EE)
 
-    tput_f5 = np.interp(rf5,f_rvec,f_ADUrate)/d_ADUf5
-    tput_f4 = np.interp(rf4,f_rvec,f_ADUrate)/d_ADUf4
+    f_ADUf5 = np.interp(rf5,f_rvec,f_ADUrate)
+    f_ADUf4 = np.interp(rf4,f_rvec,f_ADUrate)
+
+    tput_f5 = f_ADUf5/d_ADUf5
+    tput_f4 = f_ADUf4/d_ADUf4
     tput_f5b = np.interp(rf5,f_rvec,f_EE)
     tput_f4b = np.interp(rf4,f_rvec,f_EE)
     
@@ -336,21 +338,23 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
             direct_V,drawV = (1.0,1.0)
             fiber_V,frawV = (1.0,1.0)
         ax3 = fig.add_subplot(223)
-        ax3.plot(f_rvec,f_ADUrate/fiber_V,'g')
-        ax3.plot(d_rvec,d_ADUrate/direct_V,'b')
+        ax3.plot(f_rvec,f_ADUrate,'g')
+        ax3.plot(d_rvec,d_ADUrate,'b')
         ax3.set_xlabel('Radius [mm]')
-        ax3.set_ylabel('Count rate/voltage [ADU/(V s)]')
-        ax3.axvline(ls=':',x=rf4,color='b')
-        ax3.axvline(ls='--',x=rf4,color='g')
-        ax3.axhline(ls='--',y=sloanf/fiber_V,color='g')
-        ax3.axhline(ls=':',y=sloand/direct_V,color='b')
-        infostr = "\tFiber ratio at f/4 ({:}mm): {:8.4E}".format(rf4,sloanf/fiber_V)+\
-            "\n\tDirect ratio at f/4 ({}mm): {:8.4E}".format(rf4,sloand/direct_V)+\
-            "\n\tFiber counts/s at f/4: {:8.4E}".format(sloanf)+\
-            "\n\tDirect counts/s at f/4: {:8.4E}".format(sloand)+\
+        ax3.set_ylabel('Count rate [ADU/s]')
+        ax3.axvline(ls=':',x=rf32,color='b')
+        ax3.axvline(ls='--',x=rf32,color='g')
+        ax3.axvline(ls=':',x=rf4,color='k')
+        ax3.axvline(ls=':',x=rf5,color='k')
+        ax3.axhline(ls='--',y=sloanf,color='g')
+        ax3.axhline(ls=':',y=sloand,color='b')
+        infostr = "\tFiber ratio at f/3.2 ({:}mm): {:8.4E}".format(rf32,sloanf/fiber_V)+\
+            "\n\tDirect ratio at f/3.2 ({}mm): {:8.4E}".format(rf32,sloand/direct_V)+\
+            "\n\tFiber counts/s at (f/4, f/5): ({:8.4E}, {:8.4E})".format(f_ADUf4,f_ADUf5)+\
+            "\n\tDirect counts/s at (f/4, f/5): ({:8.4E}, {:8.4E})".format(d_ADUf4,d_ADUf5)+\
             "\n\tFiber voltages are : {:4.4f}".format(fiber_V)+\
             "\n\tDirect voltages are : {:4.4f}".format(direct_V)+\
-            "\n\tSloan metric is {}".format((sloanf*direct_V)/(sloand*fiber_V))+\
+            "\n\tSloan metric is {}".format(sloan_m)+\
             "\n\tFull direct is:  {:8.4E}".format(float(d_ADUrate.max()))+\
             "\n\tMax d_r_c value is: {:4.2f}".format(d_r_c.max())+\
             "\n\tr_ideal is: {:4.2f}".format(r_ideal)+\
@@ -1136,6 +1140,8 @@ def ring_helper(metric_file):
 def findring(pos):
     if pos.split(',')[0] == 'S':
         return int(pos.split(',')[1])
+    if pos.find(',') == -1:
+        return -1
     xpos, ypos = map(int,pos.split(','))
     
     return int(np.ceil(((xpos**2. + ypos**2.)/2.)**0.5))
