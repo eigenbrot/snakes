@@ -290,22 +290,20 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
     rf5 = FL/10.
     rf4 = FL/8.
     rf32 = FL/6.4
-    # if rf5 > d_r_c.max():
-    #     d_ADUf5 = d_ADUrate.max()
-    # else: d_ADUf5 = np.interp(rf5,d_r_c,d_ADUrate)
-        
-    # if rf4 > d_r_c.max():
-    #     #d_ADUf4 = d_ADUrate.max()
-    #     d_ADUf4 = np.interp(rf4,d_rvec,d_ADUrate)
-    #     print "Max value reached in radius at f/4. ({} > {})".format(rf4, d_r_c.max())
-    #     print "Uncorrected comparison: {} > {} ?".format(rf4, d_rvec.max())
-    # else: d_ADUf4 = np.interp(rf4,d_r_c,d_ADUrate)
-    
+    rf3 = FL/6.
+    rf47 = FL/9.4
+    # rf42 = FL/8.4
+    # rf4 = FL/8.
+    # rf38 = FL/7.6
+    # rf3 = FL/6.
+    rf_input = FL/(2.*FR)
+
     if rf4 > f_r_c.max():
         print "Max fiber radius reached at f/4. ({} > {})".format(rf4, f_r_c.max())
 
-    d_ADUf5 = np.interp(rf5,d_rvec,d_ADUrate)
-    d_ADUf4 = np.interp(rf4,d_rvec,d_ADUrate)
+#    d_ADU_input = np.interp(rf_input,d_rvec,d_ADUrate)
+        
+    d_ADU_input = d_ADUrate.max()
 
     # tput_f5 = np.interp(rf5,f_r_c,f_ADUrate)/d_ADUf5
     # tput_f4 = np.interp(rf4,f_r_c,f_ADUrate)/d_ADUf4
@@ -314,16 +312,29 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
 
     f_ADUf5 = np.interp(rf5,f_rvec,f_ADUrate)
     f_ADUf4 = np.interp(rf4,f_rvec,f_ADUrate)
+    f_ADUf3 = np.interp(rf3,f_rvec,f_ADUrate)
+    f_ADUf32 = np.interp(rf32,f_rvec,f_ADUrate)
+    f_ADUf47 = np.interp(rf47,f_rvec,f_ADUrate)
 
-    tput_f5 = f_ADUf5/d_ADUf5
-    tput_f4 = f_ADUf4/d_ADUf4
+    tput_f5 = f_ADUf5/d_ADU_input
+    tput_f4 = f_ADUf4/d_ADU_input
+    tput_f3 = f_ADUf3/d_ADU_input
+    tput_f32 = f_ADUf32/d_ADU_input
+    tput_f47 = f_ADUf47/d_ADU_input
+
+    # f_ADUf42 = np.interp(rf42,f_rvec,f_ADUrate)
+    # f_ADUf4 = np.interp(rf4,f_rvec,f_ADUrate)
+    # f_ADUf38 = np.interp(rf38,f_rvec,f_ADUrate)
+    # f_ADUf3 = np.interp(rf3,f_rvec,f_ADUrate)
+
+    # tput_f42 = f_ADUf42/d_ADU_input
+    # tput_f4 = f_ADUf4/d_ADU_input
+    # tput_f38 = f_ADUf38/d_ADU_input
+    # tput_f3 = f_ADUf3/d_ADU_input
+
     tput_f5b = np.interp(rf5,f_rvec,f_EE)
     tput_f4b = np.interp(rf4,f_rvec,f_EE)
-    
-    sloanf = np.interp(rf32,f_rvec,f_ADUrate)
-    sloand = np.interp(rf32,d_rvec,d_ADUrate)
-    sloan_m = sloanf/sloand
-    
+        
     r_ideal = FL/(2*FR)
     r_ideal_test = d_r_c[np.where(f_ADUrate == f_ADUrate.max())[0]]
     metric = np.interp(r_ideal, f_r_c, f_EE)
@@ -391,8 +402,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
                 +'# Filter: '+filt+'\n'
                 +'# Fiber input position: '+FP+'\n'
                 +'# Fiber output position: '+FO+'\n'
-                +'# Polish: '+polish+'\n'
-                +'# Throughput: '+str(tput_100)+'\n'
+                +'# Harness: '+polish+'\n'
+                +'# Total Throughput: '+str(tput_100)+'\n'
                 +'# Direct image cutoff: '+str(dir_cut)+'\n'
                 +'#\n'
                 +'# d_r     = aperture radius of direct beam (mm)\n'
@@ -435,8 +446,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
             f.write('\n')
         f.close()
         
-    return ((metric90,metric80,tput_100,sloan_m,
-            tput_f5,tput_f4,tput_f5b,tput_f4b),(d_N,d_N_c,f_N,f_N_c,d_EE,f_EE,f_EE_nd))
+    return ((metric90,metric80,tput_100,tput_f5,tput_f47,
+             tput_f4,tput_f32,tput_f3,tput_f5b,tput_f4b),(d_N,d_N_c,f_N,f_N_c,d_EE,f_EE,f_EE_nd))
 
 def soba(nood,num_ap,dir_cut,exten,pot,mfile):
 
@@ -470,19 +481,21 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             +'# {:10}= '.format('N90')+'fiber f/# at EE90\n'
             +'# {:10}= '.format('N82')+'fiber f/# at EE82\n'
             +'# {:10}= '.format('tput')+'total throughput\n'
-            +'# {:10}= '.format('sloan')+'fiber within f/3.2 / direct within f/3.2 (uncorrected)\n'
-            +'# {:10}= '.format('tput5')+'throughput at f/5 (uncorrected)\n'
+            +'# {:10}= '.format('tput5')+'fiber within f/5 / direct within input beam (uncorrected)\n'
+            +'# {:10}= '.format('tput47')+'throughput at f/4.7 (uncorrected)\n'
             +'# {:10}= '.format('tput4')+'throughput at f/4 (uncorrected)\n'
+            +'# {:10}= '.format('tput32')+'throughput at f/3.2 (uncorrected)\n'
+            +'# {:10}= '.format('tput3')+'throughput at f/3 (uncorrected)\n'
             +'# {:10}= '.format('EE5')+'fiber EE at f/5\n'
             +'# {:10}= '.format('EE4')+'fiber EE at f/4\n'
             +'#\n'
             +str('#{0:>10}{1:>10}{2:>9}{3:>9}{4:>9}{5:>9}{6:>9}{7:>9}'
-                 +'{8:>9}{9:>9}{10:>9}\n')\
-                .format('Fiber_pos','Out_pos','filt','N90','N82','tput','sloan',\
-                            'tput5','tput4','EE5','EE4')
+                 +'{8:>9}{9:>9}{10:>9}{11:>9}{12:>9}\n')\
+                .format('Fiber_pos','Out_pos','filt','N90','N82','tput','tput5',\
+                            'tput47','tput4','tput32','tput3','EE5','EE4')
             +str('#{0:>10}{1:>10}{2:>9}{3:>9}{4:>9}{5:>9}{6:>9}{7:>9}'
-                 +'{8:>9}{9:>9}{10:>9}\n')\
-                .format(1,2,3,4,5,6,7,8,9,10,11))
+                 +'{8:>9}{9:>9}{10:>9}{11:>9}{12:>9}\n')\
+                .format(1,2,3,4,5,6,7,8,9,10,11,12,13))
 
     hdulist = []
 
