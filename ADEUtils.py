@@ -784,7 +784,7 @@ def ADE_moments(x,p,threshold=np.inf,err=None):
 
     m3 = np.sum(norm_p * (x - m1)**3)/m2**1.5
     
-    m4 = np.sum(norm_p * (x - m1)**4)/m2**2 - 3.
+    m4 = np.sum(norm_p * (x - m1)**4)/m2**2.
 
     if err is not None:
         sum_err = np.sqrt(np.sum(norm_err**2))
