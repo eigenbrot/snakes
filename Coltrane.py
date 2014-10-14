@@ -2,7 +2,7 @@ import numpy as np
 import ADEUtils as ADE
 import ADESALT as sa
 import Salty2 as salty
-import drunkData as dd
+#import drunkData as dd
 import matplotlib
 import glob
 import time
@@ -14,7 +14,7 @@ plt = matplotlib.pyplot
 glob = glob.glob
 
 
-def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
+def moments_notice(slayfile, simfile, plotprefix=False,nofits=False,
                    flip=False, cent_lambda = 5048.126, skip_radii = []):
     '''Take an extracted spectrum (slayfile) and model galaxy (simfile) and
     compute the first 3 statistical moments for both at all radii sampled by
@@ -26,14 +26,15 @@ def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
     as possible. The exception is the first moment.
     '''
 
-    radii, rwidths, vwidths, m1, m2, m3 = drunkdata
+#    radii, rwidths, vwidths, m1, m2, m3 = drunkdata
+    radii, _, _ = sa.openslay(slayfile,flip=flip,moments=False)
 
-    big_dm1 = m1[0]
-    big_dm1e = m1[1]
-    big_dm2 = m2[0]
-    big_dm2e = m2[1]
-    big_dm3 = m3[0]
-    big_dm3e = m3[1]
+    big_dm1 = np.array([])
+    big_dm1e = np.array([])
+    big_dm2 = np.array([])
+    big_dm2e = np.array([])
+    big_dm3 = np.array([])
+    big_dm3e = np.array([])
     big_mm1 = np.array([])
     big_mm2 = np.array([])
     big_mm3 = np.array([])
@@ -41,36 +42,51 @@ def moments_notice(drunkdata, simfile, plotprefix=False,nofits=False,
     if plotprefix:
         pp = PDF(plotprefix+'_lines.pdf')
 
-    for radius, rwidth, vwidth in zip(radii,rwidths,vwidths):
+    for radius in radii:
         
         if int(np.floor(radius)) in skip_radii:
             print "user skipping radius {} kpc".format(radius)
             continue
 
+        dV, dI, derr, rwidth = sa.plot_line(slayfile,radius,verbose=False,
+                                            wavelength=cent_lambda,velo=True,
+                                            plot=False,baseline=1,flip=flip)
+
         mV, mI, _ = salty.line_profile(simfile,radius,plot=False,Iwidth=17,
                                        width=rwidth,observe=True,fit=False,
-                                       verbose=False,nofits=nofits) 
+                                       verbose=False,nofits=nofits)
 
         '''We need to compute the peak of the model line separately because we
         shifted it to find the window used for the higher order moments'''
-        (mpeak, _, _) = ADE.ADE_moments(mV,mI)
+        mpeak, mwidth, _, _ = ADE.ADE_moments(mV,mI)
+        vwidth = mwidth**0.5
 
-        vwidth = 135.
-        mpeak_V = mV[np.argmin(np.abs(mV - mpeak))]
-        lowV = mpeak_V - vwidth/2.
-        highV = mpeak_V + vwidth/2.
-        # cdf = np.cumsum(mI/np.sum(mI))
-        # lowV, highV = np.interp([0.005,0.995],cdf,mV)
+        mlowV = mpeak - vwidth/2.
+        mhighV = mpeak + vwidth/2.
         
-        mmoment_idx = np.where((mV >= lowV) & (mV <= highV))
-#        print vwidth, highV - lowV, mmoment_idx[0].size
+        mmoment_idx = np.where((mV >= mlowV) & (mV <= mhighV))
         mmoments = ADE.ADE_moments(mV[mmoment_idx],mI[mmoment_idx])
 
+        '''Now find the peak in the data'''
+        dpeak, _, _, _ = ADE.ADE_moments(dV,dI)
+        dlowV = dpeak - vwidth/2.
+        dhighV = dpeak + vwidth/2.
+        dmoment_idx = np.where((dV >= dlowV) & (dV <= dhighV))
+        dmoments, derr = ADE.ADE_moments(dV[dmoment_idx],dI[dmoment_idx],err=derr[dmoment_idx])
+
+        if dmoment_idx[0].size == 0 or mmoment_idx[0].size ==0:
+            continue
         
 #        print mmoments
-        big_mm1 = np.append(big_mm1,mpeak)
+        big_mm1 = np.append(big_mm1,mmoments[0])
         big_mm2 = np.append(big_mm2,np.sqrt(mmoments[1]))
         big_mm3 = np.append(big_mm3,mmoments[2])
+        big_dm1 = np.append(big_dm1,dmoments[0])
+        big_dm1e = np.append(big_dm1e,derr[0])
+        big_dm2 = np.append(big_dm2,dmoments[1])
+        big_dm2e = np.append(big_dm2e,derr[1])
+        big_dm3 = np.append(big_dm3,dmoments[2])
+        big_dm3e = np.append(big_dm3e,derr[2])
 
         plot_radii = np.append(plot_radii,radius)
 
@@ -117,7 +133,7 @@ def giant_steps(slay_file, simstring, parameter_list,skip_radii=[]):
     
     return par1_arr, par2_arr, value_arr
 
-def cutting_session(drunkdict, output_file, 
+def cutting_session(slaydict, output_file, 
                     pars=[239.,5.5,1.62,8.43,0.43], name='boring',
                     size=1001,fixed=[],flare=False):
     '''Use an amoeba algorithm to find a model galaxy that is the best fit (in
@@ -125,7 +141,7 @@ def cutting_session(drunkdict, output_file,
     simultaneously with judicious use of the slay dict, which is expected to
     have the following format:
     
-        drunkdict = {hight: ['drunkfile.fits',Flip_boolean,[skip_radii]]},
+        slaydict = {hight: ['slayfile.fits',Flip_boolean,[skip_radii]]},
 
     where height is a number (in scale heights) and Flip_boolean tells the
     program it needs to flip the radii around zero.
@@ -155,14 +171,14 @@ def cutting_session(drunkdict, output_file,
             +'# pars: {}\n'.format(pars)
             +'# p0: {}\n'.format(p0))
 
-    datadict = {}
-    for z in drunkdict.keys():
-        datadict[z] = [dd.open_drunk(drunkdict[z][0],
-                                     skip_radii=drunkdict[z][2]),
-                       drunkdict[z][1],
-                       drunkdict[z][2]]
+    # datadict = {}
+    # for z in slaydict.keys():
+    #     datadict[z] = [dd.open_drunk(drunkdict[z][0],
+    #                                  skip_radii=drunkdict[z][2]),
+    #                    drunkdict[z][1],
+    #                    drunkdict[z][2]]
     print "minimizing..."
-    pf = spo.fmin(solo,p0,args=(datadict,name,f,size,pars,fixed,flare))
+    pf = spo.fmin(solo,p0,args=(slaydict,name,f,size,pars,fixed,flare))
     
     pfl = list(pf)
 
@@ -178,15 +194,15 @@ def cutting_session(drunkdict, output_file,
     else:
         flarepars = None
 
-    for z in datadict.keys():
+    for z in slaydict.keys():
         simfile = make_boring([parsf[0]],[parsf[1]],name='final_'+name,
                               size=size,z=z,
                               h_dust=parsf[3],kappa_0=parsf[2],z_d=parsf[4],
                               flarepars=flarepars)[0]
         
-        bar = moments_notice(datadict[z][0],simfile,
-                             skip_radii=datadict[z][2],
-                             flip=datadict[z][1])
+        bar = moments_notice(slaydict[z][0],simfile,
+                             skip_radii=slaydict[z][2],
+                             flip=slaydict[z][1])
         bar_dict[z] = bar
 
         for moment in bar[1:]:
@@ -197,7 +213,7 @@ def cutting_session(drunkdict, output_file,
         
     return parsf, bar_dict, value
 
-def solo(p,datadict,name,output_file,size,par0,fixed,flare):
+def solo(p,slaydict,name,output_file,size,par0,fixed,flare):
     '''This is the minimizing function that is called by cutting_session. It
     constructs the necessary model galaxies, computes the moments of the
     lines, and returns a reduce chi squared value quantifying the goodness of
@@ -220,17 +236,17 @@ def solo(p,datadict,name,output_file,size,par0,fixed,flare):
 
     output_file.write(str('{:11.4f} '*len(pars)).format(*pars))
 
-    for z in datadict.keys():
+    for z in slaydict.keys():
         
         simfile = make_boring([pars[0]],[pars[1]],name=name,size=size,z=z,
                               h_dust=pars[3],kappa_0=pars[2],z_d=pars[4],
                               flarepars=flarepars,nofits=True)[0]
         
-        radii, m1, m2, m3 = moments_notice(datadict[z][0],simfile,
-                                           skip_radii=datadict[z][2],
-                                           flip=datadict[z][1],nofits=True)
+        radii, m1, m2, m3 = moments_notice(slaydict[z][0],simfile,
+                                           skip_radii=slaydict[z][2],
+                                           flip=slaydict[z][1],nofits=True)
 
-        for moment in [m1,m2]:#m1,m2,m3]:
+        for moment in [m1]:#m1,m2,m3]:
             red_chi = (moment[0] - moment[2])/moment[1]
             output_file.write('{:11.4f} '.format(bn.nansum(red_chi**2)))
             chis = np.r_[chis,red_chi]
