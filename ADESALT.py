@@ -467,7 +467,7 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     avg_centers = np.sum(amps*velocenters,axis=1)/np.sum(amps,axis=1)
     std_centers = np.std(velocenters,axis=1)
 
-    #offset = helpoff(pxradii,avg_centers)
+    offset = helpoff(pxradii,avg_centers)
     #offset = 271.750855446
     offset = 267.0
     print "Offset is "+str(offset)
@@ -509,12 +509,12 @@ def helpoff(radii,centers):
     pidx = np.where(radii >= 0.0)
     nidx = np.where(radii < 0.0)
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(radii[pidx],np.abs(centers[pidx]))
-    ax.plot(np.abs(radii[nidx]),np.abs(centers[nidx]))
-    fig.show()
-    raw_input('asdas')
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.plot(radii[pidx],np.abs(centers[pidx]))
+    # ax.plot(np.abs(radii[nidx]),np.abs(centers[nidx]))
+    # fig.show()
+    # raw_input('asdas')
     return xf[0]
 
 def offunc(x,radii,centers):
@@ -555,7 +555,7 @@ def offunc(x,radii,centers):
 def plot_line(datafile,radius,wavelength=5048.126,ax=False,
               central_lambda=[4901.416,5048.126],flip=False,
               plot=True,window=20,velo=False,baseline=False,
-              **plotargs):
+              verbose=True,**plotargs):
     """ Plots a single line from a .ms file. It also needs a corresponding
     .slay file to get the pixel -> kpc radius conversion.
 
@@ -598,7 +598,8 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     pxradii = pyfits.open(slayfile)[3].data
 
     row = np.where(np.abs(kpcradii-radius) == np.min(np.abs(kpcradii-radius)))[0][0]
-    print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
+    if verbose:
+        print "using pixel value {} where radius is {} kpc".format(pxradii[row],kpcradii[row])
 
     datahdus = pyfits.open(datafile)
     hdu = datahdus[0]
@@ -614,7 +615,8 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     rwidthpx = np.diff(np.array([int(s) for s in hdu.header['APNUM{}'.format(row+1)].split()[2:]]))[0]
     rwidth = rwidthpx*0.118*8. # 0.118 "/px (from KN 11.29.12) times 8x binning
     rwidth *= 34.1e3/206265. # distance (34.1Mpc) / 206265"
-    print 'rwidth = {} px ({} kpc)'.format(rwidthpx,rwidth)
+    if verbose:
+        print 'rwidth = {} px ({} kpc)'.format(rwidthpx,rwidth)
 
     # We use '=f8' to force the endianess to be the same as the local
     # machine. This is so the precompiled bottleneck (bn) functions don't
@@ -964,3 +966,63 @@ def contiuumSN(spec_image, err_image, window=[100,200],
     pyfits.PrimaryHDU(np.vstack(errlist),header).writeto(error_output,clobber=True)
 
     return
+
+def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, order=4):
+    '''Take a slayfile and plot the 0th order moment (i.e., intensity) as a
+    function of radius. Intensity is defined just as the sum of the flux
+    within a window width (in km/s) defined by the user.'''
+
+    radii, _, _ = openslay(slayfile,flip=flip)
+
+    plot_radii = np.array([])
+    intensity = np.array([])
+    error = np.array([])
+    
+    for radius in radii:
+        V, I, err, _ = plot_line(slayfile,radius,wavelength=wavelength,
+                                 velo=True,plot=False,baseline=False,
+                                 window=window*2.,flip=flip)
+        err *= 2.
+        moments, merr = ADE.ADE_moments(V,I,err=err)
+        lowV = moments[0] - window/2.
+        highV = moments[0] + window/2.
+
+        idx = np.where((V >= lowV) & (V <= highV))
+        intensity = np.append(intensity, np.sum(I[idx]))
+        error = np.append(error, np.sqrt(np.sum(err[idx]**2)))
+        plot_radii = np.append(plot_radii,radius)
+
+
+        
+    negradius = plot_radii[plot_radii < 0]
+    posradius = plot_radii[plot_radii >= 0]
+    fullpoly = ADE.polyclip(plot_radii,intensity,order)
+    negpoly = ADE.polyclip(negradius, intensity[plot_radii < 0],order)
+    pospoly = ADE.polyclip(posradius, intensity[plot_radii >= 0],order)
+
+    ax = plt.figure().add_subplot(211)
+    ax2 = ax.figure.add_subplot(212)
+    ax.figure.subplots_adjust(hspace=0.0001)
+    ax.figure.suptitle('Generated on {}'.format(time.asctime()))
+    ax.set_ylabel('$\mu_0$ [ADU]')
+    ax.xaxis.set_ticks([])
+    ax2.set_xlabel('Radius [kpc]')
+    ax2.set_ylabel('Difference')
+    ax.errorbar(plot_radii,intensity,yerr=error,fmt='.',ms=10)
+    full = ax.plot(plot_radii,fullpoly(plot_radii))
+    pos = ax.plot(posradius,pospoly(plot_radii[plot_radii >= 0]))
+    neg = ax.plot(negradius,negpoly(plot_radii[plot_radii < 0]))
+
+    ax2.plot(plot_radii,fullpoly(plot_radii) - intensity,'.',ms=10,color=full[0].get_color())
+    ax2.plot(posradius,pospoly(posradius) - intensity[plot_radii >= 0],
+             '.',ms=10,color=pos[0].get_color())
+    ax2.plot(negradius,negpoly(negradius) - intensity[plot_radii < 0],
+             '.',ms=10,color=neg[0].get_color())
+
+    ax.figure.show()
+
+    pp = PDF(output)
+    pp.savefig(ax.figure)
+    pp.close()
+
+    return plot_radii, intensity, error
