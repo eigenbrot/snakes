@@ -467,9 +467,10 @@ def openslay(datafile,central_lambda=[4901.416,5048.126],flip=False,moments=Fals
     avg_centers = np.sum(amps*velocenters,axis=1)/np.sum(amps,axis=1)
     std_centers = np.std(velocenters,axis=1)
 
-    offset = helpoff(pxradii,avg_centers)
+#    offset = helpoff(pxradii,avg_centers)
     #offset = 271.750855446
-    offset = 267.0
+    #offset = 267.0
+    offset = 240.0
     print "Offset is "+str(offset)
     
     kpcradii = pxradii - offset
@@ -708,13 +709,13 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
     
     if ax is not None:
         ax.errorbar(V,I,yerr=err)
-        ax.axvline(x=newcent)
+        ax.axvline(x=newcent,ls=':')
         ax.axhline(y=skyfit)
         ax.axvspan(lowV,highV,color='r',alpha=0.3)
         ax.axvspan(V[skidx[0][0]],V[idx[0][0]],color='g',alpha=0.3)
         ax.axvspan(V[idx[0][-1]],V[skidx[0][-1]],color='g',alpha=0.3)
 
-    return V, I, err
+    return V, I, err, newcent, skyfit
 
 def plot_row(msfile,rownum,smooth=False,ax=False):
     """
@@ -1020,7 +1021,9 @@ def contiuumSN(spec_image, err_image, window=[100,200],
 
     return
 
-def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, order=4,skywindow=400):
+def zeroshiki(slayfile, output, skipradii, 
+              wavelength=5048.126, window=400., flip=False, 
+              order=4,skywindow=400, widthfactor=1):
     '''Take a slayfile and plot the 0th order moment (i.e., intensity) as a
     function of radius. Intensity is defined just as the sum of the flux
     within a window width (in km/s) defined by the user.'''
@@ -1032,18 +1035,20 @@ def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, or
     error = np.array([])
     
     BBdata = pyfits.open('ESO_Bplate_gal2.fits')[0].data
-    BBprofile = np.sum(BBdata,axis=0)
+    BBprofile = np.sum(BBdata + 2356,axis=0)
     BBradius = np.arange(BBprofile.size) - 130.
     BBradius *= -1.
-    BBradius *= 1.6 #in arcsec
+    BBradius *= 1.2 #in arcsec
     BBradius *= 34.1e3/206265. #Distance in kpc divided by arcsec thing
     BBprofile /= 1000.*BBdata.shape[1] #now in mags
     BBprofile *= 8.98
-    BBprofile += 23.56
+#    BBprofile += 23.56
 
     po = PDF(output+'_lines.pdf')
 
     for radius in radii:
+        if int(radius) in skipradii:
+            continue
         V, I, err, _ = plot_line(slayfile,radius,wavelength=wavelength,
                                  velo=True,plot=False,baseline=False,
                                  window=60,flip=flip)
@@ -1054,23 +1059,36 @@ def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, or
         ax.set_ylabel('Intensity [ADU]')
         ax.set_title('r = {:4.2f} kpc'.format(radius))
 
-        V, I, err = sky_subtract(V,I,err,window=window,skywindow=skywindow,threshold=5.,ax=ax)
-        moments, merr = ADE.ADE_moments(V,I,err=err)
-        lowV = moments[0] - window/2.
-        highV = moments[0] + window/2.
+        V, I, err, cent, skylevel = sky_subtract(V,I,err,window=window,skywindow=skywindow,
+                                                 threshold=5.,ax=ax)
+        lowV = cent - window/4.
+        highV = cent + window/4.
 
         idx = np.where((V >= lowV) & (V <= highV))
+        moments, merr = ADE.ADE_moments(V[idx],I[idx]+100,err=err[idx])
+        lowV2 = moments[0] - np.sqrt(moments[1])*widthfactor
+        highV2 = moments[0] + np.sqrt(moments[1])*widthfactor
+        print moments[1], lowV2, highV2
+        idx2 = np.where((V >= lowV2) & (V <= highV2))
+        # ax.axvline(x=lowV,ls=':')
+        # ax.axvline(x=highV,ls=':')
+        ax.axvline(x=lowV2,ls='-',color='g')
+        ax.axvline(x=highV2,ls='-',color='g')
 
         po.savefig(ax.figure)
         del ax.figure
 
-        intensity = np.append(intensity, np.sum(I[idx]))
-        error = np.append(error, np.sqrt(np.sum(err[idx]**2)))
+        intensity = np.append(intensity, np.sum(I[idx2]))
+        error = np.append(error, np.sqrt(np.sum(err[idx2]**2)))
         plot_radii = np.append(plot_radii,radius)
 
 
+    print intensity
+    pidx = np.where(intensity > 0)
+    plot_radii = plot_radii[pidx]
     po.close()
-    intensity = np.log10(intensity)#/np.log10(2.51)
+    error = error[pidx]/intensity[pidx]
+    intensity = np.log10(intensity[pidx])#/np.log10(2.51)
     intensity -= intensity.min() - BBprofile.min()
     negradius = plot_radii[plot_radii < 0]
     posradius = plot_radii[plot_radii >= 0]
@@ -1078,6 +1096,7 @@ def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, or
     negpoly = ADE.polyclip(negradius, intensity[plot_radii < 0],order)
     pospoly = ADE.polyclip(posradius, intensity[plot_radii >= 0],order)
 
+    print intensity
     ax = plt.figure().add_subplot(111)
 #    ax2 = ax.figure.add_subplot(212)
 
@@ -1087,8 +1106,8 @@ def zeroshiki(slayfile, output, wavelength=5048.126, window=400., flip=False, or
     #ax.xaxis.set_ticks([])
     ax.set_xlabel('Radius [kpc]')
     # ax2.set_ylabel('Difference')
-    #ax.errorbar(plot_radii,intensity,yerr=error,fmt='.',ms=10)
-    ax.plot(plot_radii,intensity)
+    ax.errorbar(plot_radii,intensity,yerr=error,fmt='.',ms=10)
+    ax.plot(plot_radii,intensity,':b',alpha=0.7)
     ax.plot(BBradius,BBprofile)
     # full = ax.plot(plot_radii,fullpoly(plot_radii))
     # pos = ax.plot(posradius,pospoly(plot_radii[plot_radii >= 0]))
