@@ -697,6 +697,8 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
         idx = np.where((V >= lowV) & (V <= highV))
         skidx = np.where((V < lowV) & (V >= lowV - skywindow) |\
                              (V > highV) & (V <= highV + skywindow))
+        if idx[0].size == 0:
+            idx = ([0,1],)
         if skidx[0].size == 0:
             skfit = 0
             skidx = ([0,-1],)
@@ -711,7 +713,7 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
         ax.errorbar(V,I,yerr=err)
         ax.axvline(x=newcent,ls=':')
         ax.axhline(y=skyfit)
-        ax.axvspan(lowV,highV,color='r',alpha=0.3)
+        ax.axvspan(V[idx[0][0]],V[idx[0][-1]],color='r',alpha=0.3)
         ax.axvspan(V[skidx[0][0]],V[idx[0][0]],color='g',alpha=0.3)
         ax.axvspan(V[idx[0][-1]],V[skidx[0][-1]],color='g',alpha=0.3)
 
@@ -1034,15 +1036,17 @@ def zeroshiki(slayfile, output, skipradii,
     intensity = np.array([])
     error = np.array([])
     
-    BBdata = pyfits.open('ESO_Bplate_gal2.fits')[0].data
-    BBprofile = np.sum(BBdata + 2356,axis=0)
+    BBdata = pyfits.open('ESO_Bplate_gal3.fits')[0].data
+    BBdata /= -1000. #now in mags/arcsec^2
+    BBsky = 23.56 #surface brightness
+    BBflux = 10**(BBdata/-2.5) #flux surface density
+    BBskyflux = 10**(BBsky/-2.5)
+    BBsig = BBflux - BBskyflux
+    BBprofile = -2.5*np.log10(np.sum(BBsig,axis=0)) #surface brightnesse
     BBradius = np.arange(BBprofile.size) - 130.
     BBradius *= -1.
     BBradius *= 1.2 #in arcsec
     BBradius *= 34.1e3/206265. #Distance in kpc divided by arcsec thing
-    BBprofile /= 1000.*BBdata.shape[1] #now in mags
-    BBprofile *= 8.98
-#    BBprofile += 23.56
 
     po = PDF(output+'_lines.pdf')
 
@@ -1061,8 +1065,8 @@ def zeroshiki(slayfile, output, skipradii,
 
         V, I, err, cent, skylevel = sky_subtract(V,I,err,window=window,skywindow=skywindow,
                                                  threshold=5.,ax=ax)
-        lowV = cent - window/4.
-        highV = cent + window/4.
+        lowV = cent - window/2.
+        highV = cent + window/2.
 
         idx = np.where((V >= lowV) & (V <= highV))
         moments, merr = ADE.ADE_moments(V[idx],I[idx]+100,err=err[idx])
@@ -1083,13 +1087,15 @@ def zeroshiki(slayfile, output, skipradii,
         plot_radii = np.append(plot_radii,radius)
 
 
-    print intensity
+    intensity /= 9*1.5 #area of slit*radial binsize, in arcsec
+    error /= 9*1.5
     pidx = np.where(intensity > 0)
     plot_radii = plot_radii[pidx]
     po.close()
-    error = error[pidx]/intensity[pidx]
-    intensity = np.log10(intensity[pidx])#/np.log10(2.51)
-    intensity -= intensity.min() - BBprofile.min()
+    error = -2.5*error[pidx]/intensity[pidx]
+    intensity = -2.5*np.log10(intensity[pidx])
+#    intensity -= intensity.min() - BBprofile.min()
+    intensity += 25.5
     negradius = plot_radii[plot_radii < 0]
     posradius = plot_radii[plot_radii >= 0]
     fullpoly = ADE.polyclip(plot_radii,intensity,order)
@@ -1102,7 +1108,8 @@ def zeroshiki(slayfile, output, skipradii,
 
     ax.figure.subplots_adjust(hspace=0.0001)
     ax.figure.suptitle('Generated on {}'.format(time.asctime()))
-    ax.set_ylabel('Log($\mu_0$) [arbitrary zero]')
+    ax.set_ylabel('mag/arcsec$^2$ (arbitrary zero)')
+    ax.invert_yaxis()
     #ax.xaxis.set_ticks([])
     ax.set_xlabel('Radius [kpc]')
     # ax2.set_ylabel('Difference')
