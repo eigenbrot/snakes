@@ -624,8 +624,10 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     # complain
     if seperr:
         spectrum = np.array(hdu.data[row],dtype='=f8')
-        errorfile = '{}_error.{}'.format(datafile.split('.')[0],
-                                         '.'.join(datafile.split('.')[1:]))
+        errorfile = '{}_error.{}'.format(os.path.basename(datafile).split('.')[0],
+                                         '.'.join(os.path.basename(datafile).split('.')[1:]))
+        if os.path.dirname(datafile) != '':
+            errorfile = '{}/{}'.format(os.path.dirname(datafile),errorfile)
         error = pyfits.open(errorfile)[0].data[row]
     else:
         spectrum = np.array(hdu.data[row*2],dtype='=f8')
@@ -675,6 +677,7 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
     from the old line center the sky subtraction is considered complete.
     """
     I = np.copy(Iin)
+    skylevel = 0.0
     if ax is not None:
         ax.plot(V,I)
     lowV = -1*window/2.
@@ -687,6 +690,7 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
     skyfit = bn.nanmean(I[skidx])
     ax.axhline(y=skyfit)
     I -= skyfit
+    skylevel += skyfit
     newcent = ADE.ADE_moments(V[idx],I[idx])[0]
     print 'old: {}, new: {}'.format(oldcent,newcent)
     n = 0
@@ -701,10 +705,11 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
             idx = ([0,1],)
         if skidx[0].size == 0:
             skfit = 0
-            skidx = ([0,-1],)
+            skidx = (np.array([0,-1]),)
         else:
             skyfit = bn.nanmean(I[skidx])
         I -= skyfit
+        skylevel += skyfit
         newcent = ADE.ADE_moments(V[idx],I[idx])[0]
         print '{}: old: {}, new: {}'.format(n,oldcent,newcent)
         n += 1
@@ -717,7 +722,7 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
         ax.axvspan(V[skidx[0][0]],V[idx[0][0]],color='g',alpha=0.3)
         ax.axvspan(V[idx[0][-1]],V[skidx[0][-1]],color='g',alpha=0.3)
 
-    return V, I, err, newcent, skyfit
+    return V, I, err, newcent, skylevel
 
 def plot_row(msfile,rownum,smooth=False,ax=False):
     """
@@ -1034,9 +1039,10 @@ def zeroshiki(slayfile, output, skipradii,
 
     plot_radii = np.array([])
     intensity = np.array([])
+    background = np.array([])
     error = np.array([])
     
-    BBdata = pyfits.open('ESO_Bplate_gal3.fits')[0].data
+    BBdata = pyfits.open('../ESO_Bplate_gal3.fits')[0].data
     BBdata /= -1000. #now in mags/arcsec^2
     BBsky = 23.56 #surface brightness
     BBflux = 10**(BBdata/-2.5) #flux surface density
@@ -1084,23 +1090,27 @@ def zeroshiki(slayfile, output, skipradii,
 
         intensity = np.append(intensity, np.sum(I[idx2]))
         error = np.append(error, np.sqrt(np.sum(err[idx2]**2)))
+        background = np.append(background,skylevel*idx2[0].size)
         plot_radii = np.append(plot_radii,radius)
 
 
     intensity /= 9*1.5 #area of slit*radial binsize, in arcsec
     error /= 9*1.5
+    background /= 9*1.5
     pidx = np.where(intensity > 0)
     plot_radii = plot_radii[pidx]
     po.close()
     error = -2.5*error[pidx]/intensity[pidx]
     intensity = -2.5*np.log10(intensity[pidx])
+    background = -2.5*np.log10(background[pidx])
 #    intensity -= intensity.min() - BBprofile.min()
     intensity += 25.5
-    negradius = plot_radii[plot_radii < 0]
-    posradius = plot_radii[plot_radii >= 0]
-    fullpoly = ADE.polyclip(plot_radii,intensity,order)
-    negpoly = ADE.polyclip(negradius, intensity[plot_radii < 0],order)
-    pospoly = ADE.polyclip(posradius, intensity[plot_radii >= 0],order)
+    background += 25.5
+    # negradius = plot_radii[plot_radii < 0]
+    # posradius = plot_radii[plot_radii >= 0]
+    # fullpoly = ADE.polyclip(plot_radii,intensity,order)
+    # negpoly = ADE.polyclip(negradius, intensity[plot_radii < 0],order)
+    # pospoly = ADE.polyclip(posradius, intensity[plot_radii >= 0],order)
 
     print intensity
     ax = plt.figure().add_subplot(111)
@@ -1116,6 +1126,7 @@ def zeroshiki(slayfile, output, skipradii,
     ax.errorbar(plot_radii,intensity,yerr=error,fmt='.',ms=10)
     ax.plot(plot_radii,intensity,':b',alpha=0.7)
     ax.plot(BBradius,BBprofile)
+    ax.plot(plot_radii,background,'--b',alpha=0.8)
     # full = ax.plot(plot_radii,fullpoly(plot_radii))
     # pos = ax.plot(posradius,pospoly(plot_radii[plot_radii >= 0]))
     # neg = ax.plot(negradius,negpoly(plot_radii[plot_radii < 0]))
