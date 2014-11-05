@@ -11,7 +11,7 @@ import gc
 import ADEUtils as ADE
 from PyGalPot import PyGalPot as PGP
 from datetime import datetime
-#from matplotlib.backends.backend_pdf import PdfPages as PDF
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 import time
 from ADESALT import openslay, plot_curve
 
@@ -136,6 +136,12 @@ def simcurve(size,Z,v_r,h_rot,
 #    kappa_0 = 0.652 #=\tau/2z_d units are kpc^-1
     h_s = 5.22 #kpc
     h_z = 0.40 #kpc scale height
+    I_0 = 19.48 #mag/arcsec^2, from Xilouris
+    I_0 = 3640*0.16*121*1e6*10.**(-0.4*I_0) #V band m=0 flux * nepers * SALT area * 1e6 for microJy
+                                            #  in photons/sec/arcsec^2
+    I_0 /= (34.1e3/206265)**2 #photons/sec/kpc^2
+    I_0 *= scale #photons/sec/px
+
 #    z_d = 0.23 #kpc dust scale height
 
     #N needs to be an integer
@@ -144,13 +150,17 @@ def simcurve(size,Z,v_r,h_rot,
     # else: N = 6
 
     #This array holds the opacity of each bin
-    kaparray = np.exp(-1*(distances/h_dust))
+#    kaparray = np.exp(-1*(distances/h_dust))
+    kaparray = np.ones(distances.shape)
+#    kaparray = h_dust/distances**0.5
     kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray[size/2,size/2]
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
     # total normalization is irrelevant
-    Iarray = np.exp(-1*(distances/h_s))
-    Iarray *= np.exp(-1*(np.abs(Z)/h_z))
+#    Iarray = np.exp(-1*(distances/h_s))
+    Iarray = np.ones(distances.shape)
+#    Iarray = h_s/distances**0.5
+    Iarray *= I_0 * np.exp(-1*(np.abs(Z)/h_z)) / Iarray[size/2,size/2]
 
     # Now add whatever morphological extras the user desires
     if spiralpars:
@@ -486,80 +496,48 @@ def line_profile(fitsfile,radius,Iwidth=17.,
 
     if nofits:
         vs, frac, dist = fitsfile
+        scale = np.mean(np.diff(dist[int(dist.shape[0]/2.),:]))
     else:
         hdus = pyfits.open(fitsfile)
         vs = hdus['V_S'].data
         frac = hdus[0].data
         dist = hdus['DIST'].data
+        scale = hdus[0].header['SCALE']
 
-    col1 = radius_to_column(dist,radius - width/2)
-    col2 = radius_to_column(dist,radius + width/2)
+    col1 = radius_to_column(dist,radius - width/2,verbose=verbose)
+    col2 = radius_to_column(dist,radius + width/2,verbose=verbose)
 
     '''in this case, the desired width was less than the pixel resolution of
     the simulation'''
     if col1 == col2:
         col2 += 1
-        if verbose: print 'Desired width is less than simulation resolution. Using a width of {} kpc instead'.format(hdus[0].header['SCALE'])
+        if verbose: print 'Desired width is less than simulation resolution. Using a width of {} kpc instead'.format(scale)
 
-    numsamp = 1000
+    numsamp = 10000
+    vsm = np.mean(vs[:,col1:col2],axis=1)
+    binin = np.linspace(vsm.min()-200,vsm.max()+200,numsamp+1)
 
     if verbose: print 'building histogram'
     vhist, bins = np.histogram(
-        np.mean(vs[:,col1:col2],axis=1),
-        bins=20,
+        vsm,
+        bins=binin,
         weights=np.mean(frac[:,col1:col2],axis=1),
-        density=True)
+        density=False)
     bincent = 0.5*(bins[1:]+bins[:-1])
-    v = np.linspace(bincent.min()-200.,bincent.max()+200,numsamp)
-    ihist = np.interp(v,bincent,vhist,right=0.0,left=0.0)
-    gauss_arr = np.empty(numsamp)
+    print bincent.size
 
-    if plot:
-        if ax:
-            ax0 = ax
-        else:
-            fig0 = plt.figure()
-            ax0 = fig0.add_subplot(111)
-            ax0.set_xlabel('Velocity [km/s]')
-            ax0.set_ylabel('Flux')
-        #ax0.plot(v,ihist,'-',label=axlabel)
-        #fig0.show()
-        #raw_input('asdas')
-
-    scale = np.mean(np.diff(v))
+    scale = np.mean(np.diff(bincent))
     if verbose: print scale
     Iwidthpx = Iwidth/scale
     _, kernel = ADE.ADE_gauss(numsamp,numsamp/2-1,0,FWHM=Iwidthpx,NORM=True)
     if verbose: print kernel.sum()
-#    ADE.eplot(np.arange(kernel.size)*scale,kernel)
-    lineshape = np.convolve(kernel,ihist,'same')
+    lineshape = np.convolve(kernel,vhist,'same')
+    if verbose: print np.sum(lineshape), np.sum(vhist)
 
-#     if verbose: print 'building {} gaussians'.format(ihist.size)
-#     for i in range(ihist.size):
-# #        if verbose: print ihist[i]
-#         if verbose: print i
-#         r, gauss = ADE.ADE_gauss(numsamp,i,0.,PEAK_VAL=ihist[i]+0.0000001,FWHM=Iwidth/scale,NORM=False)
-#         gauss_arr = np.vstack((gauss_arr,gauss))
-#         if i % 25 == 0 and plot and comp: 
-#             ax0.plot(v,gauss,'--',alpha=1)
-#     return ax0
-#if plot: 
-#       fig0.show()
-#       raw_input('asdas')
-    # gauss_arr = gauss_arr[1:]
-
-    # gauss_arr /= np.sum(gauss_arr)
-
-    # lineshape2 = np.sum(gauss_arr,axis=0)
 
     if observe:
         if verbose: print 'simulating effects of RSS'
         v, lineshape = observify(v,lineshape)
-        #ax0.plot(v,lineshape,'-',label=axlabel)
-        #return ax0
-#        ov, lineshape2 = observify(v,lineshape2)
-    # else:
-    #     ov = v
         
     if fit:
         if verbose: print 'fitting'
@@ -577,10 +555,10 @@ def line_profile(fitsfile,radius,Iwidth=17.,
     if plot:
         fig = plt.figure()
         ax = fig.add_subplot(111)
-    #    ax.plot(bincent,vhist,'.')
+        ax.plot(bincent,vhist,'-')
         ax.set_xlabel('Velocity [km/s]')
         ax.set_ylabel('Flux')
-        ax.plot(v,lineshape/lineshape.sum())
+        ax.plot(bincent,lineshape)#/lineshape.sum())
 #        ax.plot(ov,lineshape2/lineshape2.sum(),':')
         if fit:
             ax.plot(v,mgauss)
@@ -593,12 +571,12 @@ def line_profile(fitsfile,radius,Iwidth=17.,
         del dist
     else:
         hdus.close()
-    del gauss_arr
-    return v, lineshape, fitpars
+
+    return bincent, lineshape, fitpars
 
 def gaussfunc(x,peak,center,width): return peak*np.exp(-1*(x - center)**2/(2*width**2))
 
-def radius_to_column(dist,radius):
+def radius_to_column(dist,radius,verbose=False):
     '''a small helper function to convert a radius (in kpc) into a column
     index that can be used to access various arrays produced by simcurve'''
     
@@ -904,7 +882,6 @@ def make_sims0():
 
     return
 
-
 def make_sims(galaxy):
 
     for ff in [0,0.96,1.93,3.86]:
@@ -923,3 +900,53 @@ def make_sims(galaxy):
                  scale=0.0999,output=out2)
 
     return
+
+def brightness_profile(simdata,output,widthfactor=1.):
+    
+    vs, frac, dist = simdata
+
+    lineout = PDF('{}_lines.pdf'.format(output))
+    #find radii
+    radii = np.copy(dist[int(dist.shape[0]/2.),:])
+    radii[0:int(radii.size/2.)] *= -1
+#    radii = np.linspace(-50,50,50)
+    intensity = np.array([])
+
+    for i, r in enumerate(radii):
+        #get a line profile
+        V, I, _ = line_profile(simdata,r,
+                               width=0.0,plot=False,fit=False,
+                               observe=False,verbose=True,
+                               nofits=True)
+        moments = ADE.ADE_moments(V,I)
+        lowV = moments[0] - np.sqrt(moments[1])*widthfactor
+        highV = moments[0] + np.sqrt(moments[1])*widthfactor
+        idx = np.where((V >= lowV) & (V <= highV))
+        intensity = np.append(intensity,np.sum(I[idx]))#*np.mean(np.diff(V[idx])))
+
+        if i % 20 == 0:
+            ax = plt.figure().add_subplot(111)
+            ax.set_title('r = {} kpc'.format(r))
+            ax.plot(V,I)
+            ax.axvline(x=lowV,alpha=0.7)
+            ax.axvline(x=highV,alpha=0.7)
+            lineout.savefig(ax.figure)
+            plt.close(ax.figure)
+        
+    intensity = -2.5*np.log10(intensity)
+    intensity += 0
+    lineout.close()
+
+    if output:
+        ax = plt.figure().add_subplot(111)
+        ax.figure.suptitle('Generated on {}'.format(time.asctime()))
+        ax.set_ylabel('mag/arcsec$^2$ (arbitrary zero)')
+        ax.set_xlabel('Radius [kpc]')
+        ax.invert_yaxis()
+        ax.plot(radii,intensity)
+        pp = PDF('{}.pdf'.format(output))
+        pp.savefig(ax.figure)
+        pp.close()
+        plt.close(ax.figure)
+
+    return radii, intensity
