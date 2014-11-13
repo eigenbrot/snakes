@@ -83,7 +83,7 @@ class Board:
         for i in range(self.rows):
             if self.horz(ox,i):return True
             if self.agywag(ox,i,0):return True
-            if self.vagyvag(ox,i,0):return True
+            if self.vagyvag(ox,i,self.cols - 1):return True
         for j in range(self.cols):
             if self.vert(ox,j):return True
             if self.agywag(ox,0,j):return True
@@ -420,8 +420,8 @@ def main():
     P1=Player('X','RANDOM',ply1,ply1)
     P2=Player('O','RANDOM',ply2,ply2)
 
-    print P1
-    print P2
+    # print P1
+    # print P2
 
     B.playGame(P1,P2)
     return
