@@ -3,9 +3,9 @@ import numpy as np
 import sys
 import os
 from scipy.interpolate import interp1d
-import scipy.optimize as spo
 import matplotlib.pyplot as plt
 import scipy.optimize as spo
+import scipy as sp
 import NaCl as na
 import gc
 import ADEUtils as ADE
@@ -150,15 +150,15 @@ def simcurve(size,Z,v_r,h_rot,
     # else: N = 6
 
     #This array holds the opacity of each bin
-#    kaparray = np.exp(-1*(distances/h_dust))
-    kaparray = np.ones(distances.shape)
+    kaparray = np.exp(-1*(distances/h_dust))
+#    kaparray = np.ones(distances.shape)
 #    kaparray = h_dust/distances**0.5
     kaparray *= kappa_0 * np.exp(-1*(np.abs(Z)/z_d)) / kaparray[size/2,size/2]
     # And this one has the surface brightness of each bin, assuming a
     # doubly-exp disc 
     # total normalization is irrelevant
-#    Iarray = np.exp(-1*(distances/h_s))
-    Iarray = np.ones(distances.shape)
+    Iarray = np.exp(-1*(distances/h_s))
+#    Iarray = np.ones(distances.shape)
 #    Iarray = h_s/distances**0.5
     Iarray *= I_0 * np.exp(-1*(np.abs(Z)/h_z)) / Iarray[size/2,size/2]
 
@@ -937,6 +937,9 @@ def brightness_profile(simdata,output,widthfactor=1.):
     intensity += 0
     lineout.close()
 
+    # theory = -2.5*np.log10(sp.special.kn(1,radii/5.22))
+    # theory += -16
+
     if output:
         ax = plt.figure().add_subplot(111)
         ax.figure.suptitle('Generated on {}'.format(time.asctime()))
@@ -944,9 +947,10 @@ def brightness_profile(simdata,output,widthfactor=1.):
         ax.set_xlabel('Radius [kpc]')
         ax.invert_yaxis()
         ax.plot(radii,intensity)
+        # ax.plot(radii,theory)
         pp = PDF('{}.pdf'.format(output))
         pp.savefig(ax.figure)
         pp.close()
         plt.close(ax.figure)
 
-    return radii, intensity
+    return radii, intensity, theory
