@@ -667,7 +667,7 @@ def plot_line(datafile,radius,wavelength=5048.126,ax=False,
     return pwave, pspec, perr, rwidth
 
 def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., niter=20,
-                 ax=None):
+                 ax=None,center=0):
     """
     Takes a line (probably produced by plot_line) and does a rough sky
     subtraction. The sky is estimated from the region of the spectrum that is
@@ -680,8 +680,8 @@ def sky_subtract(V, Iin, err=None, window=400, skywindow=400, threshold=5., nite
     skylevel = 0.0
     if ax is not None:
         ax.plot(V,I)
-    lowV = -1*window/2.
-    highV = window/2.
+    lowV = -1*window/2. + center
+    highV = window/2. + center
     idx = np.where((V >= lowV) & (V <= highV))
     skidx = np.where((V < lowV) & (V >= lowV - skywindow) |\
                         (V > highV) & (V <= highV + skywindow))
@@ -1030,7 +1030,7 @@ def contiuumSN(spec_image, err_image, window=[100,200],
 
 def zeroshiki(slayfile, output, skipradii, 
               wavelength=5048.126, window=400., flip=False, 
-              order=4,skywindow=400, widthfactor=1):
+              order=4,skywindow=400, widthfactor=1,velo=True):
     '''Take a slayfile and plot the 0th order moment (i.e., intensity) as a
     function of radius. Intensity is defined just as the sum of the flux
     within a window width (in km/s) defined by the user.'''
@@ -1059,8 +1059,12 @@ def zeroshiki(slayfile, output, skipradii,
     for radius in radii:
         if int(radius) in skipradii:
             continue
+        if not velo:
+            center = wavelength
+        else:
+            center = 0
         V, I, err, _ = plot_line(slayfile,radius,wavelength=wavelength,
-                                 velo=True,plot=False,baseline=False,
+                                 velo=velo,plot=False,baseline=False,
                                  window=60,flip=flip)
         err *= 2.
 
@@ -1070,7 +1074,7 @@ def zeroshiki(slayfile, output, skipradii,
         ax.set_title('r = {:4.2f} kpc'.format(radius))
 
         V, I, err, cent, skylevel = sky_subtract(V,I,err,window=window,skywindow=skywindow,
-                                                 threshold=5.,ax=ax)
+                                                 threshold=5.,ax=ax,center=center)
         lowV = cent - window/2.
         highV = cent + window/2.
 
@@ -1146,3 +1150,31 @@ def zeroshiki(slayfile, output, skipradii,
         pp.close()
 
     return plot_radii, intensity, error
+
+
+def skygrid(datafile,output,flip=False):
+    '''more of a script for doing zeroshiki on the skylines
+    '''
+
+    hdu = pyfits.open('ms'.join(datafile.split('slay')))[0]
+    header = hdu.header
+    shape = hdu.data.shape
+    print shape
+    wavelength = np.arange(shape[1])*header['CDELT1'] + header['CRVAL1']
+    skywaves = [5198,5200.5,5256,5007,4861.4,5238.7]
+    resout = np.zeros(shape)
+    results = []
+    n = 0
+    for center in skywaves:
+        r = zeroshiki(datafile,'{}_{}'.format(output,center),
+                      [],window=2,skywindow=10,wavelength=center,
+                      widthfactor=1.25,flip=flip,velo=False)
+        results.append(r)
+        if r[0].size == shape[0]:
+            idx = np.argmin(np.abs(wavelength - center))
+            resout[:,idx] = (10**((r[1]-25.5)/-2.5))*9*1.5#/np.max(r[1])
+            n += 1
+
+    pyfits.PrimaryHDU(resout,header).writeto('{}.fits'.format(output),clobber=True)
+    print n
+    return results, resout
