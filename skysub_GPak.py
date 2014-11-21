@@ -19,7 +19,11 @@ import os
 
 #Load the IRAF packages we'll need
 try:
+    current_dir = os.getcwd()
+    if os.getlogin() == 'Arthur':
+            os.chdir('/Users/Arthur/Ureka/iraf/local')
     from pyraf import iraf
+    os.chdir(current_dir)
     iraf.imred(_doprint=0)
     iraf.hydra(_doprint=0)
 except Exception as e:
