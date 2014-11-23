@@ -111,7 +111,7 @@ def main(raw_dir):
     detect_flats(os.getcwd())
     flats_to_make = glob('dflat*.lst')
     for flat in flats_to_make:
-        name = 'dFlat_{}.fits'.format(flat.split('_')[1])
+        name = 'dFlat_{}.fits'.format(flat.split('.lst')[0].split('_')[1])
         print 'Making flat {}'.format(name)
         iraf.flatcombine('@{}'.format(flat),output=name,combine='average',reject='crreject')
         
