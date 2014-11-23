@@ -19,9 +19,9 @@ def plotstar(filename,catch=False):
     ax.set_title(filename,fontsize=10)
     prevsize = ''
     for i in range(data.shape[0]):
-        flux = data[i,:]
+        flux = data[-1-i,:]
         flux /= flux[994]
-        label = '{} ({}00 micron)'.format(*header['APNUM{}'.format(i+1)].split(' ')[0:2])
+        label = '{} ({}00 micron)'.format(*header['APNUM{}'.format(data.shape[0]-i)].split(' ')[0:2])
         if label[-12:] == prevsize:
             prevline = ax.plot(wave,flux,label=label,lw=0.5,color=prevline[0].get_color())
         else:
