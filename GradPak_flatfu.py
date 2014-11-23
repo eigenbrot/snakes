@@ -1,4 +1,40 @@
 #! /usr/bin/python
+#
+##################################################
+#
+# This script sets up multiple flats so they can be used as a single
+# input to dohydra. You will want to do this because an exposure that
+# puts enough signal in the 200 micron fibers will push the larger
+# fibers into the non-linear regime.
+#
+# The calling syntax is:
+# 
+# >$ python GradPak_flatfu.py Flat1 Flat2... Flatn pivot1 pivot2... pivotn-1
+#
+# Where the pivots define the aperture at which to cut the flat,
+# inclusive. For example, if the call is:
+#
+# >$ python GradPak_flatfu.py Flat1.fits Flat2.fits 70
+#
+# Then the resulting master flat will have apertures 1 - 70 from
+# Flat1.fits and 71 - 109 from Flat2.fits.
+#
+# Flat1 is the flat used for the aperture extraction of the entire
+# run, so it should probably be the one with the longest exposure. 
+#
+# All the flats are scaled by their exposure times and then cut up as
+# specified by the user. The final, master flat lives only as a .ms
+# multispec file. For this reason it is imperative that you set the
+# "flat" parameter to EXACTLY dFlat_master.fits. Nothing else will
+# work. Even when you do this dohydra will complain that it can't find
+# dFlat_master.fits. This warning is OK; dohydra will still do
+# everything you want it to.
+#
+# History:
+#      v1 - A. Eigenbrot Nov. 2014
+#
+####################################################
+
 
 import os
 import sys
@@ -19,7 +55,10 @@ except Exception as e:
     sys.exit(1)
 
 def scale_images(hdulist):
-
+    '''
+    Take in a list of fits HDUS and scale the data in all of them to
+    the exposure time of the first HDU
+    '''
     exptimes = [h.header['EXPTIME'] for h in hdulist]
     scales = exptimes[0]/np.array(exptimes)
 
@@ -31,7 +70,11 @@ def scale_images(hdulist):
     return hdulist
 
 def setup_files(flatlist):
-
+    '''
+    Take in a list of names of flat fields, scale the data by exposure
+    time, and then write them out to appropriatly named files.
+    Also create a dummy spectrum that will be "reduced" by dohydra.
+    '''
     hdulist = [pyfits.open(i)[0] for i in flatlist]
     hdulist = scale_images(hdulist)
 
@@ -48,7 +91,10 @@ def setup_files(flatlist):
     return scalednames
 
 def make_tmp(hdu):
-
+    '''
+    Make the dummy spectrum to be reduced by dohydra. This spectrum is
+    all ones so that the affect of the flat scaling can be seen.
+    '''
     tmpdata = np.ones(hdu.data.shape)
     tmphdu = pyfits.PrimaryHDU(tmpdata,hdu.header)
     tmphdu.header['OBJECT'] = 'FlatFu tmp'
@@ -59,7 +105,12 @@ def make_tmp(hdu):
     return
 
 def initial_run(scalednames):
-
+    '''
+    Use dohydra to extract .ms multispec files from the input flat
+    fields. This is done so that we can stitch them back together in
+    aperture space rather than pixel space. To save time we don't
+    bother with any sort of wavelength solution or other garbage.
+    '''
     print 'Doing initial flat aperture extraction...'
     idtable = os.path.basename(iraf.dohydra.apidtable)
     print '\tusing idtable {}'.format(idtable)
@@ -68,7 +119,7 @@ def initial_run(scalednames):
         print '\trunning {}'.format(flat)
         try:
             iraf.dohydra('ffTmp.fits',
-                         apref=scalednames[0],
+                         apref=''.join(scalednames[0].split('_scale')),
                          flat=flat,
                          readnoise=3.9,
                          gain=0.438,
@@ -78,7 +129,7 @@ def initial_run(scalednames):
                          maxsep=10,
                          apidtable='/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf',
                          scatter=False,
-                         fitflat=False,
+                         fitflat=True,
                          clean=False,
                          dispcor=False,
                          savearc=False,
@@ -92,6 +143,12 @@ def initial_run(scalednames):
                          batch=False,
                          listonl=False)
         except iraf.IrafError:
+            '''For some reason, if you run this from the shell
+            (non-interactively) dohydra will always fail the first
+            time when trying to copy the database file. If/when this
+            happens we'll just return false so main() knows just to
+            try it again.
+            '''
             print 'Fucked up, trying again'
             return False
         outputnames.append('{}{}.ms.fits'.format(flat.split('.fits')[0],idtable))
@@ -100,7 +157,14 @@ def initial_run(scalednames):
     return outputnames
 
 def stitch_flats(outputnames,pivots):
+    '''
+    Take a list of names of multispec flat files produced by dohydra
+    and a list of pivot apertures and stitch together a master flat.
 
+    The pivot values are inclusive, so if pivots = [72] then the
+    master flat will contain apertures 1 - 72 from flat #1 and 73 -
+    109 from flat #2
+    '''
     pivots = [0] + pivots + [109]
 
     tmpfiles = []
@@ -134,12 +198,19 @@ def stitch_flats(outputnames,pivots):
     for tmp in tmpfiles:
         os.remove(tmp)
 
+    '''I would really like this to work in no-interactive mode, but
+    for some reason pyraf doesn't actually write it's params to the
+    uparam file. Oh well.
+    '''
     iraf.dohydra.flat = 'dFlat_master.fits'
 
     return
 
 def main():
-
+    '''
+    Parse the user inputs, check that there are the right number of
+    pivot points, and run through the steps in the script.
+    '''
     flat_list = []
     pivot_list = []
 
@@ -156,9 +227,11 @@ def main():
         print "There must be one less pivot than flats"
         return 1
 
+    '''Run the script'''
     sl = setup_files(flat_list)
     msl = initial_run(sl)
     if not msl:
+        '''Here is where we catch IRAF being bad'''
         msl = initial_run(sl)
     stitch_flats(msl,pivot_list)
 
@@ -166,4 +239,8 @@ def main():
             
 if __name__ == '__main__':
 
-    main()
+    try:
+        sys.exit(main())
+    except Exception as e:
+        print "The request was made but it was not good"
+        sys.exit(1)
