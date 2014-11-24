@@ -104,7 +104,7 @@ def make_tmp(hdu):
 
     return
 
-def initial_run(scalednames):
+def initial_run(scalednames,traceflat,fitflat=True):
     '''
     Use dohydra to extract .ms multispec files from the input flat
     fields. This is done so that we can stitch them back together in
@@ -119,7 +119,7 @@ def initial_run(scalednames):
         print '\trunning {}'.format(flat)
         try:
             iraf.dohydra('ffTmp.fits',
-                         apref=''.join(scalednames[0].split('_scale')),
+                         apref=traceflat,
                          flat=flat,
                          readnoise=3.9,
                          gain=0.438,
@@ -129,7 +129,7 @@ def initial_run(scalednames):
                          maxsep=10,
                          apidtable='/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf',
                          scatter=False,
-                         fitflat=True,
+                         fitflat=fitflat,
                          clean=False,
                          dispcor=False,
                          savearc=False,
@@ -193,7 +193,7 @@ def stitch_flats(outputnames,pivots):
                   scale='none',
                   zero='none',
                   weight='none',
-                  logfile='STDOUT')
+                  logfile='flatfu.log')
 
     for tmp in tmpfiles:
         os.remove(tmp)
@@ -206,33 +206,52 @@ def stitch_flats(outputnames,pivots):
 
     return
 
+def parse_input(inputlist):
+
+    flat_list = []
+    pivot_list = []
+    fitflat = True
+    traceflat = False
+
+    for token in inputlist:
+        if token == '-nf':
+            fitflat = False
+        elif token[0:2] == '-t':
+            traceflat = token[2:]
+            flat_list.append(token[2:])
+        elif '.fits' in token:
+            flat_list.append(token)
+        else:
+            try:
+                pivot_list.append(int(token))
+            except ValueError:
+                print 'Could not parse option {}'.format(token)
+    if not traceflat:
+        traceflat = flat_list[0]
+        
+    return flat_list, pivot_list, traceflat, fitflat
+
 def main():
     '''
     Parse the user inputs, check that there are the right number of
     pivot points, and run through the steps in the script.
     '''
-    flat_list = []
-    pivot_list = []
-
-    for token in sys.argv[1:]:
-        try:
-            pivot_list.append(int(token))
-        except ValueError:
-            flat_list.append(token)
+    flat_list, pivot_list, traceflat, fitflat = parse_input(sys.argv[1:])
 
     print 'Flat list is {}'.format(flat_list)
     print 'Pivots are {}'.format(pivot_list)
-
+    print 'Tracing using {}'.format(traceflat)
+    
     if len(pivot_list) != len(flat_list) - 1:
         print "There must be one less pivot than flats"
         return 1
 
     '''Run the script'''
     sl = setup_files(flat_list)
-    msl = initial_run(sl)
+    msl = initial_run(sl, traceflat, fitflat)
     if not msl:
         '''Here is where we catch IRAF being bad'''
-        msl = initial_run(sl)
+        msl = initial_run(sl, traceflat, fitflat)
     stitch_flats(msl,pivot_list)
 
     return 0
