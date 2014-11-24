@@ -91,7 +91,7 @@ def detect_flats(directory):
 
 def main(raw_dir):
 
-    if not os.path.exists('{}/all_raw.lst'.format(os.getcwd())):
+    if not os.path.exists('{}/step1.tmp'.format(os.getcwd())):
         print 'Setting up directory'
         list_dict = setup_dir(raw_dir)
         
@@ -101,6 +101,7 @@ def main(raw_dir):
                      biassec='image',trimsec='image',zero='',interact=True,order=100)
 
         cull_bias(list_dict['zeros'],'zeros.lst')
+        os.system('touch {}/step1.tmp'.format(os.getcwd()))
         return
         
     print 'Making master bias'
