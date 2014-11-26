@@ -54,6 +54,11 @@ except Exception as e:
     print "Failure: could not find pyraf/iraf"
     sys.exit(1)
 
+if os.getlogin() == 'Arthur':
+    APIDTABLE = '/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf',
+else:
+    APIDTABLE = '/usr/users/eigenbrot/research/Pak/gradpak_sizes.iraf'
+
 def scale_images(hdulist):
     '''
     Take in a list of fits HDUS and scale the data in all of them to
@@ -127,7 +132,7 @@ def initial_run(scalednames):
                          width=5,
                          minsep=1,
                          maxsep=10,
-                         apidtable='/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf',
+                         apidtable=APIDTABLE,
                          scatter=False,
                          fitflat=True,
                          clean=False,
