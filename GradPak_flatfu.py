@@ -196,7 +196,7 @@ def stitch_flats(outputnames,pivots):
         mastername = 'dFlat_master{}.ms.fits'.format(apidbase)
     else:
         mastername = 'dFlat_master{}{}.ms.fits'.\
-            format(apidbase[:4],apidbase[-1])
+            format(apidbase[:5],apidbase[-1])
     print 'Stitching together master flat {}'.format(mastername)    
         
     iraf.scombine(','.join(tmpfiles),mastername,
