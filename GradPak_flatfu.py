@@ -191,8 +191,15 @@ def stitch_flats(outputnames,pivots):
                    verbose=False)
         tmpfiles.append(name)
 
-    print 'Stitching together master flat'
-    iraf.scombine(','.join(tmpfiles),'dFlat_master{}.ms.fits'.format(os.path.basename(iraf.dohydra.apidtable)),
+    apidbase = os.path.basename(iraf.dohydra.apidtable)
+    if apidbase in outputnames[0]:
+        mastername = 'dFlat_master{}.ms.fits'.format(apidbase)
+    else:
+        mastername = 'dFlat_master{}{}.ms.fits'.\
+            format(apidbase[:4],apidbase[-1])
+    print 'Stitching together master flat {}'.format(mastername)    
+        
+    iraf.scombine(','.join(tmpfiles),mastername,
                   apertur='',
                   group='apertures',
                   first=True,
