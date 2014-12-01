@@ -123,30 +123,31 @@ def initial_run(scalednames,traceflat,fitflat=True):
     for flat in scalednames:
         print '\trunning {}'.format(flat)
         try:
-            iraf.dohydra('ffTmp.fits',
-                         apref=traceflat,
-                         flat=flat,
-                         readnoise=3.9,
-                         gain=0.438,
-                         fibers=109,
-                         width=5,
-                         minsep=1,
-                         maxsep=10,
-                         apidtable=APIDTABLE,
-                         scatter=False,
-                         fitflat=fitflat,
-                         clean=False,
-                         dispcor=False,
-                         savearc=False,
-                         skyalign=False,
-                         skysubt=False,
-                         skyedit=False,
-                         savesky=False,
-                         splot=False,
-                         redo=False,
-                         update=False,
-                         batch=False,
-                         listonl=False)
+            o = iraf.dohydra('ffTmp.fits',
+                             apref=traceflat,
+                             flat=flat,
+                             readnoise=3.9,
+                             gain=0.438,
+                             fibers=109,
+                             width=5,
+                             minsep=1,
+                             maxsep=10,
+                             apidtable=APIDTABLE,
+                             scatter=False,
+                             fitflat=fitflat,
+                             clean=False,
+                             dispcor=False,
+                             savearc=False,
+                             skyalign=False,
+                             skysubt=False,
+                             skyedit=False,
+                             savesky=False,
+                             splot=False,
+                             redo=False,
+                             update=False,
+                             batch=False,
+                             listonl=False,
+                             Stdout=1)
         except iraf.IrafError:
             '''For some reason, if you run this from the shell
             (non-interactively) dohydra will always fail the first
@@ -156,9 +157,14 @@ def initial_run(scalednames,traceflat,fitflat=True):
             '''
             print 'Fucked up, trying again'
             return False
-        outputnames.append('{}{}.ms.fits'.format(flat.split('.fits')[0],idtable))
+        for dump in o:
+            if 'Create the normalized response' in dump:
+                outputnames.append('{}.fits'.format(dump.split()[-1]))
         os.remove('ffTmp.ms.fits')
 
+    print "Extracted flats:"
+    for out in outputnames:
+        print '\t{}'.format(out)
     return outputnames
 
 def stitch_flats(outputnames,pivots):
@@ -202,13 +208,6 @@ def stitch_flats(outputnames,pivots):
 
     for tmp in tmpfiles:
         os.remove(tmp)
-
-    '''I would really like this to work in no-interactive mode, but
-    for some reason pyraf doesn't actually write it's params to the
-    uparam file. Oh well.
-    '''
-    iraf.dohydra.flat = 'dFlat_master.fits'
-
     return
 
 def parse_input(inputlist):
@@ -258,6 +257,13 @@ def main():
         '''Here is where we catch IRAF being bad'''
         msl = initial_run(sl, traceflat, fitflat)
     stitch_flats(msl,pivot_list)
+
+    '''Finally, set some IRAF parameters to make it easier to run dohydra with
+    the master flat'''
+    pd = iraf.dohydra.getParDict()
+    pd['apref'].set(traceflat)
+    pd['flat'].set('dFlat_master.fits')
+    iraf.dohydra.saveParList()
 
     return 0
             
