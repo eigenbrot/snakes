@@ -126,7 +126,7 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
     outputscales = []
     for flat in scalednames:
         print '\trunning {}'.format(flat)
-        iraf.hydra.logfile = 'tmp.log'
+        iraf.hydra.logfile = '{}.log'.format(flat)
         try:
             iraf.dohydra('ffTmp.fits',
                          apref=traceflat,
@@ -163,7 +163,7 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
             '''
             print 'Fucked up, trying again'
             return False
-        f = open('tmp.log','r')
+        f = open('{}.log'.format(flat),'r')
         o = f.readlines()
         for dump in o:
             if 'bscale' in dump:
@@ -175,7 +175,6 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
                     outputnames.append('{}.fits'.format(dump.split()[-1]))
         os.remove('ffTmp.ms.fits')
         f.close()
-        os.remove('tmp.log')
 
     print "Extracted flats:"
     for out,scale in zip(outputnames,outputscales):
@@ -227,7 +226,7 @@ def stitch_flats(outputnames,pivots,outstring):
 
     for tmp in tmpfiles:
         os.remove(tmp)
-    return
+    return mastername
 
 def get_scrunch(flatname, msname):
 
@@ -244,6 +243,15 @@ def mean_scale(mslist,scalelist):
         print '\t{:} scale: {:5.4f}'.format(name,scale)
         h.data *= scale
         h.writeto(name,clobber=True)
+
+    return
+
+def normalize(mastername):
+
+    print 'Renormalizing final flat'
+    h = pyfits.open(mastername)[0]
+    h.data /= np.mean(h.data)
+    h.writeto(mastername,clobber=True)
 
     return
 
@@ -299,7 +307,8 @@ def main():
         msl, scales = initial_run(sl, traceflat, fitflat)
     outstring = get_scrunch(sl[0],msl[0])
     mean_scale(msl,scales)
-    stitch_flats(msl,pivot_list,outstring)
+    master = stitch_flats(msl,pivot_list,outstring)
+    normalize(master)
 
     '''Finally, set some IRAF parameters to make it easier to run dohydra with
     the master flat'''
