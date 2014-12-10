@@ -168,7 +168,7 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
         print '\t{}'.format(out)
     return outputnames
 
-def stitch_flats(outputnames,pivots):
+def stitch_flats(outputnames,pivots,outstring):
     '''
     Take a list of names of multispec flat files produced by dohydra
     and a list of pivot apertures and stitch together a master flat.
@@ -192,12 +192,8 @@ def stitch_flats(outputnames,pivots):
                    verbose=False)
         tmpfiles.append(name)
 
-    apidbase = os.path.basename(iraf.dohydra.apidtable)
-    if apidbase in outputnames[0]:
-        mastername = 'dFlat_master{}.ms.fits'.format(apidbase)
-    else:
-        mastername = 'dFlat_master{}{}.ms.fits'.\
-            format(apidbase[:5],apidbase[-1])
+
+    mastername = 'dFlat_master{}.ms.fits'.format(outstring)
     print 'Stitching together master flat {}'.format(mastername)    
         
     iraf.scombine(','.join(tmpfiles),mastername,
@@ -217,6 +213,13 @@ def stitch_flats(outputnames,pivots):
     for tmp in tmpfiles:
         os.remove(tmp)
     return
+
+def get_scrunch(flatname, msname):
+
+    basefname = flatname.split('.fits')[0]
+    basemsname = msname.split('.ms.fits')[0]
+    
+    return basemsname.replace(basefname,'')
 
 def parse_input(inputlist):
 
@@ -268,7 +271,8 @@ def main():
     if not msl:
         '''Here is where we catch IRAF being bad'''
         msl = initial_run(sl, traceflat, fitflat)
-    stitch_flats(msl,pivot_list)
+    outstring = get_scrunch(sl[0],msl[0])
+    stitch_flats(msl,pivot_list,outstring)
 
     '''Finally, set some IRAF parameters to make it easier to run dohydra with
     the master flat'''
