@@ -109,7 +109,7 @@ def make_tmp(hdu):
 
     return
 
-def initial_run(scalednames,traceflat,fitflat=True):
+def initial_run(scalednames,traceflat,throughput='',fitflat=True):
     '''
     Use dohydra to extract .ms multispec files from the input flat
     fields. This is done so that we can stitch them back together in
@@ -126,6 +126,7 @@ def initial_run(scalednames,traceflat,fitflat=True):
             o = iraf.dohydra('ffTmp.fits',
                              apref=traceflat,
                              flat=flat,
+                             through=throughput,
                              readnoise=3.9,
                              gain=0.438,
                              fibers=109,
@@ -223,6 +224,7 @@ def parse_input(inputlist):
     pivot_list = []
     fitflat = True
     traceflat = False
+    throughput = ''
 
     for token in inputlist:
         if token == '-nf':
@@ -230,6 +232,8 @@ def parse_input(inputlist):
         elif token[0:2] == '-t':
             traceflat = token[2:]
             flat_list.append(token[2:])
+        elif token[0:2] == '-r':
+            throughput = token[2:]
         elif '.fits' in token:
             flat_list.append(token)
         else:
@@ -240,18 +244,19 @@ def parse_input(inputlist):
     if not traceflat:
         traceflat = flat_list[0]
         
-    return flat_list, pivot_list, traceflat, fitflat
+    return flat_list, pivot_list, traceflat, throughput, fitflat
 
 def main():
     '''
     Parse the user inputs, check that there are the right number of
     pivot points, and run through the steps in the script.
     '''
-    flat_list, pivot_list, traceflat, fitflat = parse_input(sys.argv[1:])
+    flat_list, pivot_list, traceflat, throughput, fitflat = parse_input(sys.argv[1:])
 
     print 'Flat list is {}'.format(flat_list)
     print 'Pivots are {}'.format(pivot_list)
     print 'Tracing using {}'.format(traceflat)
+    print 'Throughput file is {}'.format(throughput)
     
     if len(pivot_list) != len(flat_list) - 1:
         print "There must be one less pivot than flats"
@@ -259,7 +264,7 @@ def main():
 
     '''Run the script'''
     sl = setup_files(flat_list)
-    msl = initial_run(sl, traceflat, fitflat)
+    msl = initial_run(sl, traceflat, throughput, fitflat)
     if not msl:
         '''Here is where we catch IRAF being bad'''
         msl = initial_run(sl, traceflat, fitflat)
