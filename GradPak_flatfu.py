@@ -71,6 +71,7 @@ def scale_images(hdulist):
     for h, scale in zip(hdulist, scales):
         print '\t{} {}'.format(h.header['OBJECT'],scale)
         h.data *= scale
+        h.header['EXPTIME'] *= scale
 
     return hdulist
 
@@ -116,39 +117,43 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
     aperture space rather than pixel space. To save time we don't
     bother with any sort of wavelength solution or other garbage.
     '''
+    
+    oldlog = iraf.hydra.logfile
     print 'Doing initial flat aperture extraction...'
     idtable = os.path.basename(iraf.dohydra.apidtable)
     print '\tusing idtable {}'.format(idtable)
     outputnames = []
+    outputscales = []
     for flat in scalednames:
         print '\trunning {}'.format(flat)
+        iraf.hydra.logfile = 'tmp.log'
         try:
-            o = iraf.dohydra('ffTmp.fits',
-                             apref=traceflat,
-                             flat=flat,
-                             through=throughput,
-                             readnoise=3.9,
-                             gain=0.438,
-                             fibers=109,
-                             width=5,
-                             minsep=1,
-                             maxsep=10,
-                             apidtable=APIDTABLE,
-                             scatter=False,
-                             fitflat=fitflat,
-                             clean=False,
-                             dispcor=False,
-                             savearc=False,
-                             skyalign=False,
-                             skysubt=False,
-                             skyedit=False,
-                             savesky=False,
-                             splot=False,
-                             redo=False,
-                             update=False,
-                             batch=False,
-                             listonl=False,
-                             Stdout=1)
+            iraf.dohydra('ffTmp.fits',
+                         apref=traceflat,
+                         flat=flat,
+                         through=throughput,
+                         readnoise=3.9,
+                         gain=0.438,
+                         fibers=109,
+                         width=5,
+                         minsep=1,
+                         maxsep=10,
+                         apidtable=APIDTABLE,
+                         scatter=False,
+                         fitflat=fitflat,
+                         clean=False,
+                         dispcor=False,
+                         savearc=False,
+                         skyalign=False,
+                         skysubt=False,
+                         skyedit=False,
+                         savesky=False,
+                         splot=False,
+                         redo=False,
+                         update=False,
+                         batch=False,
+                         listonl=False,
+                         Stdout=1)
         except iraf.IrafError:
             '''For some reason, if you run this from the shell
             (non-interactively) dohydra will always fail the first
@@ -158,15 +163,25 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
             '''
             print 'Fucked up, trying again'
             return False
+        f = open('tmp.log','r')
+        o = f.readlines()
         for dump in o:
+            if 'bscale' in dump:
+                scale = dump.split()[-1]
+                outputscales.append(float(scale))
             if 'Create the normalized response' in dump:
-                outputnames.append('{}.fits'.format(dump.split()[-1]))
+                outname = '{}.fits'.format(dump.split()[-1])
+                if outname not in outputnames:
+                    outputnames.append('{}.fits'.format(dump.split()[-1]))
         os.remove('ffTmp.ms.fits')
+        f.close()
+        os.remove('tmp.log')
 
     print "Extracted flats:"
-    for out in outputnames:
-        print '\t{}'.format(out)
-    return outputnames
+    for out,scale in zip(outputnames,outputscales):
+        print '\t{}  {}'.format(out,scale)
+    iraf.hydra.logfile = oldlog
+    return outputnames, outputscales
 
 def stitch_flats(outputnames,pivots,outstring):
     '''
@@ -221,6 +236,17 @@ def get_scrunch(flatname, msname):
     
     return basemsname.replace(basefname,'')
 
+def mean_scale(mslist,scalelist):
+    
+    print 'Undoing IRAF flat scaling...'
+    mshdulist = [pyfits.open(i)[0] for i in mslist]
+    for h, name, scale in zip(mshdulist, mslist, scalelist):
+        print '\t{:} scale: {:5.4f}'.format(name,scale)
+        h.data *= scale
+        h.writeto(name,clobber=True)
+
+    return
+
 def parse_input(inputlist):
 
     flat_list = []
@@ -267,11 +293,12 @@ def main():
 
     '''Run the script'''
     sl = setup_files(flat_list)
-    msl = initial_run(sl, traceflat, throughput, fitflat)
+    msl, scales = initial_run(sl, traceflat, throughput, fitflat)
     if not msl:
         '''Here is where we catch IRAF being bad'''
-        msl = initial_run(sl, traceflat, fitflat)
+        msl, scales = initial_run(sl, traceflat, fitflat)
     outstring = get_scrunch(sl[0],msl[0])
+    mean_scale(msl,scales)
     stitch_flats(msl,pivot_list,outstring)
 
     '''Finally, set some IRAF parameters to make it easier to run dohydra with
@@ -285,8 +312,9 @@ def main():
             
 if __name__ == '__main__':
 
-    try:
-        sys.exit(main())
-    except Exception as e:
-        print "The request was made but it was not good"
-        sys.exit(1)
+    main()
+    # try:
+    #     sys.exit(main())
+    # except Exception as e:
+    #     print "The request was made but it was not good"
+    #     sys.exit(1)
