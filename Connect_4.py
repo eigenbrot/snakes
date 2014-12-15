@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import random, os, sys
+import random, os, sys, time
         
 class Board:
     '''
@@ -173,7 +173,8 @@ class Board:
 
             while c==1:
                 if p2.ply=='HUMAN' and p1.ply!='HUMAN':
-                    print 'Thinking...\n'
+                    print 'Thinking...'
+                t1 = time.time()
                 moveCol=p1.nextMove(self)
 
                 while self.allowsMove(moveCol)==False:
@@ -185,7 +186,7 @@ class Board:
 
                 print self
                 if p2.ply=='HUMAN' and p1.ply!='HUMAN':
-                    print 'I choose '+str(moveCol)
+                    print 'I chose {} in {:5.2}s'.format(moveCol,time.time() - t1)
 
                 if self.winsFor(p1.ox):
                     print p1.ox+" wins!!"
@@ -194,7 +195,8 @@ class Board:
 
             while c==2:
                 if p1.ply=='HUMAN' and p2.ply!='HUMAN':
-                    print 'Thinking...\n'
+                    print 'Thinking...'
+                t1 = time.time()
                 moveCol=p2.nextMove(self)
 
                 while self.allowsMove(moveCol)==False:
@@ -206,7 +208,7 @@ class Board:
 
                 print self
                 if p1.ply=='HUMAN' and p2.ply!='HUMAN':
-                    print 'I choose '+str(moveCol)
+                    print 'I chose {} in {:5.2}s'.format(moveCol,time.time() - t1)
 
                 if self.winsFor(p2.ox):
                     print p2.ox+" wins!!"
@@ -223,13 +225,14 @@ class Board:
                 
 class Player:
     
-    def __init__(self,ox,tbt,ply,totalply):
+    def __init__(self,ox,tbt,ply,totalply,memory={}):
         """initializes the data for the player class"""
         self.ox=ox             # Player character
         self.tbt=tbt           # Tie break behaviour
         self.ply=ply           # Counter for recursion
         self.totalply=totalply # Move recursion depth
-        
+        self.memory = memory       # Memory of previous move descisions
+
     def __repr__(self):
         """Displays the characteristics of the player class"""
         print "Player for "+self.ox
@@ -307,6 +310,10 @@ class Player:
         else:
             '''we need to recurse more until we run out of ply-ness'''
             L=[]
+            key = hash('{}: {}'.format(self.ox,b.__repr__()))
+            if key in self.memory.keys():
+                print 'Found some memories...'
+                return self.memory[key][0]
             for i in range(b.cols):
                 if b.allowsMove(i)==True:
                     b.addMove(i,self.ox)
@@ -317,7 +324,7 @@ class Player:
                         Understand your opponent and you will understand
                         yourself.'''
                         badguy = Player(self.oppChar(),self.tbt,
-                                      self.ply-1,self.totalply)
+                                        self.ply-1,self.totalply,self.memory)
                         
                         '''weight each score by how many moves it took to get
                         there. This is currently in developement and does not
@@ -342,6 +349,17 @@ class Player:
 
 #            if self.ply == self.totalply:
 #            print "at ply {0:n} L is {1}".format(self.ply,L)
+            # key = hash('{}: {}'.format(self.ox,b.__repr__()))
+            # if key in self.memory.keys():
+            #     oldL, oldB = self.memory[key]
+            #     print 'Found some memories'
+            #     if oldL != L:
+            #         print "WARNING: THESE SHOULD BE THE SAME, BUT THEY'RE NOT!"
+            #         print self.ox
+            #         print b,oldB
+            #         print oldL, L
+            if self.ply > 1:
+                self.memory[key] = [L, '{}:\n{}'.format(self.ox,b.__repr__())]
             return L
             
     def nextMove(self,b):
