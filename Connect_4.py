@@ -186,7 +186,7 @@ class Board:
 
                 print self
                 if p2.ply=='HUMAN' and p1.ply!='HUMAN':
-                    print 'I chose {} in {:5.2}s'.format(moveCol,time.time() - t1)
+                    print 'I chose {} in {:5.2f}s'.format(moveCol,time.time() - t1)
 
                 if self.winsFor(p1.ox):
                     print p1.ox+" wins!!"
@@ -208,7 +208,7 @@ class Board:
 
                 print self
                 if p1.ply=='HUMAN' and p2.ply!='HUMAN':
-                    print 'I chose {} in {:5.2}s'.format(moveCol,time.time() - t1)
+                    print 'I chose {} in {:5.2f}s'.format(moveCol,time.time() - t1)
 
                 if self.winsFor(p2.ox):
                     print p2.ox+" wins!!"
@@ -312,7 +312,6 @@ class Player:
             L=[]
             key = hash('{}: {}'.format(self.ox,b.__repr__()))
             if key in self.memory.keys():
-                print 'Found some memories...'
                 return self.memory[key][0]
             for i in range(b.cols):
                 if b.allowsMove(i)==True:
