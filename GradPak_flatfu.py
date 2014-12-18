@@ -316,6 +316,35 @@ def parse_input(inputlist):
         
     return flat_list, pivot_list, traceflat, throughput, fitflat
 
+def print_help():
+    '''
+    Print usage help.
+    '''
+    print """Calling syntax:
+    
+> GradPak_flatfu.py flat1.fits flat2.fits ... flatn.fits pivot
+
+    Options:
+            -t   Use the next flat as the trace flat. Default is 
+                 the first flat given.
+
+            -r   Use the next flat as the throughput (sky) image.
+                 This flat is not used to make the master flat.
+
+            -nf  Do not fit a average spectral function to the flats.
+                 Equivalent to fitflat- in IRAF.
+
+    Common Example:
+             > GradPak_flatfu.py dFlat_4s.fits -t dFlat_1s.fits -r sFlat.fits -nf 43
+
+             This will create a master flat consisting of apertures 1
+             - 43 from dFlat_4s.fits and apertures 44 - 109 from
+             dFlat_1s.fits. No functions will be fit to the flats but
+             a fiber-by-fiber scaling will be applied based on the
+             total counts in each aperture extracted from sFlat.fits
+    """
+    return
+
 def main():
     '''
     Parse the user inputs, check that there are the right number of
@@ -354,6 +383,9 @@ def main():
             
 if __name__ == '__main__':
 
+    if sys.argv[1] == '-h':
+        sys.exit(print_help())
+    
     try:
         sys.exit(main())
     except Exception as e:
