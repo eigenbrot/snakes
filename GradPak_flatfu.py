@@ -229,14 +229,32 @@ def stitch_flats(outputnames,pivots,outstring):
     return mastername
 
 def get_scrunch(flatname, msname):
+    '''
+    Take in two strings and return the difference between them, modulo
+    the difference between .ms.fits and .fits. 
 
+    This is used to figure out what scrunching scheme IRAF used to
+    name the aperture-extracted flats. This function exists because
+    IRAF has different behavior when it comes to scrunching on
+    different systems.
+    '''
     basefname = flatname.split('.fits')[0]
     basemsname = msname.split('.ms.fits')[0]
     
     return basemsname.replace(basefname,'')
 
 def mean_scale(mslist,scalelist):
-    
+    '''
+    Take in a list of fits file names and scale each file by the corresponding value in the scalelist. The input file is overwritten.
+
+    When constructing the aperture-extracted flat that will be applied
+    to all data apertures IRAF's last step is to normalize the entire
+    multispec file to a unity mean. Because we will be stitching
+    together a few different flats we need to undo this scaling so the
+    relative strengths of the individual flats is maintained. This
+    assumes that these flats were already properly scaled (see
+    scale_images()).
+    '''
     print 'Undoing IRAF flat scaling...'
     mshdulist = [pyfits.open(i)[0] for i in mslist]
     for h, name, scale in zip(mshdulist, mslist, scalelist):
@@ -247,7 +265,15 @@ def mean_scale(mslist,scalelist):
     return
 
 def normalize(mastername):
+    '''
+    Take the name of a fits file and normalize it so the mean over all pixels is 1. The input file is overwritten.
 
+    This function exists to keep reduction as close as possible to
+    IRAF's own routines. In msresp1d the last step is to normalize the
+    flat so the mean is one. In mean_scale() we undid this scaling so
+    that the flats could be stitched together. This function reapplys
+    this normalization to the stitched together flat.
+    '''
     print 'Renormalizing final flat'
     h = pyfits.open(mastername)[0]
     h.data /= np.mean(h.data)
@@ -256,7 +282,11 @@ def normalize(mastername):
     return
 
 def parse_input(inputlist):
-
+    '''
+    Take the list of arguments passed to the terminal when this
+    program was called and parse them into useful arguments and
+    options.
+    '''
     flat_list = []
     pivot_list = []
     fitflat = True
@@ -321,9 +351,8 @@ def main():
             
 if __name__ == '__main__':
 
-    main()
-    # try:
-    #     sys.exit(main())
-    # except Exception as e:
-    #     print "The request was made but it was not good"
-    #     sys.exit(1)
+    try:
+        sys.exit(main())
+    except Exception as e:
+        print "The request was made but it was not good"
+        sys.exit(1)
