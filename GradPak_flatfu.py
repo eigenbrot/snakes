@@ -32,6 +32,7 @@
 #
 # History:
 #      v1 - A. Eigenbrot Nov. 2014
+#      v1.1 - A. Eigenbrot Dec. 2014
 #
 ####################################################
 
@@ -293,16 +294,18 @@ def parse_input(inputlist):
     traceflat = False
     throughput = ''
 
-    for token in inputlist:
+    for i, token in enumerate(inputlist):
         if token == '-nf':
             fitflat = False
-        elif token[0:2] == '-t':
-            traceflat = token[2:]
-            flat_list.append(token[2:])
-        elif token[0:2] == '-r':
-            throughput = token[2:]
+        elif token == '-t':
+            traceflat = inputlist[i+1]
+            flat_list.append(inputlist[i+1])
+        elif token == '-r':
+            throughput = inputlist[i+1]
+            del inputlist[i+1]
         elif '.fits' in token:
-            flat_list.append(token)
+            if token not in flat_list:
+                flat_list.append(token)
         else:
             try:
                 pivot_list.append(int(token))
