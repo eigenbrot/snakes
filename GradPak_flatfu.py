@@ -56,7 +56,7 @@ except Exception as e:
     sys.exit(1)
 
 if os.getlogin() == 'Arthur':
-    APIDTABLE = '/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf',
+    APIDTABLE = '/Users/Arthur/Documents/School/MetaPak/gradpak_sizes.iraf'
 else:
     APIDTABLE = '/usr/users/eigenbrot/research/Pak/gradpak_sizes.iraf'
 
@@ -163,7 +163,7 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
             try it again.
             '''
             print 'Fucked up, trying again'
-            return False
+            return False, False
         f = open('{}.log'.format(flat),'r')
         o = f.readlines()
         for dump in o:
@@ -366,7 +366,7 @@ def main():
     msl, scales = initial_run(sl, traceflat, throughput, fitflat)
     if not msl:
         '''Here is where we catch IRAF being bad'''
-        msl, scales = initial_run(sl, traceflat, fitflat)
+        msl, scales = initial_run(sl, traceflat, throughput, fitflat)
     outstring = get_scrunch(sl[0],msl[0])
     mean_scale(msl,scales)
     master = stitch_flats(msl,pivot_list,outstring)
@@ -385,7 +385,6 @@ if __name__ == '__main__':
 
     if sys.argv[1] == '-h':
         sys.exit(print_help())
-    
     try:
         sys.exit(main())
     except Exception as e:
