@@ -76,6 +76,7 @@ def recombine(imagelist,outputimage):
                   reject='avsigclip',# we aren't actually combining anything
                   first='yes', #Very important
                   w1='INDEF',w2='INDEF',dw='INDEF',nw='INDEF',
+                  weight='',
                   log='no',
                   gain=0.438,
                   rdnoise=3.9,
