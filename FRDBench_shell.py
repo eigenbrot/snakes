@@ -466,10 +466,14 @@ def main():
     dir_cut = options.getint('Options','direct_cutoff')
     gogo = options.getboolean('Options','gogo')
     mfile = options.get('Options','metric_file')
-    hname = options.get('Options','html_name')
-    html = options.getboolean('Options','html_go')
     global debug
     debug = options.getboolean('Options','debug')
+    
+    try:
+        hname = options.get('Options','html_name')
+        html = options.getboolean('Options','html_go')
+    except ConfigParser.NoOptionError:
+        html = False
 
     if gogo: 
         os.system('cp ~/snakes/plot_FRD.sm .')
@@ -992,8 +996,67 @@ def annulize(data, num_an, distances=np.array([0])):
                     
     return(r_vec,fluxes,errors)
 
+def write_stew():
+    
+    f = open('stew.ini','w')
+    f.write("""[Data]
+;Info about the data, all lengths are in mm
+
+fiber_directory=../raw/Fiber
+direct_directory=../raw/Direct
+dark_directory=../../../darks
+Tput_file=../20150106_Tput.txt.txt
+fits_exten=0
+
+[Options]
+;;These are options for the IRAF reduction of the raw images
+;
+;If resume=True then IRAF reduction will not be done. In this case FRD will
+; look for a pickel file to load a previous reduction from.
+resume=False
+;The name of the pickel file that contains a previous IRAF reduction. Only
+; used if resume=True
+noodle_file=nood.pkl
+
+;IRAF options
+darkcombine=average
+datacombine=average
+datareject=avsigclip
+rejectpar=3
+
+;The name of the pickel file that the completed IRAF reduction will be saved to
+noodle_save=nood.pkl
+
+;Remove intermediate IRAF files?
+cleanup=True
+
+;Continue with analysis after the reduction?
+gogo=True
+
+
+;;These are options for the FRD analysis
+;
+debug=False
+;The number of appetures to use when constructing surface brightness profiles
+num_ap=300
+
+;Set this != 0 only if a) you know what you're doing b) you really think you
+; need it
+direct_cutoff=0
+
+;The name of the file that contains data on FRD metrics for the data run
+metric_file=nood_metrics.txt""")
+    return
+            
 if not SLOWAN:
     annulize = ADE.fast_annulize
 
 if __name__ == '__main__':
-    sys.exit(main())
+    
+    if len(sys.argv) < 2:
+        print "The request was made but it was not good"
+        sys.exit(1)
+    elif 'init' in sys.argv[1]:
+        sys.exit(write_stew())
+    else:
+        sys.exit(main())
