@@ -383,7 +383,10 @@ def main():
             
 if __name__ == '__main__':
 
-    if sys.argv[1] == '-h':
+    if len(sys.argv) < 2:
+        print "The request was made but it was not good"
+        sys.exit(1)
+    elif sys.argv[1] == '-h':
         sys.exit(print_help())
     try:
         sys.exit(main())
