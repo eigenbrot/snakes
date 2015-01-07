@@ -246,7 +246,8 @@ def get_scrunch(flatname, msname):
 
 def mean_scale(mslist,scalelist):
     '''
-    Take in a list of fits file names and scale each file by the corresponding value in the scalelist. The input file is overwritten.
+    Take in a list of fits file names and scale each file by the corresponding
+    value in the scalelist. The input file is overwritten.
 
     When constructing the aperture-extracted flat that will be applied
     to all data apertures IRAF's last step is to normalize the entire

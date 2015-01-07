@@ -405,9 +405,14 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
     for f_ratio in nood.keys():
 
         print 'F'+str(f_ratio)
-        focal_length = nood[f_ratio]['focal_length']
-        print 'Focal length = '+str(focal_length)+'mm'
-    
+        L2_focal_length = nood[f_ratio]['L2f']
+        L3_focal_length = nood[f_ratio]['L3f']
+        diameter = nood[f_ratio]['diameter']
+        print 'L2 focal length = {:0.1f} mm'.format(L2_focal_length)
+        print 'Aperture diameter = {:0.1f} mm'.format(diameter)
+        print 'Fiber fed at f/{:0.1f}'.format(L2_focal_length/diameter)
+        print 'L3 focal length = {:0.1f} mm'.format(L3_focal_length)
+
         for filt in nood[f_ratio]['data'].keys():
             direct_name = nood[f_ratio]['data'][filt]['direct']['final']
             fiber_name = nood[f_ratio]['data'][filt]['fiber']['final']
@@ -418,7 +423,7 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             print '  Fiber image is  '+fiber_name
 
             metric = FReD(direct_name,fiber_name,num_ap,pot,filt,dir_cut,EXTEN=exten,\
-                     FL=focal_length,FR=f_ratio,OUTPUT=name+'.dat')
+                     FL=L3_focal_length,FR=f_ratio,OUTPUT=name+'.dat')
             
             f.write('{0:9.1f}{1:>9}'.format(f_ratio,filt))
             for m in metric: f.write('{:9.4f}'.format(m))
@@ -626,9 +631,10 @@ class Noodle:
         for exp in data.keys():
             for ds in data[exp]['ds']:
                 head = pyfits.open(ds)[self.exten].header
-                focal_length = head['FOCALLEN']
+                L2_focal_length = float(head['APTAREA'])
+                L3_focal_length = float(head['FOCALLEN'])
                 diameter = float(head['APTDIA'])
-                focal_ratio = round(focal_length/diameter,1)
+                focal_ratio = round(L2_focal_length/diameter,1)
                 filt = head['FILTER']
                 ftype = head['OBSERVER']
                 timestr = head['TIME-OBS']
@@ -638,7 +644,8 @@ class Noodle:
             
                 if focal_ratio not in self.ratios.keys():
                     self.ratios[focal_ratio] =\
-                        {'data':{},'focal_length':focal_length}
+                        {'data':{},'L2f':L2_focal_length,
+                         'L3f':L3_focal_length,'diameter':diameter}
                 if filt not in self.ratios[focal_ratio]['data'].keys():
                     self.ratios[focal_ratio]['data'][filt] = {}
                 if ftype not in self.ratios[focal_ratio]['data'][filt].keys():
