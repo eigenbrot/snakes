@@ -93,19 +93,16 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
 #    fiber[np.where(fiber < 300)] = 0.0
     
     if pot:
-        direct_time_str = direct_HDU.header['TIME-OBS']
-        fiber_time_str = fiber_HDU.header['TIME-OBS']
-
-        direct_time = np.float(direct_time_str[6:])\
-            + np.float(direct_time_str[3:5])*60.\
-            + np.float(direct_time_str[0:2])*3600.
-
-        fiber_time = np.float(fiber_time_str[6:])\
-            + np.float(fiber_time_str[3:5])*60.\
-            + np.float(fiber_time_str[0:2])*3600.
+        direct_start_time = direct_HDU.header['STARTIME']
+        direct_end_time = direct_HDU.header['ENDTIME']
+        fiber_start_time = fiber_HDU.header['STARTIME']
+        fiber_end_time = fiber_HDU.header['ENDTIME']
         
-        fcorrect = pot.get_correction(fiber_time,filt)
-        dcorrect = pot.get_correction(direct_time,filt)
+        pot.set_ref(filt,direct_start_time,direct_end_time)
+
+        dcorrect = pot.get_correction2(direct_start_time,direct_end_time,filt)
+        fcorrect = pot.get_correction2(fiber_start_time,fiber_end_time,filt)
+        
         print '   Direct throughput correction is '+str(dcorrect)
         print '   Fiber throughput correction is '+str(fcorrect)
         
@@ -634,6 +631,10 @@ class Noodle:
                 focal_ratio = round(focal_length/diameter,1)
                 filt = head['FILTER']
                 ftype = head['OBSERVER']
+                timestr = head['TIME-OBS']
+                obstime = np.float(timestr[6:])\
+                    + np.float(timestr[3:5])*60.\
+                    + np.float(timestr[0:2])*3600.
             
                 if focal_ratio not in self.ratios.keys():
                     self.ratios[focal_ratio] =\
@@ -642,9 +643,10 @@ class Noodle:
                     self.ratios[focal_ratio]['data'][filt] = {}
                 if ftype not in self.ratios[focal_ratio]['data'][filt].keys():
                     self.ratios[focal_ratio]['data'][filt][ftype] =\
-                        {'raw':[],'final':None}
+                        {'raw':[],'obstimes':[],'exptime':exp,'final':None}
                 
                 self.ratios[focal_ratio]['data'][filt][ftype]['raw'].append(ds)
+                self.ratios[focal_ratio]['data'][filt][ftype]['obstimes'].append(obstime)
 
     def clean_up(self,data):
         for fratio in data.keys():
@@ -662,43 +664,74 @@ class Noodle:
                 for ftype in self.ratios[f_ratio]['data'][filt].keys():
                     name = self.ratios[f_ratio]['data'][filt][ftype]['raw'][0]
                     name = name[:name.rfind('.0')]+'.fits'
+                    mintime = min(self.ratios[f_ratio]['data'][filt][ftype]['obstimes'])
+                    maxtime = max(self.ratios[f_ratio]['data'][filt][ftype]['obstimes'])
+                    maxtime += float(self.ratios[f_ratio]['data'][filt][ftype]['exptime'])
                     iraf.imcombine(\
                         ','.join(self.ratios\
                                      [f_ratio]['data'][filt][ftype]['raw']),\
                             name)
                     self.ratios[f_ratio]['data'][filt][ftype]['final'] = name
+                    iraf.nhedit(name,'STARTIME',mintime,'Start time of first combined image',
+                                addonly=True)
+                    iraf.nhedit(name,'ENDTIME',maxtime,'End time of last combined image',
+                                addonly=True)
 
 class thePot:
 
-    def __init__(self, config):
+    def __init__(self, options):
 
-        self.functions = {}
+        t_file = options.get('Data','Tput_file')
+        if not t_file:
+            return False
+
         self.ref_levels = {}
 
-        t_file = config.get('Data','Tput_file')
-        order = config.getint('Data','Tput_fit_order')
+##        t_file = config.get('Data','Tput_file')
+ ##       self.order = config.getint('Data','Tput_fit_order')
 
-        self.times, self.levels = np.loadtxt(t_file,usecols=(0,1),unpack=True,
-                                   converters={0: self.format_time})
-        self.filters = np.loadtxt(t_file,usecols=(2,),dtype=np.str)
+        try: self.times, self.levels, self.errs = np.loadtxt(t_file,usecols=(0,1,2),
+                                                             unpack=True,
+                                                             converters={0: self.format_time})
+        except ValueError:
+            self.times, self.levels = np.loadtxt(t_file,usecols=(0,1),unpack=True,
+                                                 converters={0: self.format_time})
 
-        for filt in np.unique(self.filters):
-            fidx = np.where(self.filters == filt)
-            firstidx = np.where(self.times[fidx] == self.times[fidx].min())
-            self.functions[filt] = \
-                np.polyfit(self.times[fidx],self.levels[fidx],order)
-            self.ref_levels[filt] = \
-                self.make_func(self.times[fidx],self.functions[filt])
+        self.filters = np.loadtxt(t_file,usecols=(-1,),dtype=np.str)
 
-    def get_correction(self, time, filt):
 
-        try: level = self.make_func(time,self.functions[filt])
-        except KeyError:
-            print 'Oops! For some reason I am trying to get a correction'+\
-                'for a filter that isn\'t in my database.'
+    def set_ref(self, filt, time1, time2):
+
+        if time2 > self.times.max() or time1 < self.times.min():
+            self.ref_levels[filt] = {'level': 1.0, 'times': [time1,time2]}
             return
-        return (level/self.ref_levels[filt])[0]
+
+        tidx = np.where((self.times >= time1) & (self.times <= time2))
+        avg_level = np.mean(self.levels[tidx])
+        self.ref_levels[filt] = {'level': avg_level, 'times': [time1,time2]}
+#        self.plot(filt,times=[time1,time2])
+
     
+    def get_correction2(self, time1, time2, filt):
+
+        if time2 > self.times.max() or time1 < self.times.min():
+            print "Asking for time outside of range"
+            return 1.0
+        
+        tidx = np.where((self.times >= time1) & (self.times <= time2))
+        avg_level = np.mean(self.levels[tidx])
+        return self.ref_levels[filt]['level']/avg_level
+
+    def get_voltage(self,time1,time2,filt,std=False):
+        
+        idx = np.where((self.times >= time1) & (self.times <= time2))
+        rawlevel = np.mean(self.levels[idx])
+
+        if std:
+            return rawlevel, np.std(self.levels[idx])
+        
+        else: return rawlevel
+                
     def format_time(self,string):
         
         h = np.float(string[0:2])*3600.
@@ -706,35 +739,28 @@ class thePot:
         s = np.float(string[6:])
         
         return h+m+s
-
-    def make_func(self,x,p):
-        
-        out = 0.
-        for i in range(p.size):
-            out += p[i]*x**(p.size-1-i)
-            
-        return out
     
-    def test(self,filt):
+    def plot(self,filt,times=False):
         fig = plt.figure(0)
         plt.clf()
-        ax1 = fig.add_subplot(211)
+        ax1 = fig.add_subplot(111)
         
         idx = np.where(self.filters == filt)
-        t = np.linspace(self.times[idx].min(),self.times[idx].max())
-        l = self.make_func(t,self.functions[filt])
         
-        ax1.plot(self.times[idx],self.levels[idx],'.',t,l,'-')
+        ax1.plot(self.times[idx],self.levels[idx],'.')#,t,l,'-')
+        try: ax1.plot(self.ref_levels[filt]['times'],\
+                          [self.ref_levels[filt]['level'] for i in range(2)],linestyle='',marker='s')
+        except KeyError: pass
+        ax1.set_ylabel('$V$')
+        ax1.set_xlabel('time [s]')
+        fig.suptitle(os.popen('pwd').readlines()[0]+datetime.now().isoformat(' '))
         
-        ax2 = fig.add_subplot(212)
-        residuals = self.levels[idx]\
-                     - self.make_func(self.times[idx],self.functions[filt])
-        ax2.plot(self.times[idx],residuals,'.')
-
-        ax2.set_title('Residuals\n$\sigma$='+str(np.std(residuals)))
-
+        if times:
+            for time in times:
+                ax1.axvline(ls=':',x=time,color='r')
         fig.show()
         return
+
 
 def ABABA(filter_list,prestr):
     Nood = {6.3: {'focal_length': 50, 'data':{} } }
