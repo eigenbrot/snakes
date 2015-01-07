@@ -3,7 +3,12 @@
 import numpy as np
 from pyraf import iraf
 import pyfits
-import ADEUtils as ADE
+try:
+    import ADEUtils as ADE
+    SLOWAN = False
+except ImportError:
+    print "WARNING: Could not load ADEUtils, falling back on slow version of annulize"
+    SLOWAN = True
 import os
 import sys
 import glob
@@ -108,8 +113,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
         fiber *= fcorrect
 
     if debug: print '    Annulizing...'
-    d_rvec, d_sb, d_sberr = ADE.annulize(direct,num_ap)
-    f_rvec, f_sb, f_sberr = ADE.annulize(fiber,num_ap)
+    d_rvec, d_sb, d_sberr = annulize(direct,num_ap)
+    f_rvec, f_sb, f_sberr = annulize(fiber,num_ap)
 
     if debug:
         plt.clf()
@@ -453,8 +458,7 @@ def main():
         print 'Saving data run to '+noodsave
         pickle.dump(N,open(noodsave,'wb'))
 
-#    T = thePot(options)
-    T = False
+    T = thePot(options)
 
     num_ap = options.getint('Options','num_ap')
     dir_cut = options.getint('Options','direct_cutoff')
@@ -875,6 +879,88 @@ def webit(name):
     m.write('<a href='+name+'>'+name+'</a><br>\n</body></HTML>')
     m.close()
 
+
+def annulize(data, num_an, distances=np.array([0])):
+    '''
+    Description:
+        annulize takes in a FITS image and computes the total power 
+        contained within progressivly larger annuli. The number of 
+        annuli used is set by the user and, unlike annulize_sb, it 
+        is the width of the annuli that remains constant, not the area.
+
+    Inputs:
+        data      - ndarray
+                    The data to be annulized
+        num_an    - Int
+                    The number of annuli to use
+        distances - ndarray
+                    This is expected to be a transformed distance array
+
+    Output:
+        r_vec - ndarray
+                vector of radii where each entry is the radius of the
+                middle of the corresponding annulus.
+        fluxes- ndarray
+                each entry is the flux contained within that annulus.
+        errors- ndarray
+                The standard deviation of the pixels in each annulus.
+    '''
+
+    if debug: print'annulizing...'
+    if debug: print"data type is "+str(data.dtype)
+
+    dims = data.shape
+
+    '''check to see if we got some transformed distances and generate
+    a basic distance array if we didn't'''
+    if not(distances.any()):
+        center = centroid(data)
+        if debug: print "center at "+str(center)
+        distances = dist_gen(data, center)
+
+
+    rlimit = distances.max()
+    rstep = rlimit/num_an
+
+    'initialize future output arrays. I think that maybe with python'
+    'these can be left empty, but w/e'
+    fluxes = np.zeros(num_an, dtype=np.float32)
+    r_vec = np.zeros(num_an, dtype=np.float32)
+    outarray = np.zeros(dims, dtype=np.float32)
+    area_array = np.zeros(dims, dtype=np.float32) + 1
+    errors = np.zeros(num_an, dtype=np.float32)
+    r1 = 0.0
+    r2 = rstep
+    
+    for i in range(num_an):
+        idx = np.where((distances <= r2) & (distances > r1))
+        
+        '''The correction is designed to correct annuli that are not
+        entirely contained in the data array, but I still can't decide
+        if it screws up the data or not'''
+        correction = math.pi*(r2**2 - r1**2)/np.sum(area_array[idx])
+        fluxes[i] = np.sum(data[idx])#*correction
+        errors[i] = np.std(data[idx])
+
+        if debug == 3: print(i,r1,r2,fluxes[i],correction) 
+        
+        '''this is only used during debug to show where the annuli
+        lie on the image'''
+        outarray[idx] = np.mod(i,2) + 1
+
+        r_mid = (r1 + r2)*0.5
+        r_vec[i] = r_mid
+        r1 = r2
+        r2 = r1 + rstep
+
+    if debug == 2:
+        pyfits.PrimaryHDU(data+outarray*data.max()/2)\
+            .writeto('an_show.fits',clobber=True)
+                    
+    return(r_vec,fluxes,errors)
+
+if not SLOWAN:
+    annulize = ADE.fast_annulize
 
 if __name__ == '__main__':
     sys.exit(main())
