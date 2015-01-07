@@ -1,7 +1,11 @@
 #! /usr/bin/env python
 
+import os
+import sys
+import glob
+from datetime import datetime
+import ConfigParser
 import numpy as np
-from pyraf import iraf
 import pyfits
 try:
     import ADEUtils as ADE
@@ -9,13 +13,13 @@ try:
 except ImportError:
     print "WARNING: Could not load ADEUtils, falling back on slow version of annulize"
     SLOWAN = True
-import os
-import sys
-import glob
-from datetime import datetime
-import ConfigParser
 import matplotlib.pyplot as plt
 import pickle
+current_dir = os.getcwd()
+if os.getlogin() == 'guangweifu':
+    os.chdir(os.path.expanduser('~/Desktop/Ureka/iraf/local'))
+from pyraf import iraf
+os.chdir(current_dir)
 
 debug = False
 
@@ -975,7 +979,7 @@ def annulize(data, num_an, distances=np.array([0])):
         '''The correction is designed to correct annuli that are not
         entirely contained in the data array, but I still can't decide
         if it screws up the data or not'''
-        correction = math.pi*(r2**2 - r1**2)/np.sum(area_array[idx])
+        correction = np.pi*(r2**2 - r1**2)/np.sum(area_array[idx])
         fluxes[i] = np.sum(data[idx])#*correction
         errors[i] = np.std(data[idx])
 
@@ -995,6 +999,34 @@ def annulize(data, num_an, distances=np.array([0])):
             .writeto('an_show.fits',clobber=True)
                     
     return(r_vec,fluxes,errors)
+
+def centroid(image, zhi=2):
+    '''takes in an array and returns a list containing the
+    center of mass of that array'''
+  
+    if debug: print('finding center...')
+
+    '''just to make sure we don't mess up the original data somehow'''
+    data = np.copy(image)
+
+    size = data.shape
+    totalMass = np.sum(data)
+    
+    xcom = np.sum(np.sum(data,1) * np.arange(size[0]))/totalMass
+    ycom = np.sum(np.sum(data,0) * np.arange(size[1]))/totalMass
+    
+    return (xcom,ycom)
+
+def dist_gen(data, center):
+    '''takes in a data array with known center and returns an
+    array where the value at each location is the distance of
+    that point from the center.
+    center - expected to be a list of two numbers'''
+    
+    vecvec = np.indices(data.shape,dtype=np.float32)
+    distances = ((center[0] - vecvec[0,])**2 + (center[1] - vecvec[1,])**2)**0.5
+
+    return distances
 
 def write_stew():
     
