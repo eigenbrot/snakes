@@ -1,11 +1,16 @@
 #! /usr/bin/env python
 
 import os
+import time
 import sys
 import glob
 from datetime import datetime
 import ConfigParser
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker
+from matplotlib import rc
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 import pyfits
 try:
     import ADEUtils as ADE
@@ -434,15 +439,21 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             f.write('\n')
 
             '''now generate the FRD plots using supermongo'''
-            sm = open('tmp_'+name+'.sm','wb')
-            sm.write('verbose 0\n'
-                     +'macro read plot_FRD.sm\n'
-                     +'device postencap_color '+name+'.ps\n'
-                     +'plot_FRD '+name+'.dat\ndevice nodevice\n')
-            sm.close()
-            os.system('sm < tmp_'+name+'.sm')
-            os.system('convert -density 200 '+name+'.ps -quality 92 '+name+'.jpg')
-            os.system('rm tmp_'+name+'.sm')
+            if os.system('which sm'): #No superMongo found
+                make_plots('{}.dat'.format(name),'{}.pdf'.format(name))
+                os.system('convert -density 200 {0}.pdf -quality 92 {0}.jpg'.\
+                          format(name))
+            else: #sm found
+                os.system('cp ~/snakes/plot_FRD.sm .')
+                sm = open('tmp_'+name+'.sm','wb')
+                sm.write('verbose 0\n'
+                         +'macro read plot_FRD.sm\n'
+                         +'device postencap_color '+name+'.ps\n'
+                         +'plot_FRD '+name+'.dat\ndevice nodevice\n')
+                sm.close()
+                os.system('sm < tmp_'+name+'.sm')
+                os.system('convert -density 200 '+name+'.ps -quality 92 '+name+'.jpg')
+                os.system('rm tmp_'+name+'.sm')
 
     f.close()
     return
@@ -480,7 +491,6 @@ def main():
         html = False
 
     if gogo: 
-        os.system('cp ~/snakes/plot_FRD.sm .')
         soba(N.ratios,num_ap,dir_cut,N.exten,T,mfile)
 #        soba(N,num_ap,dir_cut,0,T,mfile)
         if html: webit(hname)
@@ -1080,6 +1090,92 @@ direct_cutoff=0
 metric_file=nood_metrics.txt""")
     return
             
+def make_plots(datafile, output):
+    '''Cribbed as closely as possible to plot_FRD.sm'''
+
+    rc('text', usetex=False)
+    rc('font', family='serif')
+    rc('font', size=9.0)
+    rc('axes', linewidth=0.4)
+    rc('lines', linewidth=0.4)
+    
+    
+    Dr, Fr, Df, Ff, Dr_c, Fr_c,\
+    Df_c, Ff_c, EED, EEF, feD, feF, feD_c, feF_c = np.loadtxt(datafile,unpack=True)
+    
+    with open(datafile,'r') as f:
+        lines = f.readlines()
+        fratio = lines[5].split()[7]
+        direct_image = lines[2].split()[-1]
+        fiber_image = lines[3].split()[-1]
+        filt = lines[6].split()[2]
+
+    pp = PDF(output)
+    fig = plt.figure(figsize=(8.5,11))
+    fig.subplots_adjust(hspace = 0.3)
+    
+    ### EE vs. Radius
+    rEEax = fig.add_subplot(311)
+    rEEax.set_xlabel('Radius [mm]')
+    rEEax.set_ylabel('Normalized Curve of Growth (EE)')
+    rEEax.set_ylim(-0.05,1.05)
+    rEEax.set_xlim(-0.999,19)
+    rEEax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    rEEax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2))
+    rEEax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    rEEax.plot(Dr_c,EED,'r-')
+    rEEax.plot(Dr,EED,'r--')
+    rEEax.plot(Fr_c,EEF,'b-')
+    rEEax.plot(Fr,EEF,'b--')
+
+    rEEax.text(-1,1.2,'Direct beam: {}'.format(direct_image))
+    rEEax.text(7,1.2,'Fiber beam: {}'.format(fiber_image))
+    rEEax.text(-1,1.1,'f/{}'.format(fratio))
+    rEEax.text(7,1.1,'{} band'.format(filt))
+    rEEax.text(14,1.2,time.asctime())
+
+    ### EE vs. log f-ratio
+    fEEax = fig.add_subplot(312)
+    fEEax.set_xlabel('f-ratio')
+    fEEax.set_ylabel('Normalized Curve of Growth (EE)')
+    fEEax.set_ylim(-0.05,1.05)
+    fEEax.set_xlim(1,100)
+    fEEax.set_xscale('log')
+    fEEax.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%i'))
+    fEEax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    fEEax.plot(Df_c,EED,'r-',label='direct, corrected')
+    fEEax.plot(Df,EED,'r--',label='direct')
+    fEEax.plot(Ff_c,EEF,'b-',label='fiber, corrected')
+    fEEax.plot(Ff,EEF,'b--',label='fiber')
+
+    fEEax.legend(loc=0,numpoints=1,frameon=False,fontsize=8)
+
+    ### f-ratio vs. EE
+    EEfax = fig.add_subplot(313)
+    EEfax.set_xlabel('Normalized Curve of Growth (EE)')
+    EEfax.set_ylabel('Effective f-ratio')
+    ylimvec = np.r_[feD_c, feD, feF, feF_c]
+    ymean = np.mean(ylimvec)
+    ystd = np.std(ylimvec)
+    EEfax.set_ylim(ymean - 1.5*ystd, ymean + 2.*ystd)
+    EEfax.set_xlim(-0.05,1.05)
+    EEfax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    EEfax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    EEfax.plot(EED,feD_c,'r-')
+    EEfax.plot(EED,feD,'r--')
+    EEfax.plot(EEF,feF_c,'b-')
+    EEfax.plot(EEF,feF,'b--')
+
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+    
+    return
+    
+
 if not SLOWAN:
     annulize = ADE.fast_annulize
 
