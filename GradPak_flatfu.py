@@ -378,6 +378,7 @@ def main():
     pd = iraf.dohydra.getParDict()
     pd['apref'].set(traceflat)
     pd['flat'].set('dFlat_master.fits')
+    pd['through'].set(throughput)
     iraf.dohydra.saveParList()
 
     return 0
