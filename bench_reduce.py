@@ -117,7 +117,10 @@ def main(raw_dir):
         iraf.flatcombine('@{}'.format(flat),output=name,combine='average',reject='crreject')
         
     print 'Making master dark'
-    iraf.darkcombine('@darks.lst',output='Dark.fits',combine='average',reject='crreject')
+    try:
+        iraf.darkcombine('@darks.lst',output='Dark.fits',combine='average',reject='crreject')
+    except iraf.IrafError:
+        print '\tNO DARKS FOUND!'
     print 'Making master comp'
     iraf.imcombine('@comps.lst','Comp.fits',combine='average',reject='crreject')
 
