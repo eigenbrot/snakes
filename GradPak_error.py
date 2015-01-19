@@ -16,6 +16,8 @@ try:
     os.chdir(current_dir)
     iraf.imred(_doprint=0)
     iraf.hydra(_doprint=0)
+    iraf.noao(_doprint=0)
+    iraf.onedspec(_doprint=0)
 except Exception as e:
     print "Failure: could not find pyraf/iraf"
     sys.exit(1)
@@ -106,7 +108,7 @@ def dohydra_err(errname):
 
     return final_image
 
-def dispcor(msfile):
+def dispcor_err(msfile):
 
     tmpname = 'tmp_sq{}'.format(msfile)
     outputname =  msfile.replace('me.fits','me_lin.fits')
@@ -122,6 +124,19 @@ def dispcor(msfile):
 
     return outputname
 
+def calibrate_err(mefile):
+
+    outputname = mefile.replace('me_','me_rf_')
+    iraf.calibrate(mefile,
+                   outputname,
+                   extinct=False,
+                   flux=True,
+                   ignoreap=True,
+                   sensiti='sens',
+                   fnu=False)
+
+    return outputname
+
 def main():
 
     errimage = sys.argv[1]
@@ -129,8 +144,11 @@ def main():
     hydra = dohydra_err(errimage)
     
     print 'Linearizing {}'.format(hydra)
-    final = dispcor(hydra)
+    cor = dispcor_err(hydra)
     
+    print 'Calibrating {}'.format(cor)
+    final = calibrate_err(cor)
+
     print 'Created {}'.format(final)
 
     return 0
