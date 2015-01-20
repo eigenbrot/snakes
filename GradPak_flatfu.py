@@ -9,12 +9,12 @@
 #
 # The calling syntax is:
 # 
-# >$ python GradPak_flatfu.py Flat1 Flat2... Flatn pivot1 pivot2... pivotn-1
+# > python GradPak_flatfu.py Flat1 Flat2... Flatn pivot1 pivot2... pivotn-1
 #
 # Where the pivots define the aperture at which to cut the flat,
 # inclusive. For example, if the call is:
 #
-# >$ python GradPak_flatfu.py Flat1.fits Flat2.fits 70
+# > python GradPak_flatfu.py Flat1.fits Flat2.fits 70
 #
 # Then the resulting master flat will have apertures 1 - 70 from
 # Flat1.fits and 71 - 109 from Flat2.fits.

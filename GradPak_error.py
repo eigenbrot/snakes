@@ -1,4 +1,61 @@
 #! /usr/bin/python
+#
+##################################################
+#
+#
+# This script is used to produce error images by propagating a raw error
+# (.sig) file through the standard GradPak pipeline. The raw error image is
+# typically something produced by the IRAF task rawimerr, which is part of
+# Matt Bershady's ifupkg.
+#
+# The calling syntax is easy:
+#
+# > python GradPak_error.py RAW_IMAGE.sig.fits
+#
+# The result of which will be a file called RAW_IMAGE.me_rf_lin.fits.
+#
+# The reduction steps that are performed, along with the suffix produced by
+# that step are:
+#
+# 1. Aperture extraction and flat-field calibration using DOHYDRA (.me.fits)
+# 2. Dispersion correction using DISPCOR (.me_lin.fits)
+# 3. Flux calibration using CALIBRATE (.me_rf_lin.fits)
+#
+# Note that sky subtraction is not performed (see below).
+#
+# For this script to work properly all the parameters for DOHYDRA and
+# CALIBRATE must be set (in IRAF) exactly as they were when the raw data
+# images were reduced. In other words, the values of, e.g., dohydra.flat,
+# dohydra.apidtab, or calibrate.sensiti must be the same as when your data
+# were reduced. The typical usage is to reduce your GradPak data through flux
+# calibration and then simply run rawimerr followed by this script to produce
+# a final error image in two easy steps.
+#
+# Assumptions and Simplifications:
+#
+# During the error propagation a few simplifying assumptions are made:
+#
+# 1. The flat error is negligible compared to the object error. This
+#    assumption is strengthened by the fact that during flat-field corrections
+#    the error term from the flat itself depends on the inverse of the square
+#    of the flat signal and can therefore be thought of as a second order
+#    correction. This assumption is consistent the ifupkg.mkmes task.
+#
+# 2. The dispersion solution is essentially linear. This allows a much simpler
+#    treating of the error propagation resulting from the DISPCOR task and
+#    should be valid for most GradPak spectra. This assuption makes this
+#    script less accurate than ifupkg.dispcor_err, but the difference should
+#    be negligable.
+#
+# 3. The error is not propagated through the sky subtraction step. This is
+#    akin to assuming the combined sky fibers have negligable error compared
+#    to the object fibers and is probably the most egregious assumption made
+#    by this scipt. It will probably be fixed sometime in the future.
+#
+# History:
+#      v1 - A. Eigenbrot Jan. 2015
+#
+##################################################
 
 import glob
 import sys
