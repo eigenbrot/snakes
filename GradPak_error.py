@@ -148,9 +148,10 @@ def main():
     
     print 'Calibrating {}'.format(cor)
     final = calibrate_err(cor)
-
     print 'Created {}'.format(final)
 
+    print 'Cleaning intermediates'
+    os.system('rm tmp_sq*')
     return 0
 
 if __name__ == '__main__':
