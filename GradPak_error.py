@@ -88,7 +88,10 @@ else:
 
 
 def pow_image(inputname, outputname, power):
-    
+    '''
+    Take an input image, raise all of its pixesl to the specified power and
+    write the output image.
+    '''
     print 'raising {} to power of {}'.format(inputname,power)
     
     h = pyfits.open(inputname)[0]
@@ -97,7 +100,10 @@ def pow_image(inputname, outputname, power):
     return
 
 def create_tmps(errname, flatname):
-
+    '''
+    Set up some temporary, squared version of the raw error and flat
+    files. These are then used as inputs to dohydra.
+    '''
     sq_errname = 'tmp_sq{}'.format(errname)
     sq_flatname = 'tmp_sq{}'.format(flatname)
 
@@ -107,7 +113,12 @@ def create_tmps(errname, flatname):
     return sq_errname, sq_flatname
 
 def find_msname(rawname):
-
+    '''
+    Given a raw file (that was input to dohydra), find the name that dohydra
+    gave its processed result. This is used to get to correct naming
+    convention for the master flat as the specific type of IRAF scrunching can
+    vary from system to system.
+    '''
     flist = glob('{}*.ms.fits'.format(rawname.split('.fits')[0]))
     
     if len(flist) == 0:
@@ -125,9 +136,35 @@ def find_msname(rawname):
         return flist[0]
 
 def dohydra_err(errname):
+    '''
+    Extract apertures, perform flat correction, and apply wavelength solution
+    header values to the raw (.sig) error file.
+    
+    Errors are propagated assuming that the raw flat errors are minimal. This
+    causes the full error term,
 
-    pd = iraf.dohydra.getParDict()
-    normal_flat = pd['flat'].get()
+    dMS' = \sqrt( (dF*MS/F**2)**2 + (dMS/F)**2 ),
+
+    to reduce to
+
+    dMS' = dMS/F,
+
+    where MS is the extracted, .ms file, F is the flat and d represents errors
+    on that particular image. The error on a particular aperture in the .ms
+    file is simply
+
+    dMS = \sqrt( \sum_i(dI**2) ),
+
+    where dI is the raw error (.sig) file and the sum_i is over all columns
+    used in a fiber.
+
+    Given the above expressions the final error (dMS') is achieved by simply
+    passing dI**2 and F**2 into dohydra and taking the square root of the
+    result.
+    '''
+    #Save the OG flat so we can set it back once we're done with the squared
+    #flat
+    pd = iraf.dohydra.getParDict() normal_flat = pd['flat'].get()
 
     msflat = find_msname(normal_flat)
     sq_errname, sq_flatname = create_tmps(errname,msflat)
@@ -160,13 +197,29 @@ def dohydra_err(errname):
         replace('sig.ms.fits','me.fits')
     pow_image(dohydra_output,final_image,0.5)
 
+    #Set the flat back to whatever it was before
     pd['flat'].set(normal_flat)
     iraf.dohydra.saveParList()
 
     return final_image
 
 def dispcor_err(msfile):
+    '''
+    Read wavelength solution information from the FITS header and resample an
+    image to a linear wavelength scale.
 
+    The error is propagated by simply passing a squared .ms.fits file to
+    DISPCOR and taking the square root of the result. This method makes the
+    following assumptions:
+
+    1. The wavelength solution in the header is close enough to linear that
+       spline3 interpolation used by DISPCOR essentially becomes a linear
+       interpolation. This means the error on each output pixel is just the
+       quadrature sum of the errors of the input pixels that went into that
+       output pixel (divided by the number of pixels).
+
+    2. Any effects of fractional pixels is minimal.
+    '''
     tmpname = 'tmp_sq{}'.format(msfile)
     outputname =  msfile.replace('me.fits','me_lin.fits')
     tmpoutput = 'tmp_sq{}'.format(outputname)
@@ -182,7 +235,13 @@ def dispcor_err(msfile):
     return outputname
 
 def calibrate_err(mefile):
-
+    '''
+    Apply a sensitivity function to a linearized multispectrum file.
+    
+    The error is propagated simply by dividing it by the sensitivity
+    function. This makes the assumption that there is no error in the
+    sensitivity function itself.
+    '''
     outputname = mefile.replace('me_','me_rf_')
     iraf.calibrate(mefile,
                    outputname,
@@ -195,7 +254,10 @@ def calibrate_err(mefile):
     return outputname
 
 def main():
-
+    '''
+    Take the first argument passed to this program and run it through aperture
+    extraction, flat-fielding, linearization, and flux calibration.
+    '''
     errimage = sys.argv[1]
     print 'Running dohydra on {}'.format(errimage)
     hydra = dohydra_err(errimage)
