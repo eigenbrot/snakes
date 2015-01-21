@@ -61,8 +61,8 @@ import glob
 import sys
 import os
 
-import numpy as np
 import pyfits
+import numpy as np
 
 #Load the IRAF packages we'll need
 try:
@@ -96,7 +96,7 @@ def pow_image(inputname, outputname, power):
     
     h = pyfits.open(inputname)[0]
     
-    pyfits.PrimaryHDU(h.data**power,h.header).writeto(outputname)
+    pyfits.PrimaryHDU(h.data**power,h.header).writeto(outputname,clobber=True)
     return
 
 def create_tmps(errname, flatname):
@@ -164,7 +164,8 @@ def dohydra_err(errname):
     '''
     #Save the OG flat so we can set it back once we're done with the squared
     #flat
-    pd = iraf.dohydra.getParDict() normal_flat = pd['flat'].get()
+    pd = iraf.dohydra.getParDict() 
+    normal_flat = pd['flat'].get()
 
     msflat = find_msname(normal_flat)
     sq_errname, sq_flatname = create_tmps(errname,msflat)
@@ -253,12 +254,64 @@ def calibrate_err(mefile):
 
     return outputname
 
-def main():
+def combine_err(spectra_list, weight_file, outputname):
     '''
-    Take the first argument passed to this program and run it through aperture
-    extraction, flat-fielding, linearization, and flux calibration.
+    Combine two or more multispec error images using SCOMBINE.
+
+    The input weight file should be the weights used to combine the actual
+    data spectra. Error propagation is performed by
+
+    dC = \sqrt( \sum_i((E_i/w_i)**2)),
+
+    where E is an error spectrum (.me_rf_lin.fits), w is the weight of the
+    corresponding data spectrum, and dC is the error on the combined data
+    spectra.
+
+    Note that internally (in both this function and SCOMBINE) the weights are
+    notmalized to a unity sum, which avoids the need to keep track of the sum
+    of the squares of the weights.
+
+    When combining images that are not on exactly the same wavelength grid
+    SCOMBINE will interpolate all spectra to have the same wavelengths as the
+    first image. A simplifying assumption made by this function is that the
+    interpolation is essentially linear. See the documentation for dispcor_err
+    for more information.
     '''
-    errimage = sys.argv[1]
+    print 'Combining:'
+    for s in spectra_list: print '\t{}'.format(s)
+    print 'Into {} using weights in {}'.format(outputname, weight_file)
+
+    #Read in weights
+    sq_weight_file = 'tmp_sq{}'.format(weight_file)
+    w = np.loadtxt(weight_file)
+    sqw = w**2
+    sqw /= np.sum(sqw)
+    np.savetxt(sq_weight_file,sqw,fmt='%5.4f')
+
+    #Construct list of squared outputs
+    sqlist = []
+    for spectrum in spectra_list:
+        tmpsq = 'tmp_sq{}'.format(spectrum)
+        pow_image(spectrum,tmpsq,2.)
+        sqlist.append(tmpsq)
+
+    tmpoutput = 'tmp_sq{}'.format(outputname)
+    iraf.scombine(','.join(sqlist),
+                  tmpoutput,
+                  logfile='scombine_err.log',
+                  weight='@{}'.format(sq_weight_file))
+
+    pow_image(tmpoutput, outputname, 0.5)
+    print 'Cleaning intermediates'
+    os.system('rm tmp_sq*')
+
+    return 0
+                  
+def propagate(errimage):
+    '''
+    Take a raw error (.sig) image and run it through aperture extraction,
+    flat-fielding, linearization, and flux calibration.
+    '''
     print 'Running dohydra on {}'.format(errimage)
     hydra = dohydra_err(errimage)
     
@@ -273,5 +326,47 @@ def main():
     os.system('rm tmp_sq*')
     return 0
 
+def parse_input(inputlist):
+    '''
+    Parse the command line arguments provided by the user, figure out which
+    operation is desired (propagation or combination), and return the
+    necessary functino arguments.
+    '''
+    if len(inputlist) == 1:
+        if '.sig' not in inputlist[0]:
+            print "Warning: File {} does not have a .sig.fits suffix. Are you sure you want to continue?\n(Y\n)"
+            scratch = raw_input()
+            if scratch not in ['','Y','y']:
+                sys.exit(0)
+        return False, inputlist[0]
+
+    else:
+        spectralist = []
+        outputimage = inputlist[0]
+        weights = ''
+        for token in inputlist[1:]:
+            if '.fits' in token:
+                spectralist.append(token)
+            else:
+                weights = token
+
+        return True, [spectralist, weights, outputimage]
+
+def main():
+    '''
+    Parse inputs and run the correct function.
+    '''
+    comb, opt = parse_input(sys.argv[1:])
+
+    if comb:
+        return combine_err(*opt)
+    else:
+        return propagate(*opt)
+
 if __name__ == '__main__':
-    sys.exit(main())
+    
+    if len(sys.argv) < 2:
+        print "The request was made but it was not good"
+        sys.exit(1)
+    else:
+        sys.exit(main())
