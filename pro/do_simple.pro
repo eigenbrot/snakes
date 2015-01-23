@@ -62,8 +62,8 @@ for i = 0, numfibers - 1  DO BEGIN
 ;; ; Create output structure & save
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
-   coef.light_frac *= m.norm
    coef.light_frac /= total(coef.light_frac)
+;   coef.light_frac *= m.norm
 
    printf, lun, i+1, coef.light_frac, format=fmt
 
