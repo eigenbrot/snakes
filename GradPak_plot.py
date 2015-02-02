@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as spi
+from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
 
@@ -120,20 +121,39 @@ def GradPak_patches():
 
     return np.array(patch_list)
 
-def plot(values, clabel='', cmap='RdYlGn', nosky=True):
+def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
+         exclude=[]):
 
-    ax = plt.figure().add_subplot(111)
+    fig = plt.figure(figsize=(5,6))
+    grid = ImageGrid(fig, 111,
+                     nrows_ncols = (1,1),
+                     cbar_mode = 'each',
+                     cbar_location = 'top',
+                     cbar_pad = '1%')
+    ax = grid[0]
     ax.set_xlabel('arcsec')
     ax.set_ylabel('arcsec')
     ax.set_xlim(-59,59)
     ax.set_ylim(-2,116)
     patches = GradPak_patches()
+
+    skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
+
+    if labelfibers:
+        for i, c in enumerate(patches):
+            if not nosky or (i not in skyidx and i+1 not in exclude) :
+                ax.text(c.center[0],c.center[1],i+1,fontsize=6,
+                        ha='center',va='center')
+
     if nosky:
-        skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
-        patches = np.delete(patches,skyidx)
-        values = np.delete(values,skyidx)
-        ax.set_ylim(-2,60)
-        ax.set_xlim(-31,31)
+        exclude = np.r_[skyidx,np.array(exclude)-1]
+        ax.set_ylim(-2,42)
+        ax.set_xlim(-22,22)
+        
+    exclude = np.array(exclude)
+    exclude = np.unique(exclude)
+    patches = np.delete(patches, exclude)
+    values = np.delete(values, exclude)
     patches = patches[values == values]
     pval = values[values == values]
     collection = PatchCollection(patches,cmap=plt.get_cmap(cmap),
@@ -141,18 +161,25 @@ def plot(values, clabel='', cmap='RdYlGn', nosky=True):
             vmin=pval.min(),vmax=pval.max()))
     collection.set_array(pval)
     ax.add_collection(collection)
-    cbar = ax.get_figure().colorbar(collection)
-    cbar.ax.set_ylabel(clabel)
+
+    cbar = ax.cax.colorbar(collection)
+    cbar.set_label_text(clabel)
 
     return ax
 
 def plot_img(values, clabel='', cmap='jet', nosky=True,
-             numpoints=500,method='nearest'):
+             numpoints=500,method='nearest',exclude=[]):
     
     fibers = GradPak_patches()
     x = np.array([c.center[0] for c in fibers])
     y = np.array([c.center[1] for c in fibers])
-    ax = plt.figure().add_subplot(111)
+    fig = plt.figure()
+    grid = ImageGrid(fig, 111,
+                     nrows_ncols = (1,1),
+                     cbar_mode = 'each',
+                     cbar_location = 'top',
+                     cbar_pad = '1%')
+    ax = grid[0]
     ax.set_xlabel('arcsec')
     ax.set_ylabel('arcsec')
     ax.set_xlim(-59,59)
@@ -160,11 +187,15 @@ def plot_img(values, clabel='', cmap='jet', nosky=True,
 
     if nosky:
         skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
-        x = np.delete(x,skyidx)
-        y = np.delete(y,skyidx)
-        values = np.delete(values,skyidx)
-        ax.set_xlim(-31,31)
-        ax.set_ylim(-2,60)
+        exclude = np.r_[skyidx,np.array(exclude)-1]
+        ax.set_xlim(-21,21)
+        ax.set_ylim(-2,40)
+
+    exclude = np.array(exclude)
+    exclude = np.unique(exclude)
+    x = np.delete(x,exclude)
+    y = np.delete(y,exclude)
+    values = np.delete(values,exclude)
 
     xi = np.linspace(x.min(),x.max(),numpoints)
     yi = np.linspace(y.min(),y.max(),numpoints)
@@ -181,7 +212,8 @@ def plot_img(values, clabel='', cmap='jet', nosky=True,
     
     im = ax.imshow(vi, cmap=cmap, origin='lower', 
                    extent=(xi.min(),xi.max(),yi.min(),yi.max()))
-    cbar = ax.figure.colorbar(im,label=clabel)
+    cbar = ax.cax.colorbar(im)
+    cbar.set_label_text(clabel)
 
     return ax
 

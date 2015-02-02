@@ -268,7 +268,7 @@ def combine_err(spectra_list, weight_file, outputname):
     spectra.
 
     Note that internally (in both this function and SCOMBINE) the weights are
-    notmalized to a unity sum, which avoids the need to keep track of the sum
+    normalized to a unity sum, which avoids the need to keep track of the sum
     of the squares of the weights.
 
     When combining images that are not on exactly the same wavelength grid
