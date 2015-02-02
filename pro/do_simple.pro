@@ -1,5 +1,6 @@
 
-pro do_simple, datafile, errorfile, output, model=model, plot=plot
+pro do_simple, datafile, errorfile, output, model=model, plot=plot, $
+               wavemin=wavemin, wavemax=wavemax
 
 ; read in models
 if not n_elements(model) then model=$
@@ -22,9 +23,19 @@ print, 'CRPIX1 = ',crpix
 wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
 vdisp = 377. ; measured velocity dispersion
 
+if n_elements(wavemin) eq 0 then $
+   wavemin = min(wave)
+
+if n_elements(wavemax) eq 0 then $
+   wavemax = max(wave)
+
+idx = where(wave ge wavemin and wave le wavemax)
+wave = wave[idx]
+
 agearr = m.age/1e6
 numages = N_ELEMENTS(agearr)
 colarr = STRARR(numages)
+
 
 FOR k=0, numages - 1 DO BEGIN
    colarr[k] = string(agearr[k],' Myr',format='(I6,A4)')
@@ -38,14 +49,14 @@ printf, lun, '#'
 
 if keyword_set(plot) then begin
    plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
-   dfpsplot, plotfile, /color, /landscape
+   dfpsplot, plotfile, /color, xsize=9, ysize=9/1.5, /times ;/landscape
 endif
 
-for i = 0, numfibers - 1  DO BEGIN
+for i = 74, 74  DO BEGIN
    
    print, 'Grabbing fiber '+string(i,format='(I3)')
-   flux = data[*,i]*1e19
-   err = error[*,i]*1e19
+   flux = data[idx,i]*1e19
+   err = error[idx,i]*1e19
    
 ; fit continuum
    coef = bc_continuum(m, wave, flux, err, vdisp, $
@@ -62,8 +73,9 @@ for i = 0, numfibers - 1  DO BEGIN
 ;; ; Create output structure & save
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
-   coef.light_frac /= total(coef.light_frac)
+
 ;   coef.light_frac *= m.norm
+   coef.light_frac /= total(coef.light_frac)
 
    printf, lun, i+1, coef.light_frac, format=fmt
 
