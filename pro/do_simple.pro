@@ -21,7 +21,10 @@ print, 'CDELT1 = ',cdelt
 print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
 wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
-vdisp = 377. ; measured velocity dispersion
+;vdisp = 377. ; measured velocity dispersion
+vdisp = [493., 589., 691., 796., 966.]
+size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
+size_switch = 0
 
 if n_elements(wavemin) eq 0 then $
    wavemin = min(wave)
@@ -58,9 +61,15 @@ for i = 0, numfibers - 1  DO BEGIN
    flux = data[idx,i]*1e19
    err = error[idx,i]*1e19
    
+   print, i, size_borders
+   if i eq size_borders[0] then begin
+      size_switch += 1
+      size_borders = size_borders[1:*]
+   endif
+
 ; fit continuum
-   coef = bc_continuum(m, wave, flux, err, vdisp, $
-                       plotlabel=string('Fiber',i+1,format='(A5,I3)'),$
+   coef = bc_continuum(m, wave, flux, err, vdisp[size_switch], $
+                       plotlabel=string('Fiber',i+1,format='(A5,I4)'),$
                        yfit=continuum)
 
 ;; ; measure absorption line indices
