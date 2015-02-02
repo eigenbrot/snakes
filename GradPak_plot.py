@@ -124,7 +124,7 @@ def GradPak_patches():
 def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
          exclude=[]):
 
-    fig = plt.figure(figsize=(5,6))
+    fig = plt.figure(figsize=(6,6))
     grid = ImageGrid(fig, 111,
                      nrows_ncols = (1,1),
                      cbar_mode = 'each',

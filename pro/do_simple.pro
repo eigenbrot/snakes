@@ -32,19 +32,19 @@ if n_elements(wavemax) eq 0 then $
 idx = where(wave ge wavemin and wave le wavemax)
 wave = wave[idx]
 
-agearr = m.age/1e6
+agearr = m.age/1e9
 numages = N_ELEMENTS(agearr)
 colarr = STRARR(numages)
 
 
 FOR k=0, numages - 1 DO BEGIN
-   colarr[k] = string(agearr[k],' Myr',format='(I6,A4)')
+   colarr[k] = string(agearr[k],' Gyr',format='(I6,A4)')
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages)+'F10.7)'
+fmt = '(I11,'+string(numages+1)+'F10.5)'
 openw, lun, output, /get_lun
-printf, lun, '# Fiber Num',colarr,format='(A-11,'+string(numages)+'A10)'
+printf, lun, '# Fiber Num',colarr,'MLWA',format='(A-11,'+string(numages)+'A10, A10)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -52,7 +52,7 @@ if keyword_set(plot) then begin
    dfpsplot, plotfile, /color, xsize=9, ysize=9/1.5, /times ;/landscape
 endif
 
-for i = 74, 74  DO BEGIN
+for i = 0, numfibers - 1  DO BEGIN
    
    print, 'Grabbing fiber '+string(i,format='(I3)')
    flux = data[idx,i]*1e19
@@ -76,8 +76,9 @@ for i = 74, 74  DO BEGIN
 
 ;   coef.light_frac *= m.norm
    coef.light_frac /= total(coef.light_frac)
+   MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
 
-   printf, lun, i+1, coef.light_frac, format=fmt
+   printf, lun, i+1, coef.light_frac, MLWA, format=fmt
 
 ENDFOR
 

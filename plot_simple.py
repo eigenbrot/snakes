@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 
-rc('text', usetex=True)
+rc('text', usetex=False)
 rc('font', family='serif')
 rc('font', size=20.0)
 rc('axes', linewidth=1.0)
@@ -57,50 +57,56 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     fibers = data[:,0]
 
     pp = PDF(outputfile)
-    LWAs = np.zeros(fibers.size)
     for i in range(fibers.size):
         print i
         ax = plt.figure().add_subplot(111)
-        ax.bar(np.arange(AGES.size),data[i,1:],align='center',width=1.0)
+        ax.bar(np.arange(AGES.size),data[i,1:-1],align='center',width=1.0)
         ax.set_ylabel('Light fraction')
         ax.set_xlim(-1,AGES.size)
         ax.set_xticks(np.arange(AGES.size))
         ax.set_xticklabels(AGES)
         ax.set_xlabel('Age [Gyr]')
-        MLWA = np.sum(AGES*data[i,1:])/np.sum(data[i,1:])
-        LWAs[i] = MLWA
+        MLWA = data[i:-1]
         ax.set_title('Fiber {}\nMLWA = {:4.3f} Gyr'.format(i+1,MLWA))
         pp.savefig(ax.figure)
         plt.close(ax.figure)
-
-    
-    ax = plt.figure().add_subplot(111)
-    ax.set_ylabel('MLWA [Gyr]')
-    ax.set_xlabel('Fiber')
-    ax.plot(fibers,LWAs,'.',ms=10)
-    ax.set_yscale('log')
-    pp.savefig(ax.figure)
-
-    ax1 = GPP.plot_img(np.log10(LWAs+1),
-                       clabel='Log( Mean Light Weighted Age [Gyr] )',
-                       method='cubic',
-                       cmap='jet',
-                       exclude=exclude)
-
-    ax1.figure.savefig('test.eps',format='eps')
-    
-    pp.savefig(ax1.figure)
-    ax2 = GPP.plot(np.log10(LWAs+1),
-                   clabel='Log( Mean Light Weighted Age [Gyr] )',
-                   cmap='jet',
-                   labelfibers=False,
-                   exclude=exclude)
-    pp.savefig(ax2.figure)
     
     pp.close()
-    plt.close(ax.figure)
-    plt.close(ax1.figure)
-    plt.close(ax2.figure)
 
     return LWAs
 
+def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True):
+
+
+    LWAs = np.loadtxt(inputfile,usecols=(11,),unpack=True)
+
+    fiber_ax = GPP.plot_img(np.log10(LWAs+1),
+                            clabel='Log( Mean Light Weighted Age [Gyr] )',
+                            method='cubic',
+                            cmap='gnuplot2',
+                            exclude=exclude,
+                            nosky=nosky)
+
+    map_ax = GPP.plot(np.log10(LWAs+1),
+                      clabel='Log( Mean Light Weighted Age [Gyr] )',
+                      cmap='gnuplot2',
+                      labelfibers=False,
+                      exclude=exclude,
+                      nosky=nosky)
+
+    if eps:
+        fiber_name = outputfile+'_fibers.eps'
+        map_name = outputfile+'_map.eps'
+
+        fiber_ax.figure.savefig(fiber_name,format='eps')
+        map_ax.figure.savefig(map_name,format='eps')
+    else:
+        pp = PDF(outputfile)
+        pp.savefig(fiber_ax.figure)
+        pp.savefig(map_ax.figure)
+        pp.close()
+
+    plt.close(fiber_ax.figure)
+    plt.close(map_ax.figure)
+    
+    return
