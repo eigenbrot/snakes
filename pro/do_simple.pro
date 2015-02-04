@@ -4,7 +4,7 @@ pro do_simple, datafile, errorfile, output, model=model, plot=plot, $
 
 ; read in models
 if not n_elements(model) then model=$
-   '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fit'
+   '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits'
 m = mrdfits(model, 1)
 
 ; read in data
@@ -22,7 +22,7 @@ print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
 wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
 ;vdisp = 377. ; measured velocity dispersion
-vdisp = [493., 589., 691., 796., 966.]
+vdisp = [493., 589., 691., 796., 966.]/2.355
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
@@ -52,7 +52,7 @@ printf, lun, '#'
 
 if keyword_set(plot) then begin
    plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
-   dfpsplot, plotfile, /color, xsize=9, ysize=9/1.5, /times ;/landscape
+   dfpsplot, plotfile, /color, /times, /landscape
 endif
 
 for i = 0, numfibers - 1  DO BEGIN
