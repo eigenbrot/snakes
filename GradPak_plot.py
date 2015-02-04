@@ -122,7 +122,7 @@ def GradPak_patches():
     return np.array(patch_list)
 
 def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
-         exclude=[]):
+         exclude=[], minval=None, maxval=None):
 
     fig = plt.figure(figsize=(6,6))
     grid = ImageGrid(fig, 111,
@@ -147,8 +147,8 @@ def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
 
     if nosky:
         exclude = np.r_[skyidx,np.array(exclude)-1]
-        ax.set_ylim(-2,42)
-        ax.set_xlim(-22,22)
+        ax.set_ylim(-2,60)
+        ax.set_xlim(-31,31)
         
     exclude = np.array(exclude)
     exclude = np.unique(exclude)
@@ -156,9 +156,15 @@ def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
     values = np.delete(values, exclude)
     patches = patches[values == values]
     pval = values[values == values]
+    
+    if minval is None:
+        minval = pval.min()
+    if maxval is None:
+        maxval = pval.max()
+
     collection = PatchCollection(patches,cmap=plt.get_cmap(cmap),
                                  norm=matplotlib.colors.Normalize(
-            vmin=pval.min(),vmax=pval.max()))
+            vmin=minval,vmax=maxval))
     collection.set_array(pval)
     ax.add_collection(collection)
 

@@ -75,24 +75,28 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
 
     return LWAs
 
-def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True):
-
+def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
+              labelfibers = True):
+    minval = 0.25#np.log10(AGES[0]+1)
+    maxval = np.log10(AGES[-1]+1)
 
     LWAs = np.loadtxt(inputfile,usecols=(11,),unpack=True)
 
-    fiber_ax = GPP.plot_img(np.log10(LWAs+1),
-                            clabel='Log( Mean Light Weighted Age [Gyr] )',
-                            method='cubic',
-                            cmap='gnuplot2',
-                            exclude=exclude,
-                            nosky=nosky)
-
-    map_ax = GPP.plot(np.log10(LWAs+1),
-                      clabel='Log( Mean Light Weighted Age [Gyr] )',
-                      cmap='gnuplot2',
-                      labelfibers=False,
-                      exclude=exclude,
-                      nosky=nosky)
+    map_ax = GPP.plot_img(np.log10(LWAs+1),
+                          clabel='Log( Mean Light Weighted Age [Gyr] )',
+                          method='cubic',
+                          cmap='gnuplot2',
+                          exclude=exclude,
+                          nosky=nosky)
+    
+    fiber_ax = GPP.plot(np.log10(LWAs+1),
+                        clabel='Log( Mean Light Weighted Age [Gyr] )',
+                        cmap='gnuplot2',
+                        labelfibers=labelfibers,
+                        exclude=exclude,
+                        nosky=nosky,
+                        minval=minval,
+                        maxval=maxval)
 
     if eps:
         fiber_name = outputfile+'_fibers.eps'
