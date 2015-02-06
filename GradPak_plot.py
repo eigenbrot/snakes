@@ -7,6 +7,7 @@ from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
 
 plt.ioff()
+tau = 2 * np.pi
 
 def GradPak_patches():
 
@@ -123,7 +124,28 @@ def GradPak_patches():
 
     return np.array(patch_list)
 
-def plot(values, clabel='', cmap='RdYlGn', nosky=True, labelfibers = True,
+def transform_patches(patches, pa=0, center=[], reffiber=105):
+
+    #First, rotate
+    if pa != 0:
+        parad = pa*tau/360.
+        for c in patches:
+            tmpx = c.center[0]*np.cos(parad) - c.center[1]*np.sin(parad)
+            tmpy = c.center[0]*np.sin(parad) + c.center[1]*np.cos(parad)
+            c.center = (tmpx, tmpy)
+
+    #Now place reference fiber at disired location
+    if len(center) == 2:
+        refcenter = np.array(patches[reffiber-1].center)
+        refcenter += center
+        for c in patches:
+            tmpx = c.center[0] - refcenter[0]
+            tmpy = c.center[1] - refcenter[1]
+            c.center = (tmpx, tmpy)
+
+    return patches
+
+def plot(values, clabel='', cmap='gnuplot2', nosky=True, labelfibers = True,
          exclude=[], minval=None, maxval=None):
 
     fig = plt.figure(figsize=(6,6))
