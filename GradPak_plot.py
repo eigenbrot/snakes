@@ -6,6 +6,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
 
+plt.ioff()
+
 def GradPak_patches():
 
     patch_list = [
