@@ -6,12 +6,12 @@ from matplotlib import rc
 
 rc('text', usetex=False)
 rc('font', family='serif')
-rc('font', size=20.0)
+rc('font', size=10.0)
 rc('axes', linewidth=1.0)
 rc('lines', linewidth=0.4)
 rc('ps', usedistiller='Xpdf')
-rc('xtick', labelsize=20.0)
-rc('ytick', labelsize=20.0)
+rc('xtick', labelsize=10.0)
+rc('ytick', labelsize=10.0)
 
 AGES = np.array([5,25,100,286,640,904,1434,2500,5000,10000])/1e3
 
@@ -66,18 +66,18 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_xticks(np.arange(AGES.size))
         ax.set_xticklabels(AGES)
         ax.set_xlabel('Age [Gyr]')
-        MLWA = data[i:-1]
+        MLWA = data[i,-1]
         ax.set_title('Fiber {}\nMLWA = {:4.3f} Gyr'.format(i+1,MLWA))
         pp.savefig(ax.figure)
         plt.close(ax.figure)
     
     pp.close()
 
-    return LWAs
+    return
 
 def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
               labelfibers = True):
-    minval = 0.25#np.log10(AGES[0]+1)
+    minval = 0.05#np.log10(AGES[0]+1)
     maxval = np.log10(AGES[-1]+1)
 
     LWAs = np.loadtxt(inputfile,usecols=(11,),unpack=True)
