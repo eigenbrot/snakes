@@ -1,6 +1,7 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pywcs
 import scipy.interpolate as spi
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.patches import Circle
@@ -11,9 +12,230 @@ tau = 2 * np.pi
 
 def GradPak_patches():
 
+    # patch_list = [
+    #     Circle((-48.1542, 85.5171), radius=0.9374),
+    #     Circle((48.1542, 85.5171), radius=0.9374),
+    #     Circle((-15.8139, 0.0000), radius=0.9374),
+    #     Circle((-13.5548, 0.0000), radius=0.9374),
+    #     Circle((-11.2957, 0.0000), radius=0.9374),
+    #     Circle((-9.0365, 0.0000), radius=0.9374),
+    #     Circle((-6.7774, 0.0000), radius=0.9374),
+    #     Circle((-4.5183, 0.0000), radius=0.9374),
+    #     Circle((-2.2591, 0.0000), radius=0.9374),
+    #     Circle((-0.0000, 0.0000), radius=0.9374),
+    #     Circle((2.2591, 0.0000), radius=0.9374),
+    #     Circle((4.5183, 0.0000), radius=0.9374),
+    #     Circle((6.7774, 0.0000), radius=0.9374),
+    #     Circle((9.0365, 0.0000), radius=0.9374),
+    #     Circle((11.2957, 0.0000), radius=0.9374),
+    #     Circle((13.5548, 0.0000), radius=0.9374),
+    #     Circle((15.8139, 0.0000), radius=0.9374),
+    #     Circle((42.3236, 85.5171), radius=0.9374),
+    #     Circle((-42.3236, 85.5171), radius=0.9374),
+    #     Circle((-48.9201, 90.8997), radius=1.4061),
+    #     Circle((-15.7343, 3.1159), radius=1.4061),
+    #     Circle((-12.2378, 3.1159), radius=1.4061),
+    #     Circle((-8.7413, 3.1159), radius=1.4061),
+    #     Circle((-5.2448, 3.1159), radius=1.4061),
+    #     Circle((-1.7483, 3.1159), radius=1.4061),
+    #     Circle((1.7483, 3.1159), radius=1.4061),
+    #     Circle((5.2448, 3.1159), radius=1.4061),
+    #     Circle((8.7413, 3.1159), radius=1.4061),
+    #     Circle((12.2378, 3.1159), radius=1.4061),
+    #     Circle((15.7343, 3.1159), radius=1.4061),
+    #     Circle((48.9201, 90.8997), radius=1.4061),
+    #     Circle((-41.5578, 90.8997), radius=1.4061),
+    #     Circle((-15.7343, 6.6124), radius=1.4061),
+    #     Circle((-12.2378, 6.6124), radius=1.4061),
+    #     Circle((-8.7413, 6.6124), radius=1.4061),
+    #     Circle((-5.2448, 6.6124), radius=1.4061),
+    #     Circle((-1.7483, 6.6124), radius=1.4061),
+    #     Circle((1.7483, 6.6124), radius=1.4061),
+    #     Circle((5.2448, 6.6124), radius=1.4061),
+    #     Circle((8.7413, 6.6124), radius=1.4061),
+    #     Circle((12.2378, 6.6124), radius=1.4061),
+    #     Circle((15.7343, 6.6124), radius=1.4061),
+    #     Circle((41.5578, 90.8997), radius=1.4061),
+    #     Circle((-49.7300, 97.7793), radius=1.8748),
+    #     Circle((-15.9124, 10.8720), radius=1.8748),
+    #     Circle((-11.3660, 10.8720), radius=1.8748),
+    #     Circle((-6.8196, 10.8720), radius=1.8748),
+    #     Circle((-2.2732, 10.8720), radius=1.8748),
+    #     Circle((2.2732, 10.8720), radius=1.8748),
+    #     Circle((6.8196, 10.8720), radius=1.8748),
+    #     Circle((11.3660, 10.8720), radius=1.8748),
+    #     Circle((15.9124, 10.8720), radius=1.8748),
+    #     Circle((49.7300, 97.7793), radius=1.8748),
+    #     Circle((-40.7478, 97.7793), radius=1.8748),
+    #     Circle((-15.9124, 15.4184), radius=1.8748),
+    #     Circle((-11.3660, 15.4184), radius=1.8748),
+    #     Circle((-6.8196, 15.4184), radius=1.8748),
+    #     Circle((-2.2732, 15.4184), radius=1.8748),
+    #     Circle((6.8196, 15.4184), radius=1.8748),
+    #     Circle((11.3660, 15.4184), radius=1.8748),
+    #     Circle((15.9124, 15.4184), radius=1.8748),
+    #     Circle((40.7478, 97.7793), radius=1.8748),
+    #     Circle((-45.2389, 82.7434), radius=2.3435),
+    #     Circle((-16.6201, 20.6997), radius=2.3435),
+    #     Circle((-11.0801, 20.6997), radius=2.3435),
+    #     Circle((-5.5400, 20.6997), radius=2.3435),
+    #     Circle((0.0000, 20.6997), radius=2.3435),
+    #     Circle((5.5400, 20.6997), radius=2.3435),
+    #     Circle((11.0801, 20.6997), radius=2.3435),
+    #     Circle((16.6201, 20.6997), radius=2.3435),
+    #     Circle((45.2389, 82.7434), radius=2.3435),
+    #     Circle((-16.6201, 26.2397), radius=2.3435),
+    #     Circle((-11.0801, 26.2397), radius=2.3435),
+    #     Circle((-5.5400, 26.2397), radius=2.3435),
+    #     Circle((0.0000, 26.2397), radius=2.3435),
+    #     Circle((5.5400, 26.2397), radius=2.3435),
+    #     Circle((11.0801, 26.2397), radius=2.3435),
+    #     Circle((16.6201, 26.2397), radius=2.3435),
+    #     Circle((-45.2389, 88.2909), radius=2.3435),
+    #     Circle((-16.6201, 31.7797), radius=2.3435),
+    #     Circle((-11.0801, 31.7797), radius=2.3435),
+    #     Circle((-5.5400, 31.7797), radius=2.3435),
+    #     Circle((0.0000, 31.7797), radius=2.3435),
+    #     Circle((5.5400, 31.7797), radius=2.3435),
+    #     Circle((11.0801, 31.7797), radius=2.3435),
+    #     Circle((16.6201, 31.7797), radius=2.3435),
+    #     Circle((45.2389, 88.2909), radius=2.3435),
+    #     Circle((-45.2389, 94.4215), radius=2.8122),
+    #     Circle((-16.7092, 38.1297), radius=2.8122),
+    #     Circle((-10.0255, 38.1297), radius=2.8122),
+    #     Circle((-3.3418, 38.1297), radius=2.8122),
+    #     Circle((3.3418, 38.1297), radius=2.8122),
+    #     Circle((10.0255, 38.1297), radius=2.8122),
+    #     Circle((16.7092, 38.1297), radius=2.8122),
+    #     Circle((45.2389, 94.4215), radius=2.8122),
+    #     Circle((-16.7092, 44.8133), radius=2.8122),
+    #     Circle((-10.0255, 44.8133), radius=2.8122),
+    #     Circle((-3.3418, 44.8133), radius=2.8122),
+    #     Circle((3.3418, 44.8133), radius=2.8122),
+    #     Circle((10.0255, 44.8133), radius=2.8122),
+    #     Circle((16.7092, 44.8133), radius=2.8122),
+    #     Circle((-45.2389, 101.1361), radius=2.8122),
+    #     Circle((-16.7092, 51.4970), radius=2.8122),
+    #     Circle((-10.0255, 51.4970), radius=2.8122),
+    #     Circle((16.7092, 51.4970), radius=2.8122),
+    #     Circle((3.3418, 51.4970), radius=2.8122),
+    #     Circle((10.0255, 51.4970), radius=2.8122),
+    #     Circle((-3.3418, 51.4970), radius=2.8122),
+    #     Circle((45.2389, 101.1361), radius=2.8122)]
+
+    # patch_list = [Circle((-48.1542, 85.5171), radius=0.9374),
+    #               Circle((48.1542, 85.5171), radius=0.9374),
+    #               Circle((15.8139, 0.0000), radius=0.9374),
+    #               Circle((13.5548, 0.0000), radius=0.9374),
+    #               Circle((11.2957, 0.0000), radius=0.9374),
+    #               Circle((9.0365, 0.0000), radius=0.9374),
+    #               Circle((6.7774, 0.0000), radius=0.9374),
+    #               Circle((4.5183, 0.0000), radius=0.9374),
+    #               Circle((2.2591, 0.0000), radius=0.9374),
+    #               Circle((0.0000, 0.0000), radius=0.9374),
+    #               Circle((-2.2591, 0.0000), radius=0.9374),
+    #               Circle((-4.5183, 0.0000), radius=0.9374),
+    #               Circle((-6.7774, 0.0000), radius=0.9374),
+    #               Circle((-9.0365, 0.0000), radius=0.9374),
+    #               Circle((-11.2957, 0.0000), radius=0.9374),
+    #               Circle((-13.5548, 0.0000), radius=0.9374),
+    #               Circle((-15.8139, 0.0000), radius=0.9374),
+    #               Circle((42.3236, 85.5171), radius=0.9374),
+    #               Circle((-42.3236, 85.5171), radius=0.9374),
+    #               Circle((-48.9201, 90.8997), radius=1.4061),
+    #               Circle((15.7343, 3.1159), radius=1.4061),
+    #               Circle((12.2378, 3.1159), radius=1.4061),
+    #               Circle((8.7413, 3.1159), radius=1.4061),
+    #               Circle((5.2448, 3.1159), radius=1.4061),
+    #               Circle((1.7483, 3.1159), radius=1.4061),
+    #               Circle((-1.7483, 3.1159), radius=1.4061),
+    #               Circle((-5.2448, 3.1159), radius=1.4061),
+    #               Circle((-8.7413, 3.1159), radius=1.4061),
+    #               Circle((-12.2378, 3.1159), radius=1.4061),
+    #               Circle((-15.7343, 3.1159), radius=1.4061),
+    #               Circle((48.9201, 90.8997), radius=1.4061),
+    #               Circle((-41.5578, 90.8997), radius=1.4061),
+    #               Circle((15.7343, 6.6124), radius=1.4061),
+    #               Circle((12.2378, 6.6124), radius=1.4061),
+    #               Circle((8.7413, 6.6124), radius=1.4061),
+    #               Circle((5.2448, 6.6124), radius=1.4061),
+    #               Circle((1.7483, 6.6124), radius=1.4061),
+    #               Circle((-1.7483, 6.6124), radius=1.4061),
+    #               Circle((-5.2448, 6.6124), radius=1.4061),
+    #               Circle((-8.7413, 6.6124), radius=1.4061),
+    #               Circle((-12.2378, 6.6124), radius=1.4061),
+    #               Circle((-15.7343, 6.6124), radius=1.4061),
+    #               Circle((41.5578, 90.8997), radius=1.4061),
+    #               Circle((-49.7300, 97.7793), radius=1.8748),
+    #               Circle((15.9124, 10.8720), radius=1.8748),
+    #               Circle((11.3660, 10.8720), radius=1.8748),
+    #               Circle((6.8196, 10.8720), radius=1.8748),
+    #               Circle((2.2732, 10.8720), radius=1.8748),
+    #               Circle((-2.2732, 10.8720), radius=1.8748),
+    #               Circle((-6.8196, 10.8720), radius=1.8748),
+    #               Circle((-11.3660, 10.8720), radius=1.8748),
+    #               Circle((-15.9124, 10.8720), radius=1.8748),
+    #               Circle((49.7300, 97.7793), radius=1.8748),
+    #               Circle((-40.7478, 97.7793), radius=1.8748),
+    #               Circle((15.9124, 15.4184), radius=1.8748),
+    #               Circle((11.3660, 15.4184), radius=1.8748),
+    #               Circle((6.8196, 15.4184), radius=1.8748),
+    #               Circle((-2.2732, 15.4184), radius=1.8748),
+    #               Circle((-6.8196, 15.4184), radius=1.8748),
+    #               Circle((-11.3660, 15.4184), radius=1.8748),
+    #               Circle((-15.9124, 15.4184), radius=1.8748),
+    #               Circle((40.7478, 97.7793), radius=1.8748),
+    #               Circle((-45.2389, 82.7434), radius=2.3435),
+    #               Circle((16.6201, 20.6997), radius=2.3435),
+    #               Circle((11.0801, 20.6997), radius=2.3435),
+    #               Circle((5.5400, 20.6997), radius=2.3435),
+    #               Circle((-0.0000, 20.6997), radius=2.3435),
+    #               Circle((-5.5400, 20.6997), radius=2.3435),
+    #               Circle((-11.0801, 20.6997), radius=2.3435),
+    #               Circle((-16.6201, 20.6997), radius=2.3435),
+    #               Circle((45.2389, 82.7434), radius=2.3435),
+    #               Circle((16.6201, 26.2397), radius=2.3435),
+    #               Circle((11.0801, 26.2397), radius=2.3435),
+    #               Circle((5.5400, 26.2397), radius=2.3435),
+    #               Circle((-0.0000, 26.2397), radius=2.3435),
+    #               Circle((-5.5400, 26.2397), radius=2.3435),
+    #               Circle((-11.0801, 26.2397), radius=2.3435),
+    #               Circle((-16.6201, 26.2397), radius=2.3435),
+    #               Circle((-45.2389, 88.2909), radius=2.3435),
+    #               Circle((16.6201, 31.7797), radius=2.3435),
+    #               Circle((11.0801, 31.7797), radius=2.3435),
+    #               Circle((5.5400, 31.7797), radius=2.3435),
+    #               Circle((-0.0000, 31.7797), radius=2.3435),
+    #               Circle((-5.5400, 31.7797), radius=2.3435),
+    #               Circle((-11.0801, 31.7797), radius=2.3435),
+    #               Circle((-16.6201, 31.7797), radius=2.3435),
+    #               Circle((45.2389, 88.2909), radius=2.3435),
+    #               Circle((-45.2389, 94.4215), radius=2.8122),
+    #               Circle((16.7092, 38.1297), radius=2.8122),
+    #               Circle((10.0255, 38.1297), radius=2.8122),
+    #               Circle((3.3418, 38.1297), radius=2.8122),
+    #               Circle((-3.3418, 38.1297), radius=2.8122),
+    #               Circle((-10.0255, 38.1297), radius=2.8122),
+    #               Circle((-16.7092, 38.1297), radius=2.8122),
+    #               Circle((45.2389, 94.4215), radius=2.8122),
+    #               Circle((16.7092, 44.8133), radius=2.8122),
+    #               Circle((10.0255, 44.8133), radius=2.8122),
+    #               Circle((3.3418, 44.8133), radius=2.8122),
+    #               Circle((-3.3418, 44.8133), radius=2.8122),
+    #               Circle((-10.0255, 44.8133), radius=2.8122),
+    #               Circle((-16.7092, 44.8133), radius=2.8122),
+    #               Circle((45.2389, 101.1361), radius=2.8122),
+    #               Circle((16.7092, 51.4970), radius=2.8122),
+    #               Circle((10.0255, 51.4970), radius=2.8122),
+    #               Circle((3.3418, 51.4970), radius=2.8122),
+    #               Circle((-3.3418, 51.4970), radius=2.8122),
+    #               Circle((-10.0255, 51.4970), radius=2.8122),
+    #               Circle((-16.7092, 51.4970), radius=2.8122),
+    #               Circle((-45.2389, 101.1361), radius=2.8122)]
+
     patch_list = [
         Circle((-48.1542, 85.5171), radius=0.9374),
-        Circle((48.1542, 85.5171), radius=0.9374),
+                  Circle((48.1542, 85.5171), radius=0.9374),
         Circle((-15.8139, 0.0000), radius=0.9374),
         Circle((-13.5548, 0.0000), radius=0.9374),
         Circle((-11.2957, 0.0000), radius=0.9374),
@@ -113,18 +335,18 @@ def GradPak_patches():
         Circle((3.3418, 44.8133), radius=2.8122),
         Circle((10.0255, 44.8133), radius=2.8122),
         Circle((16.7092, 44.8133), radius=2.8122),
-        Circle((-45.2389, 101.1361), radius=2.8122),
+        Circle((45.2389, 101.1361), radius=2.8122),
         Circle((-16.7092, 51.4970), radius=2.8122),
         Circle((-10.0255, 51.4970), radius=2.8122),
         Circle((16.7092, 51.4970), radius=2.8122),
         Circle((3.3418, 51.4970), radius=2.8122),
         Circle((10.0255, 51.4970), radius=2.8122),
         Circle((-3.3418, 51.4970), radius=2.8122),
-        Circle((45.2389, 101.1361), radius=2.8122)]
+        Circle((-45.2389, 101.1361), radius=2.8122)]
 
     return np.array(patch_list)
 
-def transform_patches(patches, pa=0, center=[], reffiber=105):
+def transform_patches(patches, pa=0, center=[], reffiber=105, scale=1.):
 
     #First, rotate
     if pa != 0:
@@ -135,13 +357,23 @@ def transform_patches(patches, pa=0, center=[], reffiber=105):
             c.center = (tmpx, tmpy)
 
     #Now place reference fiber at disired location
-    if len(center) == 2:
-        refcenter = np.array(patches[reffiber-1].center)
-        refcenter += center
-        for c in patches:
-            tmpx = c.center[0] - refcenter[0]
-            tmpy = c.center[1] - refcenter[1]
-            c.center = (tmpx, tmpy)
+    if len(center) != 2:
+        center = [0,0]
+    refcenter = np.array(patches[reffiber-1].center)/3600.
+    for c in patches:
+        tmpx = -1*(c.center[0]/3600. - refcenter[0]) + center[0]
+        tmpy = c.center[1]/3600. - refcenter[1] + center[1]
+        c.center = (tmpx, tmpy)
+        c.radius *= scale
+
+    return patches
+
+def wcs2pix(patches, header):
+
+    header_wcs = pywcs.WCS(header)
+
+    for c in patches:
+        c.center = tuple(header_wcs.wcs_sky2pix([c.center],0)[0])
 
     return patches
 
@@ -257,6 +489,20 @@ def format_tpl(tpl):
             data = line.split('(')[1].split(')')[0].replace('"','')
             x,y,r = [float(i) for i in data.split(',')]
             print 'Circle(({:6.4f}, {:6.4f}), radius={:6.4f}),'.format(
-                x*3600.,y*3600,r)
+                x*-3600.,y*3600,r)
+
+    return
+
+def fix_order():
+
+    patches = GradPak_patches()
+
+    for c in patches:
+
+        if c.center[1] < 70:
+            c.center = (-1*c.center[0], c.center[1])
+
+        print 'Circle(({:6.4f}, {:6.4f}), radius={:6.4f}),'.format(
+            c.center[0], c.center[1], c.radius)
 
     return
