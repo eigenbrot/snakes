@@ -236,25 +236,29 @@ def GradPak_patches():
 
     return np.array(patch_list)
 
-def transform_patches(patches, pa=0, center=[], reffiber=105, scale=1.):
+def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.):
 
-    #First, rotate
-    if pa != 0:
-        parad = -1*pa*tau/360.
-        for c in patches:
-            tmpx = c.center[0]*np.cos(parad) - c.center[1]*np.sin(parad)
-            tmpy = c.center[0]*np.sin(parad) + c.center[1]*np.cos(parad)
-            c.center = (tmpx, tmpy)
-
-    #Now place reference fiber at disired location
-    if len(center) != 2:
-        center = [0,0]
-    refcenter = np.array(patches[reffiber-1].center)/3600.
+    
+    refcenter = np.array(patches[reffiber - 1].center) #in arcsec
+    parad = -1.*pa*tau/360.
+    decrad = center[1]*tau/360.
+    rotrefx = refcenter[0]*np.cos(parad) - refcenter[1]*np.sin(parad)
+    rotrefy = refcenter[0]*np.sin(parad) + refcenter[1]*np.cos(parad)
     for c in patches:
-        tmpx = c.center[0]/3600. - refcenter[0] + center[0]
-        tmpy = c.center[1]/3600. - refcenter[1] + center[1]
-        c.center = (tmpx, tmpy)
+        startx = c.center[0] #in arcsec
+        starty = c.center[1] 
+        
+        #Rotate
+        rotx = startx*np.cos(parad) - starty*np.sin(parad)
+        roty = startx*np.sin(parad) + starty*np.cos(parad)
+
+        #Shift
+        shiftx = (rotx - rotrefx)/(np.cos(decrad)*3600.) + center[0]
+        shifty = (roty - rotrefy)/3600. + center[1]
+
+        c.center = (shiftx, shifty)
         c.radius *= scale
+
 
     return patches
 
@@ -264,7 +268,6 @@ def wcs2pix(patches, header):
 
     for c in patches:
         c.center= tuple(header_wcs.wcs_sky2pix([c.center],0)[0])
-        print c.radius
 
     return patches
 
