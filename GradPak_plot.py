@@ -161,8 +161,9 @@ def wcs2pix(patches, header):
 
     return patches
 
-def plot(values, 
-         fitsfile = None, pa = 0, center = [0,0], 
+def plot(values,
+         ax = None,
+         fitsfile = None, pa = 0, center = [0,0],
          reffiber = 105, invert=True,
          clabel='', cmap='gnuplot2', 
          nosky=True, labelfibers = True, exclude=[], 
@@ -174,14 +175,17 @@ def plot(values,
     else:
         axistype = None
 
-    fig = plt.figure(figsize=(8,8))
-    grid = ImageGrid(fig, 111,
-                     nrows_ncols = (1,1),
-                     cbar_mode = 'each',
-                     cbar_location = 'top',
-                     cbar_pad = '1%',
-                     axes_class = axistype)
-    ax = grid[0]
+    prevax = True
+    if not ax:
+        fig = plt.figure(figsize=(8,8))
+        grid = ImageGrid(fig, 111,
+                         nrows_ncols = (1,1),
+                         cbar_mode = 'each',
+                         cbar_location = 'top',
+                         cbar_pad = '1%',
+                         axes_class = axistype)
+        ax = grid[0]
+        prevax = False
 
     patches = GradPak_patches()
     if fitsfile:
@@ -195,24 +199,27 @@ def plot(values,
                                     scale = scale)
         patches = wcs2pix(patches, hdu.header) # now in px
         refcenter = patches[reffiber - 1].center # in px
-        xdelt = 2./(60. * hdu.header['CDELT1'])
-        ydelt = 2./(60. * hdu.header['CDELT2'])
-        ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
-        ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
 
         if invert:
             hdu.data = -1*(hdu.data - np.max(hdu.data))
-        ax.imshow(hdu.data,
-                  cmap = plt.get_cmap('gray'),
-                  origin = 'lower', aspect = 'equal')
-        ax.set_display_coord_system('fk5')
-        ax.set_ticklabel_type('hms','dms')
+
+        if not prevax:
+            ax.imshow(hdu.data,
+                      cmap = plt.get_cmap('gray'),
+                      origin = 'lower', aspect = 'equal')
+            ax.set_display_coord_system('fk5')
+            ax.set_ticklabel_type('hms','dms')
+            xdelt = 2./(60. * hdu.header['CDELT1'])
+            ydelt = 2./(60. * hdu.header['CDELT2'])
+            ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+            ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
 
     else:
-        ax.set_xlabel('arcsec')
-        ax.set_ylabel('arcsec')
-        ax.set_xlim(59,-59)
-        ax.set_ylim(-2,116)
+        if not prevax:
+            ax.set_xlabel('arcsec')
+            ax.set_ylabel('arcsec')
+            ax.set_xlim(59,-59)
+            ax.set_ylim(-2,116)
 
 
     skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
