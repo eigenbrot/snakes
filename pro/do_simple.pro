@@ -49,11 +49,11 @@ colarr = STRARR(numages)
 
 
 FOR k=0, numages - 1 DO BEGIN
-   colarr[k] = string(agearr[k],' Gyr',format='(I6,A4)')
+   colarr[k] = string(agearr[k],' Gyr',format='(F6.3,A4)')
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'F13.5)'
+fmt = '(I11,'+string(numages+2)+'E13.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Fiber Num',colarr,'MMWA','MLWA',$
         format='(A-11,'+string(numages+2)+'A13)'
@@ -106,13 +106,13 @@ for i = 0, numfibers - 1  DO BEGIN
    ;; coef.light_frac /= total(coef.light_frac)
    ;; MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
 
-   MMWA = total(agearr*coef.light_frac*m.norm) $
-          / total(coef.light_frac*m.norm)
+   MMWA = total(agearr*coef.light_frac/m.norm) $
+          / total(coef.light_frac/m.norm)
 
    light_weight = median(m.flux[lightidx,*], dimension=1) * coef.light_frac
    MLWA = total(light_weight * agearr) / total(light_weight)
 
-   printf, lun, i+1, coef.light_frac, MMWA, MLWA, format=fmt
+   printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, format=fmt
 
 ENDFOR
 
