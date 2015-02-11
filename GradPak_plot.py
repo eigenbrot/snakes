@@ -14,8 +14,8 @@ tau = 2 * np.pi
 
 def GradPak_patches():
 
-    patch_list = [
-       Circle((48.1542, 85.5171), radius=0.9374),
+    raw_patches = [
+        Circle((48.1542, 85.5171), radius=0.9374),
         Circle((-48.1542, 85.5171), radius=0.9374),
         Circle((15.8139, 0.0000), radius=0.9374),
         Circle((13.5548, 0.0000), radius=0.9374),
@@ -125,17 +125,19 @@ def GradPak_patches():
         Circle((3.3418, 51.4970), radius=2.8122),
         Circle((45.2389, 101.1361), radius=2.8122)]
 
+    patch_list = [[i+1,p] for i,p in enumerate(raw_patches)]
+
     return np.array(patch_list)
 
 def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.):
 
     
-    refcenter = np.array(patches[reffiber - 1].center) #in arcsec
+    refcenter = np.array(patches[reffiber - 1,1].center) #in arcsec
     parad = -1.*pa*tau/360.
     decrad = center[1]*tau/360.
     rotrefx = refcenter[0]*np.cos(parad) - refcenter[1]*np.sin(parad)
     rotrefy = refcenter[0]*np.sin(parad) + refcenter[1]*np.cos(parad)
-    for c in patches:
+    for c in patches[:,1]:
         startx = c.center[0] #in arcsec
         starty = c.center[1] 
         
@@ -156,99 +158,119 @@ def wcs2pix(patches, header):
 
     header_wcs = pywcs.WCS(header)
 
-    for c in patches:
+    for c in patches[:,1]:
         c.center= tuple(header_wcs.wcs_sky2pix([c.center],0)[0])
 
     return patches
 
-def plot(values,
-         ax = None,
-         fitsfile = None, pa = 0, center = [0,0],
-         reffiber = 105, invert=True,
-         clabel='', cmap='gnuplot2', 
-         nosky=True, labelfibers = True, exclude=[], 
-         minval = None, maxval = None):
+def prep_axis(fitsfile = None, invert = True, sky = False):
 
     if fitsfile:
         hdu = pyfits.open(fitsfile)[0]
         axistype = (wcsgrid.Axes, dict(header=hdu.header))
     else:
+        hdu = None
         axistype = None
 
-    prevax = True
-    if not ax:
-        fig = plt.figure(figsize=(8,8))
-        grid = ImageGrid(fig, 111,
-                         nrows_ncols = (1,1),
-                         cbar_mode = 'each',
-                         cbar_location = 'top',
-                         cbar_pad = '1%',
-                         axes_class = axistype)
-        ax = grid[0]
-        prevax = False
+    fig = plt.figure(figsize=(8,8))
+    grid = ImageGrid(fig, 111,
+                     nrows_ncols = (1,1),
+                     cbar_mode = 'each',
+                     cbar_location = 'top',
+                     cbar_pad = '1%',
+                     axes_class = axistype)
+    ax = grid[0]
+    
+    if fitsfile:
+        if invert:
+            hdu.data = -1*(hdu.data - np.max(hdu.data))
+
+        ax.imshow(hdu.data,
+                  cmap = plt.get_cmap('gray'),
+                  origin = 'lower', aspect = 'equal')
+        ax.set_display_coord_system('fk5')
+        ax.set_ticklabel_type('hms','dms')
+
+    else:
+        ax.set_xlabel('arcsec')
+        ax.set_ylabel('arcsec')
+        if sky:
+            ax.set_xlim(59,-59)
+            ax.set_ylim(-2,116)
+        else:
+            ax.set_ylim(-2,60)
+            ax.set_xlim(31,-31)
+        
+    return ax, hdu
+
+def prep_patches(values,
+                 hdu = None, pa = 0, center = [0,0], reffiber = 105,
+                 sky = False, exclude = []):
 
     patches = GradPak_patches()
-    if fitsfile:
+    skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108] 
+    if hdu:
         scale = 2./((np.abs(hdu.header['CDELT1']) + \
                      np.abs(hdu.header['CDELT2']))*
-                           3600.)
+                    3600.)
         patches = transform_patches(patches,
                                     reffiber = reffiber,
                                     pa = pa,
                                     center = center,
                                     scale = scale)
         patches = wcs2pix(patches, hdu.header) # now in px
-        refcenter = patches[reffiber - 1].center # in px
 
-        if invert:
-            hdu.data = -1*(hdu.data - np.max(hdu.data))
+    refcenter = patches[reffiber - 1,1].center # in px
 
-        if not prevax:
-            ax.imshow(hdu.data,
-                      cmap = plt.get_cmap('gray'),
-                      origin = 'lower', aspect = 'equal')
-            ax.set_display_coord_system('fk5')
-            ax.set_ticklabel_type('hms','dms')
-            xdelt = 2./(60. * hdu.header['CDELT1'])
-            ydelt = 2./(60. * hdu.header['CDELT2'])
-            ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
-            ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
-
-    else:
-        if not prevax:
-            ax.set_xlabel('arcsec')
-            ax.set_ylabel('arcsec')
-            ax.set_xlim(59,-59)
-            ax.set_ylim(-2,116)
-
-
-    skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
-
-    if labelfibers:
-        for i, c in enumerate(patches):
-            if not nosky or (i not in skyidx and i+1 not in exclude) :
-                ax.text(c.center[0],c.center[1],i+1,fontsize=6,
-                        ha='center',va='center')
-
-    if nosky:
+    if not sky:
         exclude = np.r_[skyidx,np.array(exclude)-1]
-        if not fitsfile:
-            ax.set_ylim(-2,60)
-            ax.set_xlim(31,-31)
-        
+    else:
+        exclude = np.array(exclude) - 1
+
     exclude = np.array(exclude)
     exclude = np.unique(exclude)
-    patches = np.delete(patches, exclude)
+    patches = np.delete(patches, exclude, axis=0)
     values = np.delete(values, exclude)
     patches = patches[values == values]
     pval = values[values == values]
+
+    return patches, pval, refcenter
+
+def plot(values,
+         ax = None,
+         fitsfile = None, pa = 0, center = [0,0],
+         reffiber = 105, invert=True,
+         clabel = '', cmap = 'gnuplot2', 
+         sky = False, labelfibers = True, exclude = [], 
+         minval = None, maxval = None):
+
+
+    if not ax:
+        ax, hdu = prep_axis(fitsfile, invert, sky)
+        
+    patches, pval, refcenter = prep_patches(values,
+                                            hdu = hdu, pa = pa, 
+                                            center = center,
+                                            reffiber = reffiber,
+                                            sky = sky, exclude = exclude)
+
+    xdelt = 2./(60. * hdu.header['CDELT1'])
+    ydelt = 2./(60. * hdu.header['CDELT2'])
+    ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+    ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
+
+
+    if labelfibers:
+        for c in patches:
+            ax.text(c[1].center[0],c[1].center[1],c[0],fontsize=6,
+                    ha='center',va='center')
     
     if minval is None:
         minval = pval.min()
     if maxval is None:
         maxval = pval.max()
 
-    collection = PatchCollection(patches,
+    collection = PatchCollection(patches[:,1],
                                  cmap=plt.get_cmap(cmap),
                                  norm=matplotlib.colors.Normalize(
                                      vmin=minval,vmax=maxval))
@@ -261,84 +283,34 @@ def plot(values,
     return ax
 
 def plot_img(values, 
+             ax = None,
              fitsfile = None, pa=0, center=[0,0], 
              reffiber = 105, invert = True,
-             clabel='', cmap='gnuplot2', nosky=True,
-             numpoints=500,method='nearest',exclude=[],
+             clabel='', cmap='gnuplot2', sky = False,
+             numpoints=500, method='nearest',exclude=[],
              minval = None, maxval = None):
     
-    if fitsfile:
-        hdu = pyfits.open(fitsfile)[0]
-        axistype = (wcsgrid.Axes, dict(header=hdu.header))
-    else:
-        axistype = None
+    if not ax:
+        ax, hdu = prep_axis(fitsfile, invert, sky)
+        
+    patches, pval, refcenter = prep_patches(values,
+                                            hdu = hdu, pa = pa, 
+                                            center = center,
+                                            reffiber = reffiber,
+                                            sky = sky, exclude = exclude)
+    xdelt = 2./(60. * hdu.header['CDELT1'])
+    ydelt = 2./(60. * hdu.header['CDELT2'])
+    ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+    ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
 
-    fig = plt.figure(figsize=(8,8))
-    grid = ImageGrid(fig, 111,
-                     nrows_ncols = (1,1),
-                     axes_class = axistype,
-                     cbar_mode = 'each',
-                     cbar_location = 'top',
-                     cbar_pad = '1%')
-    ax = grid[0]
-    patches = GradPak_patches()
-
-    if fitsfile:
-        scale = 2./((np.abs(hdu.header['CDELT1']) + \
-                     np.abs(hdu.header['CDELT2']))*
-                           3600.)
-        patches = transform_patches(patches,
-                                    reffiber = reffiber,
-                                    pa = pa,
-                                    center = center,
-                                    scale = scale)
-        patches = wcs2pix(patches, hdu.header) # now in px
-        refcenter = patches[reffiber - 1].center # in px
-
-        if invert:
-            hdu.data = -1*(hdu.data - np.max(hdu.data))
-
-        ax.imshow(hdu.data,
-                  cmap = plt.get_cmap('gray'),
-                  origin = 'lower', aspect = 'equal')
-        ax.set_display_coord_system('fk5')
-        ax.set_ticklabel_type('hms','dms')
-        xdelt = 2./(60. * hdu.header['CDELT1'])
-        ydelt = 2./(60. * hdu.header['CDELT2'])
-        ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
-        ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
-
-    else:
-        ax.set_xlabel('arcsec')
-        ax.set_ylabel('arcsec')
-        ax.set_xlim(-59,59)
-        ax.set_ylim(-2,116)
-
-    x = np.array([c.center[0] for c in patches])
-    y = np.array([c.center[1] for c in patches])
-
-    if nosky:
-        skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
-        exclude = np.r_[skyidx,np.array(exclude)-1]
-        if not fitsfile:
-            ax.set_xlim(-21,21)
-            ax.set_ylim(-2,40)
-
-    exclude = np.array(exclude)
-    exclude = np.unique(exclude)
-    x = np.delete(x,exclude)
-    y = np.delete(y,exclude)
-    values = np.delete(values,exclude)
+    x = np.array([c.center[0] for c in patches[:,1]])
+    y = np.array([c.center[1] for c in patches[:,1]])
 
     xi = np.linspace(x.min(),x.max(),numpoints)
     yi = np.linspace(y.min(),y.max(),numpoints)
 
-    x = x[values == values]
-    y = y[values == values]
-    values = values[values == values]
-
     vi = spi.griddata((x,y),
-                      values,
+                      pval,
                       (xi[None,:],yi[:,None]),
                       method=method,
                       fill_value=np.inf)

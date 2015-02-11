@@ -3,6 +3,7 @@ import GradPak_plot as GPP
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
+from matplotlib.ticker import ScalarFormatter
 
 rc('text', usetex=False)
 rc('font', family='serif')
@@ -13,7 +14,8 @@ rc('ps', usedistiller='Xpdf')
 rc('xtick', labelsize=10.0)
 rc('ytick', labelsize=10.0)
 
-AGES = np.array([5,25,100,286,640,904,1434,2500,5000,10000])/1e3
+AGES = np.array([0.0050119, 0.0251188, 0.101518, 0.28611901, 0.64054298,
+                 0.9047920, 1.434, 2.5, 5.0, 10.0])
 
 def plot_idl(inputfile):
 
@@ -56,6 +58,11 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     data = np.loadtxt(inputfile)
     fibers = data[:,0]
 
+    agelabels = ['{:4.0e}'.format(i) if np.log10(i) < -1 
+                 else '{}'.format(i)
+                 for i in AGES]
+    print agelabels
+
     pp = PDF(outputfile)
     for i in range(fibers.size):
         print i
@@ -64,7 +71,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_ylabel('Light fraction')
         ax.set_xlim(-1,AGES.size)
         ax.set_xticks(np.arange(AGES.size))
-        ax.set_xticklabels(AGES)
+        ax.set_xticklabels(agelabels)
         ax.set_xlabel('Age [Gyr]')
         MLWA = data[i,-2]
         ax.set_title('Fiber {}\nMLWA = {:4.3f} Gyr'.format(i+1,MLWA))
@@ -75,7 +82,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
 
     return
 
-def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
+def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
               labelfibers = True, MLWA = True):
 
     if MLWA:
@@ -84,8 +91,8 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
         minval = 0.3
         maxval = 1.03
     else:
-        minval = -0.2#np.log10(AGES[0]+1)
-        maxval = 0.75#np.log10(AGES[-1]+1)
+        minval = 0.9#np.log10(AGES[0]+1)
+        maxval = 1.05#np.log10(AGES[-1]+1)
         data = np.loadtxt(inputfile,usecols=(11,),unpack=True)
         label = 'Log( Mean Mass Weighted Age [Gyr] )'
 
@@ -98,7 +105,7 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
                           method='cubic',
                           cmap='gnuplot2',
                           exclude=exclude,
-                          nosky=nosky,
+                          sky=sky,
                           minval=minval,
                           maxval=maxval)
     
@@ -110,7 +117,7 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
                         cmap='gnuplot2',
                         labelfibers=labelfibers,
                         exclude=exclude,
-                        nosky=nosky,
+                        sky=sky,
                         minval=minval,
                         maxval=maxval)
 
