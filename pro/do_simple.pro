@@ -1,6 +1,7 @@
 
 pro do_simple, datafile, errorfile, output, model=model, plot=plot, $
-               wavemin=wavemin, wavemax=wavemax
+               wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
+               lightmax=lightmax
 
 ; read in models
 if not n_elements(model) then model=$
@@ -22,18 +23,25 @@ print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
 wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
 ;vdisp = 377. ; measured velocity dispersion
+
 vdisp = [493., 589., 691., 796., 966.]/2.355
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
 if n_elements(wavemin) eq 0 then $
    wavemin = min(wave)
-
 if n_elements(wavemax) eq 0 then $
    wavemax = max(wave)
 
 idx = where(wave ge wavemin and wave le wavemax)
 wave = wave[idx]
+
+if n_elements(lightmin) eq 0 then $
+   lightmin = 5450
+if n_elements(lightmax) eq 0 then $
+   lightmax = 5550
+
+lightidx = where(m.wave ge lightmin and wave le lightmax)
 
 agearr = m.age/1e9
 numages = N_ELEMENTS(agearr)
@@ -45,9 +53,10 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+1)+'F10.5)'
+fmt = '(I11,'+string(numages+2)+'F13.5)'
 openw, lun, output, /get_lun
-printf, lun, '# Fiber Num',colarr,'MLWA',format='(A-11,'+string(numages)+'A10, A10)'
+printf, lun, '# Fiber Num',colarr,'MMWA','MLWA',$
+        format='(A-11,'+string(numages+2)+'A13)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -55,11 +64,16 @@ if keyword_set(plot) then begin
    dfpsplot, plotfile, /color, /times, /landscape
 endif
 
+L_sun = 3.826e33 ;ergs s^-1
+dist_mpc = 10.062
+flux_factor = 1d19 ;to avoid small number precision errors
+tau = 2*!DPI
+
 for i = 0, numfibers - 1  DO BEGIN
    
    print, 'Grabbing fiber '+string(i,format='(I3)')
-   flux = data[idx,i]*1e19
-   err = error[idx,i]*1e19
+   flux = data[idx,i]*flux_factor
+   err = error[idx,i]*flux_factor
    
    print, i, size_borders
    if i eq size_borders[0] then begin
@@ -84,10 +98,21 @@ for i = 0, numfibers - 1  DO BEGIN
 ;mwrfits, s, 'NGC_test.fits', /create
 
 ;   coef.light_frac *= m.norm
-   coef.light_frac /= total(coef.light_frac)
-   MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
 
-   printf, lun, i+1, coef.light_frac, MLWA, format=fmt
+   ;; mstar_pix = reform(coef.light_frac * (m.norm) $
+   ;;                    /flux_factor * 2*tau* (dist_mpc * 1d6 * 3.086d18)^2 $
+   ;;                    / L_sun)
+   ;; MMWA = total(agearr*mstar_pix)/total(mstar_pix)
+   ;; coef.light_frac /= total(coef.light_frac)
+   ;; MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
+
+   MMWA = total(agearr*coef.light_frac*m.norm) $
+          / total(coef.light_frac*m.norm)
+
+   light_weight = median(m.flux[lightidx,*], dimension=1) * coef.light_frac
+   MLWA = total(light_weight * agearr) / total(light_weight)
+
+   printf, lun, i+1, coef.light_frac, MMWA, MLWA, format=fmt
 
 ENDFOR
 
@@ -95,5 +120,6 @@ if keyword_set(plot) then dfpsclose
 
 free_lun, lun
 ;help, s, /struct
+print, m.norm
 
 end

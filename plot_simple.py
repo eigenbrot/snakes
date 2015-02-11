@@ -60,13 +60,13 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     for i in range(fibers.size):
         print i
         ax = plt.figure().add_subplot(111)
-        ax.bar(np.arange(AGES.size),data[i,1:-1],align='center',width=1.0)
+        ax.bar(np.arange(AGES.size),data[i,1:-2],align='center',width=1.0)
         ax.set_ylabel('Light fraction')
         ax.set_xlim(-1,AGES.size)
         ax.set_xticks(np.arange(AGES.size))
         ax.set_xticklabels(AGES)
         ax.set_xlabel('Age [Gyr]')
-        MLWA = data[i,-1]
+        MLWA = data[i,-2]
         ax.set_title('Fiber {}\nMLWA = {:4.3f} Gyr'.format(i+1,MLWA))
         pp.savefig(ax.figure)
         plt.close(ax.figure)
@@ -76,21 +76,31 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     return
 
 def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
-              labelfibers = True):
-    minval = 0.05#np.log10(AGES[0]+1)
-    maxval = np.log10(AGES[-1]+1)
+              labelfibers = True, MLWA = True):
 
-    LWAs = np.loadtxt(inputfile,usecols=(11,),unpack=True)
+    if MLWA:
+        data = np.loadtxt(inputfile,usecols=(12,),unpack=True)
+        label = 'Log( Mean Light Weighted Age [Gyr] )'
+        minval = 0.5
+        maxval = 1.03
+    else:
+        minval = 0.000#np.log10(AGES[0]+1)
+        maxval = 0.75#np.log10(AGES[-1]+1)
+        data = np.loadtxt(inputfile,usecols=(11,),unpack=True)
+        label = 'Log( Mean Mass Weighted Age [Gyr] )'
 
-    map_ax = GPP.plot_img(np.log10(LWAs+1),
-                          clabel='Log( Mean Light Weighted Age [Gyr] )',
+    map_ax = GPP.plot_img(np.log10(data+1),
+                          clabel=label,
                           method='cubic',
                           cmap='gnuplot2',
                           exclude=exclude,
                           nosky=nosky)
     
-    fiber_ax = GPP.plot(np.log10(LWAs+1),
-                        clabel='Log( Mean Light Weighted Age [Gyr] )',
+    fiber_ax = GPP.plot(np.log10(data+1),
+                        fitsfile='/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                        pa=295.787,
+                        center = [35.6034125,42.32349444],
+                        clabel=label,
                         cmap='gnuplot2',
                         labelfibers=labelfibers,
                         exclude=exclude,
