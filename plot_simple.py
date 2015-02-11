@@ -81,20 +81,26 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], nosky=True,
     if MLWA:
         data = np.loadtxt(inputfile,usecols=(12,),unpack=True)
         label = 'Log( Mean Light Weighted Age [Gyr] )'
-        minval = 0.5
+        minval = 0.3
         maxval = 1.03
     else:
-        minval = 0.000#np.log10(AGES[0]+1)
+        minval = -0.2#np.log10(AGES[0]+1)
         maxval = 0.75#np.log10(AGES[-1]+1)
         data = np.loadtxt(inputfile,usecols=(11,),unpack=True)
         label = 'Log( Mean Mass Weighted Age [Gyr] )'
 
     map_ax = GPP.plot_img(np.log10(data+1),
+                          fitsfile=\
+                          '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                          pa=295.787,
+                          center = [35.6034125,42.32349444],
                           clabel=label,
                           method='cubic',
                           cmap='gnuplot2',
                           exclude=exclude,
-                          nosky=nosky)
+                          nosky=nosky,
+                          minval=minval,
+                          maxval=maxval)
     
     fiber_ax = GPP.plot(np.log10(data+1),
                         fitsfile='/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',

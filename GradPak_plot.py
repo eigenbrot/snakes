@@ -260,29 +260,69 @@ def plot(values,
 
     return ax
 
-def plot_img(values, clabel='', cmap='jet', nosky=True,
-             numpoints=500,method='nearest',exclude=[]):
+def plot_img(values, 
+             fitsfile = None, pa=0, center=[0,0], 
+             reffiber = 105, invert = True,
+             clabel='', cmap='gnuplot2', nosky=True,
+             numpoints=500,method='nearest',exclude=[],
+             minval = None, maxval = None):
     
-    fibers = GradPak_patches()
-    x = np.array([c.center[0] for c in fibers])
-    y = np.array([c.center[1] for c in fibers])
-    fig = plt.figure()
+    if fitsfile:
+        hdu = pyfits.open(fitsfile)[0]
+        axistype = (wcsgrid.Axes, dict(header=hdu.header))
+    else:
+        axistype = None
+
+    fig = plt.figure(figsize=(8,8))
     grid = ImageGrid(fig, 111,
                      nrows_ncols = (1,1),
+                     axes_class = axistype,
                      cbar_mode = 'each',
                      cbar_location = 'top',
                      cbar_pad = '1%')
     ax = grid[0]
-    ax.set_xlabel('arcsec')
-    ax.set_ylabel('arcsec')
-    ax.set_xlim(-59,59)
-    ax.set_ylim(-2,116)
+    patches = GradPak_patches()
+
+    if fitsfile:
+        scale = 2./((np.abs(hdu.header['CDELT1']) + \
+                     np.abs(hdu.header['CDELT2']))*
+                           3600.)
+        patches = transform_patches(patches,
+                                    reffiber = reffiber,
+                                    pa = pa,
+                                    center = center,
+                                    scale = scale)
+        patches = wcs2pix(patches, hdu.header) # now in px
+        refcenter = patches[reffiber - 1].center # in px
+
+        if invert:
+            hdu.data = -1*(hdu.data - np.max(hdu.data))
+
+        ax.imshow(hdu.data,
+                  cmap = plt.get_cmap('gray'),
+                  origin = 'lower', aspect = 'equal')
+        ax.set_display_coord_system('fk5')
+        ax.set_ticklabel_type('hms','dms')
+        xdelt = 2./(60. * hdu.header['CDELT1'])
+        ydelt = 2./(60. * hdu.header['CDELT2'])
+        ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+        ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
+
+    else:
+        ax.set_xlabel('arcsec')
+        ax.set_ylabel('arcsec')
+        ax.set_xlim(-59,59)
+        ax.set_ylim(-2,116)
+
+    x = np.array([c.center[0] for c in patches])
+    y = np.array([c.center[1] for c in patches])
 
     if nosky:
         skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
         exclude = np.r_[skyidx,np.array(exclude)-1]
-        ax.set_xlim(-21,21)
-        ax.set_ylim(-2,40)
+        if not fitsfile:
+            ax.set_xlim(-21,21)
+            ax.set_ylim(-2,40)
 
     exclude = np.array(exclude)
     exclude = np.unique(exclude)
@@ -302,9 +342,14 @@ def plot_img(values, clabel='', cmap='jet', nosky=True,
                       (xi[None,:],yi[:,None]),
                       method=method,
                       fill_value=np.inf)
-    
+    if minval is None:
+        minval = pval.min()
+    if maxval is None:
+        maxval = pval.max()
+
     im = ax.imshow(vi, cmap=cmap, origin='lower', 
-                   extent=(xi.min(),xi.max(),yi.min(),yi.max()))
+                   extent=(xi.min(),xi.max(),yi.min(),yi.max()),
+                   vmin=minval,vmax=maxval)
     cbar = ax.cax.colorbar(im)
     cbar.set_label_text(clabel)
 
