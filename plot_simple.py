@@ -59,7 +59,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     fibers = data[:,0]
 
     agelabels = ['{:4.0e}'.format(i) if np.log10(i) < -1 
-                 else '{}'.format(i)
+                 else '{:3.1f}'.format(i)
                  for i in AGES]
     print agelabels
 

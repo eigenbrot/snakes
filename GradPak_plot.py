@@ -262,7 +262,7 @@ def plot(values,
 
     if labelfibers:
         for c in patches:
-            ax.text(c[1].center[0],c[1].center[1],c[0],fontsize=6,
+            ax.text(c[1].center[0],c[1].center[1],c[0],fontsize=3,
                     ha='center',va='center')
     
     if minval is None:
