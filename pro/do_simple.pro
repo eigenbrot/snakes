@@ -41,7 +41,7 @@ if n_elements(lightmin) eq 0 then $
 if n_elements(lightmax) eq 0 then $
    lightmax = 5550
 
-lightidx = where(m.wave ge lightmin and wave le lightmax)
+lightidx = where(wave ge lightmin and wave le lightmax)
 
 agearr = m.age/1e9
 numages = N_ELEMENTS(agearr)
@@ -55,7 +55,7 @@ ENDFOR
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
 fmt = '(I11,'+string(numages+2)+'E13.3)'
 openw, lun, output, /get_lun
-printf, lun, '# Fiber Num',colarr,'MMWA','MLWA',$
+printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         format='(A-11,'+string(numages+2)+'A13)'
 printf, lun, '#'
 
@@ -69,7 +69,7 @@ dist_mpc = 10.062
 flux_factor = 1d19 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1  DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
    
    print, 'Grabbing fiber '+string(i,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -92,7 +92,7 @@ for i = 0, numfibers - 1  DO BEGIN
 
 ;; ; fit emission lines
 ;;  lcoef = emlinefit(wave, flux, continuum, err, inst_res = 65.0, yfit = emfit)
-
+ 
 ;; ; Create output structure & save
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
@@ -109,7 +109,9 @@ for i = 0, numfibers - 1  DO BEGIN
    MMWA = total(agearr*coef.light_frac/m.norm) $
           / total(coef.light_frac/m.norm)
 
-   light_weight = median(m.flux[lightidx,*], dimension=1) * coef.light_frac
+   redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
+   light_weight = mean(m.flux[lightidx,*] * redd, dimension=1) $
+                  * coef.light_frac
    MLWA = total(light_weight * agearr) / total(light_weight)
 
    printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, format=fmt
