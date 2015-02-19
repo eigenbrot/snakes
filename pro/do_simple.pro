@@ -53,10 +53,11 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3)'
+fmt = '(I11,'+string(numages+2)+'E13.3,2F13.2)'
 openw, lun, output, /get_lun
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        format='(A-11,'+string(numages+2)+'A13)'
+        'Tau_V','S/N',$
+        format='(A-11,'+string(numages+4)+'A13)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -106,6 +107,8 @@ for i = 0, numfibers - 1 DO BEGIN
    ;; coef.light_frac /= total(coef.light_frac)
    ;; MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
 
+   SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
+
    MMWA = total(agearr*coef.light_frac/m.norm) $
           / total(coef.light_frac/m.norm)
 
@@ -114,7 +117,8 @@ for i = 0, numfibers - 1 DO BEGIN
                   * coef.light_frac
    MLWA = total(light_weight * agearr) / total(light_weight)
 
-   printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, format=fmt
+   printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, coef.tauv,$
+           SNR, format=fmt
 
 ENDFOR
 
