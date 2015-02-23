@@ -329,7 +329,8 @@ def plot_img(values,
 
     return ax
 
-def plot_rows(values, ylabel='', weights=None, kpc_scale=None, exclude=[]):
+def plot_rows(values, ylabel='', label='',
+              weights=None, kpc_scale=None, ax=None):
 
     y_values = np.array([c.center[1] for c in GradPak_patches()[:,1]])
     row_pos = np.unique(y_values)
@@ -356,10 +357,13 @@ def plot_rows(values, ylabel='', weights=None, kpc_scale=None, exclude=[]):
     else:
         xlabel = 'Height [arcsec]'
 
-    ax = plt.figure(figsize=(8,8)).add_subplot(111)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.errorbar(abcissa, binned_vals, yerr = binned_errs, fmt = '.')
+    if ax is None:
+        ax = plt.figure(figsize=(8,8)).add_subplot(111)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+
+    ax.errorbar(abcissa, binned_vals, 
+                yerr = binned_errs, fmt = '.', label = label)
 
     return ax
     

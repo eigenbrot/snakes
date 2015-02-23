@@ -138,21 +138,22 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
     
     return
 
-def plot_heights(inputfile, outputfile, MLWA=True):
+def plot_heights(inputfile, outputfile, title=''):
 
     
-    if MLWA:
-        data, SNR = np.loadtxt(inputfile,usecols=(12,14),unpack=True)
-        ylabel = 'Mean Light Weighted Age [Gyr]'
-    else:
-        data, SNR = np.loadtxt(inputfile,usecols=(11,14),unpack=True)
-        ylabel = 'Mean Mass Weighted Age [Gyr]'
-
+    MMWA, MLWA, SNR = np.loadtxt(inputfile,usecols=(11,12,14),unpack=True)
+    
     pp = PDF(outputfile)
     
-    ax = GPP.plot_rows(data, weights=SNR, ylabel=ylabel)
-    ax.set_xlim(-9,60)
+    ax = GPP.plot_rows(MMWA, weights=SNR, 
+                       ylabel='Age [Gyr]',label='MMWA', kpc_scale = 0.0485)
+    GPP.plot_rows(MLWA, weights=SNR, label='MLWA', ax = ax,
+                  kpc_scale = 0.0485)
+    ax.legend(loc=0,scatterpoints=1,numpoints=1,frameon=False)
+    ax.set_xlim(-0.5,3)
+    ax.set_title(title)
     pp.savefig(ax.figure)
     pp.close()
+    plt.close(ax.figure)
 
     return
