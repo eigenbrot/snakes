@@ -105,8 +105,9 @@ for i = 0, numfibers - 1 DO BEGIN
           / total(coef.light_frac*m.m_remaining/m.norm)
 
    redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
-   light_weight = mean(m.flux[lightidx,*] * redd, dimension=1) $
-                  * coef.light_frac
+   light_weight = mean(m.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
+                                                  n_elements(agearr)), $
+                       dimension=1) * coef.light_frac
    MLWA = total(light_weight * agearr) / total(light_weight)
 
    printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, coef.tauv,$
