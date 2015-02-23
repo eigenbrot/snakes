@@ -329,6 +329,41 @@ def plot_img(values,
 
     return ax
 
+def plot_rows(values, ylabel='', weights=None, kpc_scale=None, exclude=[]):
+
+    y_values = np.array([c.center[1] for c in GradPak_patches()[:,1]])
+    row_pos = np.unique(y_values)
+    binned_vals = np.array([])
+    binned_errs = np.array([])
+    abcissa = np.array([])
+    if weights is None:
+        weights = np.ones(y_values.size)
+
+    for i, row in enumerate(row_pos):
+        if row < 80:
+            idx = np.where(y_values == row)[0]
+            abcissa = np.append(abcissa, row)
+            mean = np.sum(values[idx]*weights[idx]/np.sum(weights[idx]))
+            std = np.sqrt(
+                np.sum(weights[idx]*(values[idx] - mean)**2) /
+                ((idx.size - 1.)/(idx.size) * np.sum(weights[idx])))
+            binned_vals = np.append(binned_vals,mean)
+            binned_errs = np.append(binned_errs,std)
+
+    if kpc_scale is not None:
+        abcissa *= kpc_scale
+        xlabel = 'Height [kpc]'
+    else:
+        xlabel = 'Height [arcsec]'
+
+    ax = plt.figure(figsize=(8,8)).add_subplot(111)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.errorbar(abcissa, binned_vals, yerr = binned_errs, fmt = '.')
+
+    return ax
+    
+
 def format_tpl(tpl):
 
     with open(tpl,'r') as f:
