@@ -245,9 +245,11 @@ def plot(values,
          minval = None, maxval = None):
 
 
+    tmpax, hdu = prep_axis(fitsfile, invert, sky)
+
     if not ax:
-        ax, hdu = prep_axis(fitsfile, invert, sky)
-        
+        ax = tmpax
+  
     patches, pval, refcenter = prep_patches(values,
                                             hdu = hdu, pa = pa, 
                                             center = center,
@@ -258,7 +260,7 @@ def plot(values,
     ydelt = 2./(60. * hdu.header['CDELT2'])
     ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
     ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
-
+    
 
     if labelfibers:
         for c in patches:
