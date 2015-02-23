@@ -53,11 +53,11 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,2F13.2)'
+fmt = '(I11,'+string(numages+2)+'E13.3,3F13.2)'
 openw, lun, output, /get_lun
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N',$
-        format='(A-11,'+string(numages+4)+'A13)'
+        'Tau_V','S/N','Chisq',$
+        format='(A-11,'+string(numages+5)+'A13)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -98,19 +98,11 @@ for i = 0, numfibers - 1 DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
-;   coef.light_frac *= m.norm
-
-   ;; mstar_pix = reform(coef.light_frac * (m.norm) $
-   ;;                    /flux_factor * 2*tau* (dist_mpc * 1d6 * 3.086d18)^2 $
-   ;;                    / L_sun)
-   ;; MMWA = total(agearr*mstar_pix)/total(mstar_pix)
-   ;; coef.light_frac /= total(coef.light_frac)
-   ;; MLWA = total(agearr*coef.light_frac)/total(coef.light_frac)
 
    SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
 
-   MMWA = total(agearr*coef.light_frac/m.norm) $
-          / total(coef.light_frac/m.norm)
+   MMWA = total(agearr*coef.light_frac*m.m_remaining/m.norm) $
+          / total(coef.light_frac*m.m_remaining/m.norm)
 
    redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
    light_weight = mean(m.flux[lightidx,*] * redd, dimension=1) $
@@ -118,7 +110,7 @@ for i = 0, numfibers - 1 DO BEGIN
    MLWA = total(light_weight * agearr) / total(light_weight)
 
    printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, coef.tauv,$
-           SNR, format=fmt
+           SNR, coef.chisq, format=fmt
 
 ENDFOR
 
