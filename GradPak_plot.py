@@ -5,6 +5,7 @@ import pywcs
 import pywcsgrid2 as wcsgrid
 import pyfits
 import scipy.interpolate as spi
+import scipy.ndimage.interpolation as spndi
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
@@ -163,10 +164,14 @@ def wcs2pix(patches, header):
 
     return patches
 
-def prep_axis(fitsfile = None, invert = True, sky = False):
+def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False):
 
     if fitsfile:
         hdu = pyfits.open(fitsfile)[0]
+        imdata = hdu.data
+        if imrot:
+            imdata = spndi.rotate(imdata,-1*imrot,reshape=False)
+            hdu.header.update('CROTA2',imrot)
         axistype = (wcsgrid.Axes, dict(header=hdu.header))
     else:
         hdu = None
@@ -183,9 +188,9 @@ def prep_axis(fitsfile = None, invert = True, sky = False):
     
     if fitsfile:
         if invert:
-            hdu.data = -1*(hdu.data - np.max(hdu.data))
+            imdata = -1*(imdata - np.max(imdata))
 
-        ax.imshow(hdu.data,
+        ax.imshow(imdata,
                   cmap = plt.get_cmap('gray'),
                   origin = 'lower', aspect = 'equal')
         ax.set_display_coord_system('fk5')
@@ -238,14 +243,15 @@ def prep_patches(values,
 
 def plot(values,
          ax = None,
-         fitsfile = None, pa = 0, center = [0,0],
+         fitsfile = None, imrot = False,
+         pa = 0, center = [0,0],
          reffiber = 105, invert=True,
          clabel = '', cmap = 'gnuplot2', 
          sky = False, labelfibers = True, exclude = [], 
          minval = None, maxval = None):
 
 
-    tmpax, hdu = prep_axis(fitsfile, invert, sky)
+    tmpax, hdu = prep_axis(fitsfile, invert, sky, imrot)
 
     if not ax:
         ax = tmpax
@@ -264,7 +270,7 @@ def plot(values,
 
     if labelfibers:
         for c in patches:
-            ax.text(c[1].center[0],c[1].center[1],c[0],fontsize=3,
+            ax.text(c[1].center[0],c[1].center[1],c[0],fontsize=7,
                     ha='center',va='center')
     
     if minval is None:
@@ -286,14 +292,15 @@ def plot(values,
 
 def plot_img(values, 
              ax = None,
-             fitsfile = None, pa=0, center=[0,0], 
+             fitsfile = None, imrot = False,
+             pa=0, center=[0,0], 
              reffiber = 105, invert = True,
              clabel='', cmap='gnuplot2', sky = False,
              numpoints=500, method='nearest',exclude=[],
              minval = None, maxval = None):
     
     if not ax:
-        ax, hdu = prep_axis(fitsfile, invert, sky)
+        ax, hdu = prep_axis(fitsfile, invert, sky, imrot)
         
     patches, pval, refcenter = prep_patches(values,
                                             hdu = hdu, pa = pa, 

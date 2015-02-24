@@ -99,6 +99,7 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
     map_ax = GPP.plot_img(data,
                           fitsfile=\
                           '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                          imrot=67.0
                           pa=295.787,
                           center = [35.6034125,42.32349444],
                           clabel=label,
@@ -111,6 +112,7 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
     
     fiber_ax = GPP.plot(data,
                         fitsfile='/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                        imrot=67.0,
                         pa=295.787,
                         center = [35.6034125,42.32349444],
                         clabel=label,
@@ -133,10 +135,10 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
         pp.savefig(map_ax.figure)
         pp.close()
 
-    plt.close(fiber_ax.figure)
-    plt.close(map_ax.figure)
+    # plt.close(fiber_ax.figure)
+    # plt.close(map_ax.figure)
     
-    return
+    return fiber_ax
 
 def plot_heights(inputfile, outputfile, title=''):
 
