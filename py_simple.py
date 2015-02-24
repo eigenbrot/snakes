@@ -201,3 +201,19 @@ def superfit(model, restwl, flux, error, vdisp,
 
 
     return coefs, fig
+
+def mcombine(X, wave, flux, err, mlib, final):
+
+    if np.any(X[1:] < 0) or np.any(X[1:] > 1):
+        return np.ones(flux.size)*1e13
+
+    y = np.sum(mlib * X[1:][:,None],axis=0)
+    
+    klam = (wave / 5500.)**(-0.7)
+    e_tau_lam = np.exp(-1*X[0]*klam)
+    y *= e_tau_lam
+
+    if final:
+        return y
+    else:
+        return (flux - y)/err
