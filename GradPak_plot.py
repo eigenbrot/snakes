@@ -338,7 +338,9 @@ def plot_img(values,
     return ax
 
 def plot_rows(values, ylabel='', label='',
-              weights=None, kpc_scale=None, ax=None):
+              ax = None, fullout = False,
+              weights=None, kpc_scale=None, err=True,
+              **plot_kwargs):
 
     y_values = np.array([c.center[1] for c in GradPak_patches()[:,1]])
     row_pos = np.unique(y_values)
@@ -356,8 +358,12 @@ def plot_rows(values, ylabel='', label='',
             std = np.sqrt(
                 np.sum(weights[idx]*(values[idx] - mean)**2) /
                 ((idx.size - 1.)/(idx.size) * np.sum(weights[idx])))
+            err = np.sqrt(np.sum(weights[idx]**2))/np.sum(weights[idx])
             binned_vals = np.append(binned_vals,mean)
-            binned_errs = np.append(binned_errs,std)
+            if err:
+                binned_errs = np.append(binned_errs,err)
+            else:
+                binned_errs = np.append(binned_errs,std)
 
     if kpc_scale is not None:
         abcissa *= kpc_scale
@@ -371,9 +377,12 @@ def plot_rows(values, ylabel='', label='',
         ax.set_ylabel(ylabel)
 
     ax.errorbar(abcissa, binned_vals, 
-                yerr = binned_errs, fmt = '.', label = label)
+                yerr = binned_errs,label = label, **plot_kwargs)
 
-    return ax
+    if fullout:
+        return ax, abcissa, binned_vals, binned_errs
+    else:
+        return ax
     
 
 def format_tpl(tpl):
