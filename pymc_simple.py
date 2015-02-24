@@ -3,7 +3,8 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 import numpy as np
 import scipy.ndimage as spnd
 #import scipy.optimize as spo
-import lmfit
+#import lmfit
+import pymc
 import matplotlib.pyplot as plt
 import time
 plt.ioff()
@@ -155,17 +156,14 @@ def superfit(model, restwl, flux, err, vdisp,
         cflux = spnd.filters.gaussian_filter1d(model['FLUX'][0][i], sigma_pix)
         custom_lib[i] = np.interp(restwl,model['WAVE'][0],cflux)
     
-    params = lmfit.Parameters()
-    params.add('tauv',value=1)
-    for p in range(10):
-        params.add('w_{}'.format(p),value=0,min=0.0)
-    
-    t1 = time.time()
-    status = lmfit.minimize(mcombine, params,method='leastsq',
-                            ftol=1e-5,#xtol=1e-5,
-                            args=(restwl[ok],flux[ok],err[ok],
-                                  custom_lib[:,ok],False))
-    t2 = time.time()
+    #define the priors
+    params = {'wave': restwl[ok],
+              'tauv': pymc.Uniform('tauv',-5.0,5.0)}
+    for p in range(nmodels):
+        parname = 'w_{}'.format(p)
+        params[parname] = pymc.Uniform(parname,0,1e9)
+
+
     yfit = mcombine(params,restwl,flux,err,custom_lib,True)
     chisq = np.sum((yfit - flux)**2/err**2)
 
