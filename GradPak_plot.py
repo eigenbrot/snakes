@@ -164,7 +164,8 @@ def wcs2pix(patches, header):
 
     return patches
 
-def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False):
+def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
+              figsize = (8,8)):
 
     if fitsfile:
         hdu = pyfits.open(fitsfile)[0]
@@ -177,7 +178,7 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False):
         hdu = None
         axistype = None
 
-    fig = plt.figure(figsize=(8,8))
+    fig = plt.figure(figsize=figsize)
     grid = ImageGrid(fig, 111,
                      nrows_ncols = (1,1),
                      cbar_mode = 'each',
@@ -242,7 +243,7 @@ def prep_patches(values,
     return patches, pval, refcenter
 
 def plot(values,
-         ax = None,
+         ax = None, figsize = (8,8),
          fitsfile = None, imrot = False,
          pa = 0, center = [0,0],
          reffiber = 105, invert=True,
@@ -251,7 +252,7 @@ def plot(values,
          minval = None, maxval = None):
 
 
-    tmpax, hdu = prep_axis(fitsfile, invert, sky, imrot)
+    tmpax, hdu = prep_axis(fitsfile, invert, sky, imrot, figsize)
 
     if not ax:
         ax = tmpax
@@ -291,7 +292,7 @@ def plot(values,
     return ax
 
 def plot_img(values, 
-             ax = None,
+             ax = None, figsize = (8,8),
              fitsfile = None, imrot = False,
              pa=0, center=[0,0], 
              reffiber = 105, invert = True,
@@ -300,7 +301,7 @@ def plot_img(values,
              minval = None, maxval = None):
     
     if not ax:
-        ax, hdu = prep_axis(fitsfile, invert, sky, imrot)
+        ax, hdu = prep_axis(fitsfile, invert, sky, imrot, figsize)
         
     patches, pval, refcenter = prep_patches(values,
                                             hdu = hdu, pa = pa, 
