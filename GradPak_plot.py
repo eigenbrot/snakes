@@ -165,7 +165,7 @@ def wcs2pix(patches, header):
     return patches
 
 def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
-              figsize = (8,8)):
+              centpos = None, figsize = (8,8)):
 
     if fitsfile:
         hdu = pyfits.open(fitsfile)[0]
@@ -195,7 +195,15 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
                   cmap = plt.get_cmap('gray'),
                   origin = 'lower', aspect = 'equal')
         ax.set_display_coord_system('fk5')
-        ax.set_ticklabel_type('hms','dms')
+        
+        hwcs = pywcs.WCS(hdu.header)
+        centpx = hwcs.wcs_sky2pix([centpos],0)[0]
+
+        labdict = {'nbins':10}
+        ax.set_ticklabel_type('arcsec','arcsec',center_pixel=centpx,
+                              labtyp1_kwargs=labdict,
+                              labtyp2_kwargs=labdict)
+        ax.add_compass(1)
 
     else:
         ax.set_xlabel('arcsec')
@@ -244,7 +252,7 @@ def prep_patches(values,
 
 def plot(values,
          ax = None, figsize = (8,8),
-         fitsfile = None, imrot = False,
+         fitsfile = None, imrot = False, centpos = None,
          pa = 0, center = [0,0],
          reffiber = 105, invert=True,
          clabel = '', cmap = 'gnuplot2', 
@@ -252,7 +260,12 @@ def plot(values,
          minval = None, maxval = None):
 
 
-    tmpax, hdu = prep_axis(fitsfile, invert, sky, imrot, figsize)
+    tmpax, hdu = prep_axis(fitsfile = fitsfile, 
+                           invert = invert, 
+                           sky = sky, 
+                           imrot = imrot, 
+                           centpos = centpos,
+                           figsize = figsize)
 
     if not ax:
         ax = tmpax
@@ -346,6 +359,7 @@ def plot_rows(values, ylabel='', label='',
     row_pos = np.unique(y_values)
     binned_vals = np.array([])
     binned_errs = np.array([])
+    binned_stds = np.array([])
     abcissa = np.array([])
     if weights is None:
         weights = np.ones(y_values.size)
@@ -358,12 +372,11 @@ def plot_rows(values, ylabel='', label='',
             std = np.sqrt(
                 np.sum(weights[idx]*(values[idx] - mean)**2) /
                 ((idx.size - 1.)/(idx.size) * np.sum(weights[idx])))
-            err = np.sqrt(np.sum(weights[idx]**2))/np.sum(weights[idx])
+            std /= np.sqrt(idx.size)
+            err = mean*np.sqrt(1./np.sum(weights[idx]**2))
             binned_vals = np.append(binned_vals,mean)
-            if err:
-                binned_errs = np.append(binned_errs,err)
-            else:
-                binned_errs = np.append(binned_errs,std)
+            binned_errs = np.append(binned_errs,err)
+            binned_stds = np.append(binned_stds,std)
 
     if kpc_scale is not None:
         abcissa *= kpc_scale
@@ -376,11 +389,15 @@ def plot_rows(values, ylabel='', label='',
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
 
-    ax.errorbar(abcissa, binned_vals, 
-                yerr = binned_errs,label = label, **plot_kwargs)
-
+    if err:
+        ax.errorbar(abcissa, binned_vals, 
+                    yerr = binned_errs,label = label, **plot_kwargs)
+    else:
+        ax.errorbar(abcissa, binned_vals, 
+                    yerr = binned_stds,label = label, **plot_kwargs)
+        
     if fullout:
-        return ax, abcissa, binned_vals, binned_errs
+        return ax, abcissa, binned_vals, binned_errs, binned_stds
     else:
         return ax
     
