@@ -99,7 +99,7 @@ def plot_maps(inputfile, outputfile, eps=False, exclude=[], sky=False,
     map_ax = GPP.plot_img(data,
                           fitsfile=\
                           '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
-                          imrot=67.0
+                          imrot=67.0,
                           pa=295.787,
                           center = [35.6034125,42.32349444],
                           clabel=label,
@@ -157,5 +157,152 @@ def plot_heights(inputfile, outputfile, title=''):
     pp.savefig(ax.figure)
     pp.close()
     plt.close(ax.figure)
+
+    return
+
+def all_maps(output,MLWA=True,labelfibers=False):
+
+    pp = PDF(output)
+    centers = [
+        [35.603413,42.323494],
+        [35.615154,42.3426],
+        [35.636325,42.37935],
+        [35.625617,42.35935],
+        [35.591642,42.304247],
+        [35.648196,42.401217]]
+
+    ax = None
+    for i in range(6):
+        print i
+        inputfile = 'P{}.dat'.format(i+1)
+        if MLWA:
+            data = np.loadtxt(inputfile,usecols=(12,),unpack=True)
+            label = 'Mean Light Weighted Age [Gyr]'
+            minval = 0
+            maxval = 10#np.nanmax(data)
+        else:
+            data = np.loadtxt(inputfile,usecols=(11,),unpack=True)
+            label = 'Mean Mass Weighted Age [Gyr]'
+            minval = 5#np.nanmin(data)#7
+            maxval = 10#np.nanmax(data)#10
+
+        ax = GPP.plot(data,
+                      ax=ax,
+                      figsize=(8,4),
+                      fitsfile=\
+                      '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                      centpos=[35.63689,42.34633],
+                      imrot=67,#64.213,
+                      pa=295.787,
+                      center = centers[i],
+                      clabel=label,
+                      cmap='gnuplot2',
+                      labelfibers=labelfibers,
+                      exclude=[],
+                      sky=False,
+                      minval=minval,
+                      maxval=maxval)
+        
+    ax.set_xlim(160,755)
+    ax.set_ylim(350,600)
+    pp.savefig(ax.figure)
+    pp.close()
+    return ax
+
+def all_heights(output,err=True):
+
+    datname = output.split('.pdf')[0]+'.dat'
+    f = open(datname,'w')
+    f.write('#{:5}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}\n#\n'.\
+            format('','height [kpc]','age [Gyr]',
+                   'age eom','age stderr','AV','AV eom','AV stderr'))
+
+    pp = PDF(output)
+    symblist = ["o","^","v","s","*","x"]
+    rlist = [4.4,0.8,-6.4,-2.3,8.1,-10.0]
+
+    ax = None
+    AVax = None
+    for i in range(6):
+        print i+1
+        inputfile = 'P{}.dat'.format(i+1)
+        MMWA, MLWA, TAUV, SNR = np.loadtxt(inputfile,usecols=(11,12,13,14),
+                                           unpack=True)
+        
+        ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
+                                                          weights=SNR,
+                                                          ax=ax,
+                                                          label='{}'.\
+                                                          format(rlist[i]),
+                                                          fullout=True,
+                                                          kpc_scale = 0.0485,
+                                                          err=err, 
+                                                          marker=symblist[i], 
+                                                          linestyle='', 
+                                                          color='k')
+        AVax, _, tmpAV, tmpAVerr, tmpAVstd = GPP.plot_rows(TAUV*1.086,
+                                                           weights=SNR,
+                                                           ax=AVax,
+                                                           label='{}'.\
+                                                           format(rlist[i]),
+                                                           fullout=True,
+                                                           kpc_scale=0.0458,
+                                                           err=err,
+                                                           marker=symblist[i],
+                                                           linestyle='',
+                                                           color='k')
+
+        f.write('\n# P{} '.format(i+1)+92*'#'+'\n# r ~ {} kpc\n'.\
+                format(rlist[i]))
+        for i in range(tmpz.size):
+            f.write('{:6}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}\n'.\
+                    format('',tmpz[i],tmpage[i],tmperr[i],
+                           tmpstd[i],tmpAV[i],tmpAVerr[i],tmpAVstd[i]))
+
+        try:
+            z = np.vstack((z,tmpz))
+            age = np.vstack((age,tmpage))
+            err = np.vstack((err,tmperr))
+            std = np.vstack((std,tmpstd))
+            AV = np.vstack((AV,tmpAV))
+            AVstd = np.vstack((AVstd,tmpAVstd))
+            AVerr = np.vstack((AVerr,tmpAVerr))
+        except UnboundLocalError:
+            z = tmpz
+            age = tmpage
+            err = tmperr
+            std = tmpstd
+            AV = tmpAV
+            AVstd = tmpAVstd
+            AVerr = tmpAVerr
+
+    bigz = np.mean(z,axis=0)
+    bigage = np.mean(age,axis=0)
+    bigerr = np.sqrt(
+        np.sum(err*(age - bigage)**2,axis=0)/
+        ((err.shape[0] - 1.)/(err.shape[0]) * np.sum(err,axis=0)))
+    bigAV = np.mean(AV,axis=0)
+    bigAVerr = np.sqrt(
+        np.sum(AVerr*(AV - bigAV)**2,axis=0)/
+        ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.sum(AVerr,axis=0)))
+
+    ax.plot(bigz, bigage)
+    ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
+    ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    ax.set_xlim(-0.1,2.6)
+    ax.set_ylabel('Light-weighted age [Gyr]')
+
+    AVax.plot(bigz,bigAV)
+    AVax.fill_between(bigz,bigAV-bigAVerr,bigAV+bigAVerr,alpha=0.1)
+    AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    AVax.set_xlim(-0.1,2.6)
+    AVax.set_ylabel(r'$A_V$')
+
+    pp.savefig(ax.figure)
+    pp.savefig(AVax.figure)
+    plt.close(ax.figure)
+
+    pp.close()
+    f.close()
 
     return
