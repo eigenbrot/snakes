@@ -165,7 +165,7 @@ def wcs2pix(patches, header):
     return patches
 
 def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
-              centpos = None, figsize = (8,8)):
+              wcsax = True, figsize = (8,8)):
 
     if fitsfile:
         hdu = pyfits.open(fitsfile)[0]
@@ -173,7 +173,10 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
         if imrot:
             imdata = spndi.rotate(imdata,-1*imrot,reshape=False)
             hdu.header.update('CROTA2',imrot)
-        axistype = (wcsgrid.Axes, dict(header=hdu.header))
+        if wcsax:
+            axistype = (wcsgrid.Axes, dict(header=hdu.header))
+        else:
+            axistype = None
     else:
         hdu = None
         axistype = None
@@ -191,20 +194,20 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
         if invert:
             imdata = -1*(imdata - np.max(imdata))
 
+        if wcsax:
+            ax.set_display_coord_system('fk5')
+                        
+            #labdict = {'nbins':10}
+            ax.set_ticklabel_type('dms','hms')
+                                  # ,center_pixel=centpx,
+                                  # labtyp1_kwargs=labdict,
+                                  # labtyp2_kwargs=labdict)
+            ax.add_compass(1)
+
         ax.imshow(imdata,
                   cmap = plt.get_cmap('gray'),
                   origin = 'lower', aspect = 'equal')
-        ax.set_display_coord_system('fk5')
         
-        hwcs = pywcs.WCS(hdu.header)
-        centpx = hwcs.wcs_sky2pix([centpos],0)[0]
-
-        labdict = {'nbins':10}
-        ax.set_ticklabel_type('arcsec','arcsec',center_pixel=centpx,
-                              labtyp1_kwargs=labdict,
-                              labtyp2_kwargs=labdict)
-        ax.add_compass(1)
-
     else:
         ax.set_xlabel('arcsec')
         ax.set_ylabel('arcsec')
@@ -252,7 +255,7 @@ def prep_patches(values,
 
 def plot(values,
          ax = None, figsize = (8,8),
-         fitsfile = None, imrot = False, centpos = None,
+         fitsfile = None, imrot = False, wcsax = True,
          pa = 0, center = [0,0],
          reffiber = 105, invert=True,
          clabel = '', cmap = 'gnuplot2', 
@@ -264,7 +267,7 @@ def plot(values,
                            invert = invert, 
                            sky = sky, 
                            imrot = imrot, 
-                           centpos = centpos,
+                           wcsax = wcsax,
                            figsize = figsize)
 
     if not ax:

@@ -1,6 +1,8 @@
 import numpy as np
 import GradPak_plot as GPP
 import matplotlib.pyplot as plt
+import pyfits
+import pywcs
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 from matplotlib.ticker import ScalarFormatter
@@ -191,7 +193,7 @@ def all_maps(output,MLWA=True,labelfibers=False):
                       figsize=(8,4),
                       fitsfile=\
                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
-                      centpos=[35.63689,42.34633],
+                      wcsax=False,
                       imrot=67,#64.213,
                       pa=295.787,
                       center = centers[i],
@@ -205,6 +207,19 @@ def all_maps(output,MLWA=True,labelfibers=False):
         
     ax.set_xlim(160,755)
     ax.set_ylim(350,600)
+    header = pyfits.open('/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits')[0].header
+    hw = pywcs.WCS(header)
+    centpx = hw.wcs_sky2pix([[35.63689,42.34633]],0)[0]
+    xticks = np.arange(-300,301,100)/(header['CDELT1']*3600.) + centpx[0]
+    yticks = np.arange(-100,201,100)/(header['CDELT2']*3600.) + centpx[1]
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    xlabs = ['{:3.0f}'.format((centpx[0]-i)*header['CDELT1']*3600.) for i in ax.get_xticks()]
+    ylabs = ['{:3.0f}'.format((i - centpx[1])*header['CDELT2']*3600.) for i in ax.get_yticks()]
+    ax.set_xticklabels(xlabs)
+    ax.set_yticklabels(ylabs)
+    ax.set_xlabel('arcsec')
+    ax.set_ylabel('arcsec')
     pp.savefig(ax.figure)
     pp.close()
     return ax
