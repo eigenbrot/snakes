@@ -3,8 +3,9 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 import numpy as np
 import scipy.ndimage as spnd
 #import scipy.optimize as spo
-#import lmfit
+import lmfit
 import pymc
+#from sklearn.mixture import GMM
 import matplotlib.pyplot as plt
 import time
 plt.ioff()
@@ -12,7 +13,8 @@ plt.ioff()
 def do_simple(datafile, errorfile, output, 
               model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
               plot = True, wavemin = 3750., wavemax = 6800., 
-              lightmin = 5450., lightmax = 5550.):
+              lightmin = 5450., lightmax = 5550.,
+              nsample = 10000, burn = 1000):
 
     m = pyfits.open(model)[1].data
     
@@ -50,10 +52,10 @@ def do_simple(datafile, errorfile, output,
 
     L_sun = 3.826e33 #erg / s
     dist_mpx = 10.062
-    flux_factor = 1e19
+    flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in range(numfibers):
+    for i in [77]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
         flux = data[i,idx][0]*flux_factor
@@ -64,7 +66,8 @@ def do_simple(datafile, errorfile, output,
             size_borders = size_borders[1:]
 
         coef, fig = superfit(m, wave, flux, err, vdisp[size_switch],
-                             plotlabel='Fiber {}'.format(i+1))
+                             plotlabel='Fiber {}'.format(i+1),
+                             nsample = nsample, burn = burn)
         pp.savefig(fig)
         plt.close(fig)
 
@@ -93,7 +96,8 @@ def do_simple(datafile, errorfile, output,
     return 
 
 def superfit(model, restwl, flux, err, vdisp, 
-             emmaskw = 400.0, plotlabel = ''):
+             emmaskw = 400.0, plotlabel = '', 
+             nsample = 10000, burn = 1000):
 
     nmodels = model['AGE'][0].size
     npix = restwl.size
@@ -157,18 +161,66 @@ def superfit(model, restwl, flux, err, vdisp,
         custom_lib[i] = np.interp(restwl,model['WAVE'][0],cflux)
     
     #define the priors
+    tauvprior = pymc.Uniform('tauv',0,3.0)
     params = {'wave': restwl[ok],
-              'tauv': pymc.Uniform('tauv',-5.0,5.0)}
+              'mlib': custom_lib[:,ok],
+              'tauv': tauvprior}
+    MCmodel = {'tauv': tauvprior}
     for p in range(nmodels):
         parname = 'w_{}'.format(p)
-        params[parname] = pymc.Uniform(parname,0,1e9)
+        prior = pymc.Uniform(parname,0,1e5)
+        params[parname] = prior
+        MCmodel[parname] = prior
 
+    galaxy_model = pymc.Deterministic(eval = mcombine,
+                                      name = 'Galaxy model',
+                                      doc = 'Galaxy model from SSPs',
+                                      parents = params,
+                                      trace = True,
+                                      verbose = 0,
+                                      dtype = float,
+                                      plot = False)
 
-    yfit = mcombine(params,restwl,flux,err,custom_lib,True)
+    galaxy = pymc.Normal('galaxy',
+                         mu = galaxy_model,
+                         tau = 0.01,
+                         value = flux[ok],
+                         observed = True)
+    MCmodel['M'] = galaxy
+
+    #run MCMC
+    t1 = time.time()
+    S = pymc.MCMC(MCmodel)
+    S.sample(nsample,burn)
+
+    #collect results
+    fitcoefs = np.zeros(nmodels+1)
+    fiterrs = np.zeros(nmodels+1)
+    
+    for i, k in enumerate(['tauv'] + \
+                          ['w_{}'.format(p) for p in range(nmodels)]):
+        trace = S.trace(k)[:]
+        amp, mu, std = fit_pdf(trace)
+        px = np.linspace(-1*trace.max(),trace.max(),1000)
+        pp = amp*np.exp(-1*((px - mu)/(2*std))**2)
+        fitcoefs[i] = mu
+        fiterrs[i] = std
+        params[k] = mu
+        tax = plt.figure().add_subplot(111)
+        tax.set_xlabel(k)
+        tax.set_ylabel('N')
+        tax.hist(trace,bins=100,histtype='step')
+        tax.plot(px,pp)
+#        tax.set_xlim(-100,trace.max()*1.1)
+        tax.figure.show()
+        
+    t2 = time.time()
+    params['wave'] = restwl
+    params['mlib'] = custom_lib
+    yfit = mcombine(**params)
     chisq = np.sum((yfit - flux)**2/err**2)
 
-    print '\tRan {:n} evaluations in {:4.2f} seconds'.format(status.nfev,t2-t1)
-    print '\tReported chisq = {} ({})'.format(status.chisqr,status.redchi)
+    print '\tRan {:n} steps in {:4.2f} seconds'.format(nsample,t2-t1)
     print '\tComputed chisq = {}'.format(chisq)
 
     fitcoefs = np.zeros(nmodels+1)
@@ -225,20 +277,46 @@ def superfit(model, restwl, flux, err, vdisp,
 
     return coefs, fig
 
-def mcombine(X, wave, flux, err, mlib, final):
+def mcombine(**pardict):
 
-    weights = np.zeros(len(X)-1)
-    for p in range(weights.size):
-        weights[p] = X['w_{}'.format(p)]
-
-    y = np.sum(mlib * weights[:,None],axis=0)
+    weights = np.zeros(len(pardict) - 3)
+    for k in pardict.keys():
+        if 'w_' in k:
+            n = int(k.split('_')[1])
+            weights[n] = pardict[k]
     
-    klam = (wave / 5500.)**(-0.7)
-    e_tau_lam = np.exp(-1*X['tauv']*klam)
+    y = np.sum(pardict['mlib'] * weights[:,None],axis=0)
+    
+    klam = (pardict['wave'] / 5500.)**(-0.7)
+    e_tau_lam = np.exp(-1*pardict['tauv']*klam)
     y *= e_tau_lam
 
-    if final:
-        return y
-    else:
-        #print np.sum((flux - y)**2/err**2)
-        return (flux - y)/err
+    return y
+
+def fit_pdf(pdf):
+
+    prob, bins = np.histogram(pdf,bins=100)
+    x = 0.5*(bins[1:] + bins[:-1])
+    mx = np.linspace(-1*x.max(),x.max(),1000)
+
+    params = lmfit.Parameters()
+    params.add_many(('mu', 0, True, 0, None, None),
+                ('sigma', 1, True, 0, None, None),
+                ('amp', 1, True, 0, None, None))
+
+    status = lmfit.minimize(fit_pdf_func, params, args=(x,prob,mx))
+    
+    # fit = params['amp'].value*np.exp(
+    #     -1*((x - params['mu'].value)/(2*params['sigma'].value))**2)
+
+    return params['amp'].value, params['mu'].value, params['sigma'].value
+
+def fit_pdf_func(params,x,y,mx):
+
+    by = params['amp'].value*np.exp(
+        -1*((mx - params['mu'].value)/(2*params['sigma'].value))**2)
+
+    by[mx < 0] = 0.0
+    my = np.interp(x,mx,by)
+
+    return y - my
