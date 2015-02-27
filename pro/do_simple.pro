@@ -1,12 +1,18 @@
 
 pro do_simple, datafile, errorfile, output, model=model, plot=plot, $
                wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-               lightmax=lightmax
+               lightmax=lightmax, multimodel=multimodel
 
 ; read in models
-if not n_elements(model) then model=$
-   '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits'
-m = mrdfits(model, 1)
+if keyword_set(multimodel) then begin
+   readcol, model, metals, models, format='F,A'
+   m = mrdfits(models[0], 1)
+endif else begin
+   if not n_elements(model) then model=$
+      '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits'
+   m = mrdfits(model, 1)
+   metal = 1.0
+endelse
 
 ; read in data
 data = MRDFITS(datafile,0,header)
@@ -53,11 +59,11 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,4F9.2)'
+fmt = '(I11,'+string(numages+2)+'E13.3,5F10.2)'
 openw, lun, output, /get_lun
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N','Chisq','redChi',$
-        format='(A-11,'+string(numages+2)+'A13,4A9)'
+        'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
+        format='(A-11,'+string(numages+2)+'A13,5A10)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -72,10 +78,16 @@ tau = 2*!DPI
 
 for i = 0, numfibers - 1 DO BEGIN
    
-   print, 'Grabbing fiber '+string(i,format='(I3)')
+   print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
    
+   if keyword_set(multimodel) then begin
+      m = mrdfits(models[i], 1)
+      metal = metals[i]
+      print, 'Using mode '+models[i]
+   endif
+
    print, i, size_borders
    if i eq size_borders[0] then begin
       size_switch += 1
@@ -111,7 +123,7 @@ for i = 0, numfibers - 1 DO BEGIN
    MLWA = total(light_weight * agearr) / total(light_weight)
 
    printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, coef.tauv,$
-           SNR, coef.chisq, coef.redchi, format=fmt
+           SNR, coef.chisq, coef.redchi, metal, format=fmt
 
 ENDFOR
 

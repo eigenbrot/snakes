@@ -162,7 +162,9 @@ def plot_heights(inputfile, outputfile, title=''):
 
     return
 
-def all_maps(output,MLWA=True,labelfibers=False):
+def all_maps(output,col=12,labelfibers=False,
+             label='Mean Light Weighted Age [Gyr]',
+             minval = None, maxval = None):
 
     pp = PDF(output)
     centers = [
@@ -177,16 +179,20 @@ def all_maps(output,MLWA=True,labelfibers=False):
     for i in range(6):
         print i
         inputfile = 'P{}.dat'.format(i+1)
-        if MLWA:
-            data = np.loadtxt(inputfile,usecols=(12,),unpack=True)
+        data = np.loadtxt(inputfile,usecols=(col,),unpack=True)
+        if col==12:
             label = 'Mean Light Weighted Age [Gyr]'
             minval = 0
             maxval = 10#np.nanmax(data)
-        else:
-            data = np.loadtxt(inputfile,usecols=(11,),unpack=True)
+        elif col==11:
             label = 'Mean Mass Weighted Age [Gyr]'
             minval = 5#np.nanmin(data)#7
             maxval = 10#np.nanmax(data)#10
+        elif col==17:
+            data = np.log10(data)
+            label = r'Log( Metallicity [$Z_{\odot}$] )'
+            minval = -2
+            maxval = 1
 
         ax = GPP.plot(data,
                       ax=ax,
@@ -234,13 +240,17 @@ def all_heights(output,err=True):
 
     pp = PDF(output)
     symblist = ["o","^","v","s","*","x"]
-    rlist = [4.4,0.8,-6.4,-2.3,8.1,-10.0]
+    colorlist = ['b','c','g','y','m','r']
+    plist = [6,3,4,2,1,5]
+    rlist = [-10.0, -6.4, -2.3, 0.8, 4.4, 8.1]
+#    rlist = [4.4,0.8,-6.4,-2.3,8.1,-10.0]
 
     ax = None
     AVax = None
     for i in range(6):
-        print i+1
-        inputfile = 'P{}.dat'.format(i+1)
+
+        inputfile = 'P{}.dat'.format(plist[i])
+        print inputfile
         MMWA, MLWA, TAUV, SNR = np.loadtxt(inputfile,usecols=(11,12,13,14),
                                            unpack=True)
         
@@ -253,8 +263,8 @@ def all_heights(output,err=True):
                                                           kpc_scale = 0.0485,
                                                           err=err, 
                                                           marker=symblist[i], 
-                                                          linestyle='', 
-                                                          color='k')
+                                                          linestyle='',
+                                                          color=colorlist[i])
         AVax, _, tmpAV, tmpAVerr, tmpAVstd = GPP.plot_rows(TAUV*1.086,
                                                            weights=SNR,
                                                            ax=AVax,
@@ -265,7 +275,7 @@ def all_heights(output,err=True):
                                                            err=err,
                                                            marker=symblist[i],
                                                            linestyle='',
-                                                           color='k')
+                                                           color=colorlist[i])
 
         f.write('\n# P{} '.format(i+1)+92*'#'+'\n# r ~ {} kpc\n'.\
                 format(rlist[i]))
