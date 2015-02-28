@@ -18,9 +18,10 @@ def compare_metals(data_list, model_list):
 
 def all_pointings():
 
-    dirlist = ['../solar_Z','../0.2solar_Z','../0.02solar_Z']
-    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z']]
-    fraclist = np.array([1,0.2,0.02])
+    dirlist = ['../solar_Z','../0.2solar_Z','../0.02solar_Z',
+               '../0.005solar_Z','../0.4solar_Z','../2.5solar_Z']
+    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
 
     for i in range(6):
 
