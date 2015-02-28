@@ -11,7 +11,7 @@ endif else begin
    if not n_elements(model) then model=$
       '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits'
    m = mrdfits(model, 1)
-   metal = 1.0
+   metal = -99.9
 endelse
 
 ; read in data
@@ -59,8 +59,12 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,5F10.2)'
+fmt = '(I11,'+string(numages+2)+'E13.3,4F10.2,F10.3)'
 openw, lun, output, /get_lun
+printf, lun, '# Generated on ',systime()
+printf, lun, '# Data file: ',datafile
+printf, lun, '# Error file: ',errorfile
+printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
         format='(A-11,'+string(numages+2)+'A13,5A10)'

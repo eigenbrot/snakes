@@ -5,6 +5,7 @@ import pyfits
 import pywcs
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
+from matplotlib import colors as mplcolors
 from matplotlib.ticker import ScalarFormatter
 
 rc('text', usetex=False)
@@ -186,12 +187,14 @@ def all_maps(output,col=12,labelfibers=False,
             maxval = 10#np.nanmax(data)
         elif col==11:
             label = 'Mean Mass Weighted Age [Gyr]'
-            minval = 5#np.nanmin(data)#7
+            minval = 0#np.nanmin(data)#7
             maxval = 10#np.nanmax(data)#10
         elif col==17:
             data = np.log10(data)
             label = r'Log( Metallicity [$Z_{\odot}$] )'
-            minval = -2
+            # cmap = mplcolors.ListedColormap(['black','blue','green','yellow','red','white'])
+            # norm = mplcolors.BoundaryNorm([0,0.005,0.02,0.2,0.4,1,2.5], cmap.N)
+            minval = -4
             maxval = 1
 
         ax = GPP.plot(data,
@@ -228,15 +231,18 @@ def all_maps(output,col=12,labelfibers=False,
     ax.set_ylabel('arcsec')
     pp.savefig(ax.figure)
     pp.close()
+    plt.close(ax.figure)
     return ax
 
 def all_heights(output,err=True):
 
     datname = output.split('.pdf')[0]+'.dat'
     f = open(datname,'w')
-    f.write('#{:5}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}\n#\n'.\
+    f.write('#{:5}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}{:>13}\n#\n'.\
             format('','height [kpc]','age [Gyr]',
-                   'age eom','age stderr','AV','AV eom','AV stderr'))
+                   'age eom','age stderr',
+                   'AV','AV eom','AV stderr',
+                   'Z/Z_sol','Z eom', 'Z stderr'))
 
     pp = PDF(output)
     symblist = ["o","^","v","s","*","x"]
@@ -247,12 +253,13 @@ def all_heights(output,err=True):
 
     ax = None
     AVax = None
+    metalax = None
     for i in range(6):
 
         inputfile = 'P{}.dat'.format(plist[i])
         print inputfile
-        MMWA, MLWA, TAUV, SNR = np.loadtxt(inputfile,usecols=(11,12,13,14),
-                                           unpack=True)
+        MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,usecols=(11,12,13,14,17),
+                                              unpack=True)
         
         ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
                                                           weights=SNR,
@@ -276,13 +283,25 @@ def all_heights(output,err=True):
                                                            marker=symblist[i],
                                                            linestyle='',
                                                            color=colorlist[i])
+        metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z,
+                                                                       weights=SNR,
+                                                                       ax=metalax,
+                                                                       label='{}'.\
+                                                                       format(rlist[i]),
+                                                                       fullout=True,
+                                                                       kpc_scale=0.0458,
+                                                                       err=err,
+                                                                       marker=symblist[i],
+                                                                       linestyle='',
+                                                                       color=colorlist[i])
 
         f.write('\n# P{} '.format(i+1)+92*'#'+'\n# r ~ {} kpc\n'.\
                 format(rlist[i]))
         for i in range(tmpz.size):
-            f.write('{:6}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}\n'.\
-                    format('',tmpz[i],tmpage[i],tmperr[i],
-                           tmpstd[i],tmpAV[i],tmpAVerr[i],tmpAVstd[i]))
+            f.write('{:6}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}{:13.3f}\n'.\
+                    format('',tmpz[i],tmpage[i],tmperr[i],tmpstd[i],
+                           tmpAV[i],tmpAVerr[i],tmpAVstd[i],
+                           tmpmetal[i],tmpmetalerr[i],tmpmetalstd[i]))
 
         try:
             z = np.vstack((z,tmpz))
@@ -292,6 +311,9 @@ def all_heights(output,err=True):
             AV = np.vstack((AV,tmpAV))
             AVstd = np.vstack((AVstd,tmpAVstd))
             AVerr = np.vstack((AVerr,tmpAVerr))
+            metal = np.vstack((metal,tmpmetal))
+            metalerr = np.vstack((metalerr,tmpmetalerr))
+            metalstd = np.vstack((metalstd,tmpmetalstd))
         except UnboundLocalError:
             z = tmpz
             age = tmpage
@@ -300,6 +322,9 @@ def all_heights(output,err=True):
             AV = tmpAV
             AVstd = tmpAVstd
             AVerr = tmpAVerr
+            metal = tmpmetal
+            metalerr = tmpmetalerr
+            metalstd = tmpmetalstd
 
     bigz = np.mean(z,axis=0)
     bigage = np.mean(age,axis=0)
@@ -310,6 +335,10 @@ def all_heights(output,err=True):
     bigAVerr = np.sqrt(
         np.sum(AVerr*(AV - bigAV)**2,axis=0)/
         ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.sum(AVerr,axis=0)))
+    bigmetal = np.mean(metal,axis=0)
+    bigmetalerr = np.sqrt(
+        np.sum(metalerr*(metal - bigmetal)**2,axis=0)/
+        ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.sum(metalerr,axis=0)))
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
@@ -323,9 +352,18 @@ def all_heights(output,err=True):
     AVax.set_xlim(-0.1,2.6)
     AVax.set_ylabel(r'$A_V$')
 
+    metalax.plot(bigz,bigmetal)
+    metalax.fill_between(bigz, bigmetal-bigmetalerr, bigmetal+bigmetalerr,alpha=0.1)
+    metalax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    metalax.set_xlim(-0.1,2.6)
+    metalax.set_ylabel(r'$Z/Z_{\odot}$')
+
     pp.savefig(ax.figure)
     pp.savefig(AVax.figure)
+    pp.savefig(metalax.figure)
     plt.close(ax.figure)
+    plt.close(AVax.figure)
+    plt.close(metalax.figure)
 
     pp.close()
     f.close()
