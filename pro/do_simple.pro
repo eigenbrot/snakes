@@ -75,6 +75,12 @@ if keyword_set(plot) then begin
    dfpsplot, plotfile, /color, /times, /landscape
 endif
 
+fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
+outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
+               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
+               CHISQ: 0.0D, REDCHI: 0.0D}
+outputarray = replicate(outputarray, numfibers)
+
 L_sun = 3.826e33 ;ergs s^-1
 dist_mpc = 10.062
 flux_factor = 1d19 ;to avoid small number precision errors
@@ -114,6 +120,7 @@ for i = 0, numfibers - 1 DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
+   outputarray[i] = coef
 
    SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
 
@@ -134,7 +141,7 @@ ENDFOR
 if keyword_set(plot) then dfpsclose
 
 free_lun, lun
-;help, s, /struct
+mwrfits, outputarray, fitsfile, /create
 print, m.norm
 
 end

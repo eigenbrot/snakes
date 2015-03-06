@@ -256,7 +256,7 @@ def all_heights(output,err=True):
     metalax = None
     for i in range(6):
 
-        inputfile = 'P{}.dat'.format(plist[i])
+        inputfile = 'multi_Z_P{}.dat'.format(plist[i])
         print inputfile
         MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,usecols=(11,12,13,14,17),
                                               unpack=True)
@@ -339,6 +339,10 @@ def all_heights(output,err=True):
     bigmetalerr = np.sqrt(
         np.sum(metalerr*(metal - bigmetal)**2,axis=0)/
         ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.sum(metalerr,axis=0)))
+    with open('means.dat','w') as fm:
+        for i in range(bigz.size):
+            fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
+                    format(bigz[i],bigage[i],bigerr[i],bigAV[i],bigAVerr[i],bigmetal[i],bigmetalerr[i]))
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
@@ -368,4 +372,6 @@ def all_heights(output,err=True):
     pp.close()
     f.close()
 
+    
+ 
     return
