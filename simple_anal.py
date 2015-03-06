@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
@@ -16,36 +17,45 @@ def fiber_rms(coefs, wave, models, flux):
     ax.set_xlabel('Wavelenght [Angstroms]')
     ax.set_ylabel('Flux')
     ax.set_title('Fiber 75')
+    plist = []
+    plist.append(np.linspace(coefs['TAUV'] - coefs['TAUV_ERR'],
+                             coefs['TAUV'] + coefs['TAUV_ERR'],
+                             10))
+
     for i in range(frac.size):
-        print i
-        inf = frac.copy()
         if frac[i] == 0:
-            print 'skipped '+str(i)
-            continue
+            plist.append(np.array([0.]))
+        else:
+            plist.append(np.linspace(frac[i] - fracerr[i],
+                                     frac[i] + fracerr[i],
+                                     10))
 
-        exrange = np.linspace(frac[i] - fracerr[i],
-                              frac[i] + fracerr[i],
-                              10)
-        for f in exrange:
+    exrange = zip(*[i.flatten() for i in np.meshgrid(*plist)])
+    
+    for i, f in enumerate(exrange):
+        
+        sys.stdout.write('\r')
+        sys.stdout.write('[{:<60}]'.format('='*int(i*60.0/len(exrange))))
+        sys.stdout.flush()
+
+        tmodel = mcombine(wave,models,np.array(f))
+        ax.plot(wave,tmodel,'r-',lw=0.1,alpha=0.1)
+        try:
+            bigmodel = np.vstack((bigmodel,tmodel))
+        except UnboundLocalError:
+            bigmodel = tmodel
             
-            inf[i] = f
-            tmodel = mcombine(wave,models,coefs['TAUV'],inf)
-            ax.plot(wave,tmodel,'r-',lw=0.3,alpha=0.4)
-            try:
-                bigmodel = np.vstack((bigmodel,tmodel))
-            except UnboundLocalError:
-                print 'Creating'
-                bigmodel = tmodel
+            
 
-
-    print wave.shape, flux.shape
     ax.plot(wave,flux,'k',lw=0.5,alpha=0.6)
     fig.show()
     return bigmodel
 
-def mcombine(wave, models, tauv, coefs):
+def mcombine(wave, models, coefs):
+                 
+    tauv = coefs[0]
 
-    y = np.sum(models * coefs[:,None], axis=0)
+    y = np.sum(models * coefs[1:,None], axis=0)
 
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tauv*klam)
