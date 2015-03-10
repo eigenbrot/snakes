@@ -1,27 +1,23 @@
 import sys
+import os
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
 import scipy.ndimage as spnd
 plt.ioff()
 
-def fiber_rms(coefs, wave, models, flux):
+def fiber_rms(coefs, wave, models, flux, ax = None):
 
     frac = coefs['LIGHT_FRAC']
     fracerr = coefs['LIGHT_FRAC_ERR']
     
     print frac
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_xlabel('Wavelenght [Angstroms]')
-    ax.set_ylabel('Flux')
-    ax.set_title('Fiber 75')
     plist = []
     plist.append(np.linspace(coefs['TAUV'] - coefs['TAUV_ERR'],
                              coefs['TAUV'] + coefs['TAUV_ERR'],
                              10))
-
+#    plist.append(coefs['TAUV'])
     for i in range(frac.size):
         if frac[i] == 0:
             plist.append(np.array([0.]))
@@ -31,25 +27,47 @@ def fiber_rms(coefs, wave, models, flux):
                                      10))
 
     exrange = zip(*[i.flatten() for i in np.meshgrid(*plist)])
-    
+
+    M = np.zeros(wave.size)
+    S = np.zeros(wave.size)
+    Mean = np.zeros(wave.size)
+    RMS = np.zeros(wave.size)
+
+    rows, cols = os.popen('stty size', 'r').read().split()
+    cols = int(cols) - 2
+
     for i, f in enumerate(exrange):
-        
         sys.stdout.write('\r')
-        sys.stdout.write('[{:<60}]'.format('='*int(i*60.0/len(exrange))))
+        sys.stdout.write('[{{:<{}}}]'.format(cols).format('='*((i+1)*cols/len(exrange))))
         sys.stdout.flush()
 
         tmodel = mcombine(wave,models,np.array(f))
-        ax.plot(wave,tmodel,'r-',lw=0.1,alpha=0.1)
-        try:
-            bigmodel = np.vstack((bigmodel,tmodel))
-        except UnboundLocalError:
-            bigmodel = tmodel
-            
-            
+        if ax is not None:
+            ax.plot(wave,tmodel,'r-',lw=0.2,alpha=0.02)
 
-    ax.plot(wave,flux,'k',lw=0.5,alpha=0.6)
-    fig.show()
-    return bigmodel
+        Mean += tmodel
+        RMS += tmodel**2
+        newM = M + (tmodel - M)/(i+1)
+        newS = S + (tmodel - M)*(tmodel - newM)
+
+        M = newM
+        S = newS
+
+        # try:
+        #     bigmodel = np.vstack((bigmodel,tmodel))
+        # except UnboundLocalError:
+        #     bigmodel = tmodel
+            
+    Std = np.sqrt(S/i)
+    Mean /= i+1
+
+#    RMS = np.sqrt(np.sum((bigmodel - np.mean(bigmodel,axis=0))**2,axis=0)/(i+1))
+
+    rms = np.sqrt(Mean**2 + Std**2)
+    rms2 = np.sqrt(RMS/(i+1))
+    if ax is not None:
+        ax.plot(wave,flux,'k',lw=0.5,alpha=0.6)
+    return Mean, Std
 
 def mcombine(wave, models, coefs):
                  
@@ -96,7 +114,16 @@ def do_fibers(galaxy, datafile, model):
 
         flux = data[f,idx][0]
 
-        return fiber_rms(fitcoefs[f], wave, custom_lib, flux)
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('Wavelength [Angstroms]')
+        ax.set_ylabel('Flux')
+        mean, std = fiber_rms(fitcoefs[f], wave, custom_lib, flux, ax=ax)
         
+        sax = plt.figure().add_subplot(111)
+        sax.plot(wave,std/mean)
+        sax.set_xlabel('Wavelength [Angstroms]')
+        sax.set_ylabel('Fit $\sigma$')
+        sax.figure.show()
+        ax.figure.show()
 
-    
+        return mean, std
