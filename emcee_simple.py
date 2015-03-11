@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import pyfits
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 import numpy as np
@@ -10,15 +12,15 @@ import sys
 import emcee
 import triangle
 #from sklearn.mixture import GMM
-import matplotlib.pyplot as plt
 import time
+import matplotlib.pyplot as plt
 plt.ioff()
 
 def do_simple(datafile, errorfile, output, 
               model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
               plot = True, wavemin = 3750., wavemax = 6800., 
               lightmin = 5450., lightmax = 5550.,
-              nsample = 10000, burn = 1000):
+              nsample = 10000, burn = 1000, nwalkers = 256):
 
     m = pyfits.open(model)[1].data
     
@@ -102,7 +104,7 @@ def do_simple(datafile, errorfile, output,
 
 def superfit(model, restwl, flux, err, vdisp, 
              emmaskw = 400.0, plotlabel = '', 
-             nsample = 10000, burn = 1000):
+             nsample = 10000, burn = 1000, nwalkers = 256):
 
     nmodels = model['AGE'][0].size
     npix = restwl.size
@@ -169,9 +171,17 @@ def superfit(model, restwl, flux, err, vdisp,
     # Find best fit
     nll = lambda *args: -lnprob(*args)
     x0 = np.zeros(nmodels+1)
-    result = spo.minimize(nll, x0, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    result = spo.minimize(nll, x0, method='Nelder-Mead', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
 
-    ndim, nwalkers = nmodels+1, 128
+    lmy = mcombine(result['x'], restwl, custom_lib)
+    ax = plt.figure().add_subplot(111)
+    ax.plot(restwl,flux,'k')
+    ax.plot(restwl,lmy,'r')
+    ax.figure.show()
+    print result['x']
+    raw_input('minimized fit')
+
+    ndim = nmodels + 1
     p0 = [result['x'] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)]
 
     S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
@@ -188,24 +198,36 @@ def superfit(model, restwl, flux, err, vdisp,
     for i in range(nsample):
         
         sys.stdout.write('\r')
-        sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.4f}}s)'.format(cols).\
+        sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.4e}}s)'.format(cols).\
                          format('='*(int((i+1)*cols/nsample)),time.time() - t1, time.time() - tt1))
         sys.stdout.flush()
         pos, prob, state = S.run_mcmc(pos,1,rstate0=state,lnprob0=prob)
         tt1 = time.time()
-
+#    pos, prob, state = S.run_mcmc(pos,nsample)
     print 
     #Collect results
     print 'Plotting'
-    fitcoefs = np.median(S.flatchain,axis=0)
+    fitcoefs = np.mean(S.flatchain,axis=0)
+    fiterrs = np.std(S.flatchain,axis=0)
+    labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
     fig = triangle.corner(S.flatchain,
-                          labels=[r'$\tau_V$'] + ['$w_{}$'.format(ii+1) for ii in range(nmodels)],
-                          dpi=300,
+                          labels=labels,
                           truths=fitcoefs)
     fig.suptitle(plotlabel)
+    print 'emc.pdf'
     pS = PDF('emc.pdf')
     pS.savefig(fig)
     pS.close()
+    pT = PDF('trace.pdf')
+    print 'trace'
+    for p in range(nmodels+1):
+        axt = plt.figure().add_subplot(111)
+        axt.plot(S.chain[:,:,p].T,color='k',alpha=0.3)
+        axt.set_xlabel('step')
+        axt.set_ylabel(labels[p])
+#        axt.set_ylim(fitcoefs[p] - fiterrs[p]*2, fitcoefs[p] + fiterrs[p]*2)
+        pT.savefig(axt.figure)
+    pT.close()
 
     t2 = time.time()
     yfit = mcombine(fitcoefs, restwl, custom_lib)
@@ -228,7 +250,7 @@ def superfit(model, restwl, flux, err, vdisp,
     pax.set_ylabel('Flux')
     pax.set_title(plotlabel)
     pax.set_xlim(xmin,xmax)
-    pax.set_ylim(1,ymax)
+    pax.set_ylim(-1,ymax)
 
     galfit = np.ones(flux.size) + np.nan
     galfit[ok] = flux[ok]
@@ -283,19 +305,24 @@ def lnprob(theta, wave, mlib, data, err):
     lp = lnprior(theta)
     
     model = mcombine(theta, wave, mlib)
+    # val = lp - np.sum(((data - model)/err)**2)
+    
+    # if np.isnan(val):
+    #     return -np.inf
 
     return lp - np.sum(((data - model)/err)**2)
 
 def lnprior(theta):
 
+    supersmall = -np.inf
     tauv = theta[0]
     weights = np.array(theta[1:])
     
     if tauv < -5.0 or tauv > 5.0:
-        return -1e55#-np.inf
+        return supersmall
 
     for w in weights:
         if w < 0.0 or w > 1e5:
-            return -1e55#-np.inf
+            return supersmall
 
     return 0.0
