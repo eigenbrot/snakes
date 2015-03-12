@@ -61,7 +61,7 @@ def do_simple(datafile, errorfile, output,
     flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in [77]:#range(numfibers):
+    for i in [2]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
         flux = data[i,idx][0]*flux_factor
@@ -295,7 +295,7 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
             tax = plt.figure().add_subplot(211)
         else:
             tax = tax.figure.add_subplot(212)
-        tax.plot(sampler.chain[:,:,p],color='k',alpha=0.2)
+        tax.plot(sampler.chain[:,:,p].T,color='k',alpha=0.2)
         if labels is not None:
             tax.set_ylabel(labels[p])
         tax.set_xlabel('steps')
@@ -308,11 +308,11 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 
     tracepp.close()
 
-    # triname = '{}_tri.pdf'.format(outputprefix)
-    # tripp = PDF(triname)
-    # trifig = triangle.corner(sampler.flatchain,labels=labels,truths=truths)
-    # tripp.savefig(trifig)
-    # tripp.close()
+    triname = '{}_tri.pdf'.format(outputprefix)
+    tripp = PDF(triname)
+    trifig = triangle.corner(sampler.flatchain,labels=labels,truths=truths)
+    tripp.savefig(trifig)
+    tripp.close()
 
     return
 
