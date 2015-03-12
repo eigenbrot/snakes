@@ -76,7 +76,7 @@ def do_simple(datafile, errorfile, output,
                                 nsample = nsample, burn = burn)
     
         pp.savefig(fig)
-#        plt.close(fig)
+        plt.close(fig)
 
         SNR = np.sqrt(
             np.sum((flux[lightidx]/err[lightidx])**2)/lightidx.size)
@@ -173,13 +173,13 @@ def superfit(model, restwl, flux, err, vdisp,
     x0 = np.zeros(nmodels+1)
     result = spo.minimize(nll, x0, method='Nelder-Mead', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
 
-    lmy = mcombine(result['x'], restwl, custom_lib)
-    ax = plt.figure().add_subplot(111)
-    ax.plot(restwl,flux,'k')
-    ax.plot(restwl,lmy,'r')
-    ax.figure.show()
-    print result['x']
-    raw_input('minimized fit')
+    # lmy = mcombine(result['x'], restwl, custom_lib)
+    # ax = plt.figure().add_subplot(111)
+    # ax.plot(restwl,flux,'k')
+    # ax.plot(restwl,lmy,'r')
+    # ax.figure.show()
+    # print result['x']
+    # raw_input('minimized fit')
 
     ndim = nmodels + 1
     p0 = [result['x'] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)]
@@ -209,25 +209,25 @@ def superfit(model, restwl, flux, err, vdisp,
     print 'Plotting'
     fitcoefs = np.mean(S.flatchain,axis=0)
     fiterrs = np.std(S.flatchain,axis=0)
-    labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
-    fig = triangle.corner(S.flatchain,
-                          labels=labels,
-                          truths=fitcoefs)
-    fig.suptitle(plotlabel)
-    print 'emc.pdf'
-    pS = PDF('emc.pdf')
-    pS.savefig(fig)
-    pS.close()
-    pT = PDF('trace.pdf')
-    print 'trace'
-    for p in range(nmodels+1):
-        axt = plt.figure().add_subplot(111)
-        axt.plot(S.chain[:,:,p].T,color='k',alpha=0.3)
-        axt.set_xlabel('step')
-        axt.set_ylabel(labels[p])
-#        axt.set_ylim(fitcoefs[p] - fiterrs[p]*2, fitcoefs[p] + fiterrs[p]*2)
-        pT.savefig(axt.figure)
-    pT.close()
+#     labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
+#     fig = triangle.corner(S.flatchain,
+#                           labels=labels,
+#                           truths=fitcoefs)
+#     fig.suptitle(plotlabel)
+#     print 'emc.pdf'
+#     pS = PDF('emc.pdf')
+#     pS.savefig(fig)
+#     pS.close()
+#     pT = PDF('trace.pdf')
+#     print 'trace'
+#     for p in range(nmodels+1):
+#         axt = plt.figure().add_subplot(111)
+#         axt.plot(S.chain[:,:,p].T,color='k',alpha=0.3)
+#         axt.set_xlabel('step')
+#         axt.set_ylabel(labels[p])
+# #        axt.set_ylim(fitcoefs[p] - fiterrs[p]*2, fitcoefs[p] + fiterrs[p]*2)
+#         pT.savefig(axt.figure)
+#     pT.close()
 
     t2 = time.time()
     yfit = mcombine(fitcoefs, restwl, custom_lib)
@@ -282,10 +282,39 @@ def superfit(model, restwl, flux, err, vdisp,
     rax.set_xlim(xmin,xmax)
     rax.set_ylim(-5,5)
     rax.plot(restwl, (galfit - yfit)/err,'k')
-#    plt.show()
 
-#    return S
     return coefs, fig, S
+
+def plot_emcee(sampler,outputprefix,labels=None,truths=None):
+
+    tracename = '{}_trace.pdf'.format(outputprefix)
+    tracepp = PDF(tracename)
+    subplot = 1
+    for p in range(sampler.chain.shape[2]):
+        if subplot == 1:
+            tax = plt.figure().add_subplot(211)
+        else:
+            tax = tax.figure.add_subplot(212)
+        tax.plot(sampler.chain[:,:,p],color='k',alpha=0.2)
+        if labels is not None:
+            tax.set_ylabel(labels[p])
+        tax.set_xlabel('steps')
+        if subplot == 2:
+            tracepp.savefig(tax.figure)
+            plt.close(tax.figure)
+            subplot = 1
+        else:
+            subplot = 2
+
+    tracepp.close()
+
+    # triname = '{}_tri.pdf'.format(outputprefix)
+    # tripp = PDF(triname)
+    # trifig = triangle.corner(sampler.flatchain,labels=labels,truths=truths)
+    # tripp.savefig(trifig)
+    # tripp.close()
+
+    return
 
 def mcombine(theta, wave, mlib):
 
