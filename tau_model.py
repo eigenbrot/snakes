@@ -28,13 +28,21 @@ def make_galaxy(output,
     e_tau_lam = np.exp(-1*tau_V*klam)
     galaxy *= e_tau_lam
 
+    if np.isfinite(SN):
+        error = add_noise(wave, galaxy, SN)
+    else:
+        error = np.zeros(wave.size)
+
     fig = plt.figure()
     axg = fig.add_subplot(211)
     axs = fig.add_subplot(212)
 
     axg.plot(wave,galaxy,'k')
+    axg.fill_between(wave, galaxy-error, galaxy + error, color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
+    axg.text(0.8,0.8,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
+
     axs.plot(ages,np.log(psi),'k')
     axs.bar(ages,np.log(psi),align='center',alpha=0.5)
     axs.set_xlabel('$t$ [Gyr]')
@@ -46,5 +54,17 @@ def make_galaxy(output,
 
     fig.show()
 
-    return galaxy
+    return wave, galaxy
     
+def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
+
+    idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
+    error = np.random.rand(wave.size)*0.01
+    mult = 0.0001
+    SN = np.inf
+    while SN >= desSN:
+        tmp = error + mult
+        SN = np.sqrt(np.sum((spectrum[idx]/tmp[idx])**2)/idx.size)
+        mult += 0.0001
+
+    return error + mult
