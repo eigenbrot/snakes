@@ -29,7 +29,8 @@ def make_galaxy(output,
     galaxy *= e_tau_lam
 
     if np.isfinite(SN):
-        error = add_noise(wave, galaxy, SN)
+        error, noise = add_noise(wave, galaxy, SN)
+        galaxy += noise
     else:
         error = np.zeros(wave.size)
 
@@ -60,11 +61,16 @@ def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
     idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
     error = np.random.rand(wave.size)*0.01
-    mult = 0.0001
+    error = np.zeros(wave.size)
+    mult = 0
     SN = np.inf
     while SN >= desSN:
+        mult += 0.001
         tmp = error + mult
         SN = np.sqrt(np.sum((spectrum[idx]/tmp[idx])**2)/idx.size)
-        mult += 0.0001
 
-    return error + mult
+    specnoise = np.mean(error + mult)*np.random.randn(wave.size)
+        
+    print SN
+
+    return error + mult, specnoise
