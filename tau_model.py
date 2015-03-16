@@ -35,15 +35,20 @@ def make_galaxy(output,
         error, noise = add_noise(linwave, lingal, SN)
         lingal += noise
     else:
-        error = np.zeros(linwave.size)
+        error = np.ones(linwave.size)
+
+
+    lingal *= 1e-17
+    error *= 1e-17
 
     fig = plt.figure()
     axg = fig.add_subplot(211)
     axs = fig.add_subplot(212)
 
     axg.plot(linwave,lingal,'k')
-    axg.fill_between(linwave, lingal-error, lingal + error, 
-                     color='k', alpha=0.6)
+    if np.isfinite(SN):
+        axg.fill_between(linwave, lingal-error, lingal + error, 
+                         color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
     axg.text(0.8,0.8,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
@@ -67,14 +72,13 @@ def make_galaxy(output,
     hdu.header.update('CDELT1',np.mean(np.diff(linwave)))
     hdu.writeto(outname,clobber=True)
 
-    if np.isfinite(SN):
-        errname = '{}.me_lin.fits'.format(output)
-        ehdu = pyfits.PrimaryHDU(error)
-        ehdu.header.update('CTYPE1','LINEAR')
-        ehdu.header.update('CRPIX1',1)
-        ehdu.header.update('CRVAL1',linwave[0])
-        ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
-        ehdu.writeto(errname,clobber=True)
+    errname = '{}.me_lin.fits'.format(output)
+    ehdu = pyfits.PrimaryHDU(error)
+    ehdu.header.update('CTYPE1','LINEAR')
+    ehdu.header.update('CRPIX1',1)
+    ehdu.header.update('CRVAL1',linwave[0])
+    ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
+    ehdu.writeto(errname,clobber=True)
 
     return linwave, lingal, error
     
