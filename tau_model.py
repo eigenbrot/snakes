@@ -59,7 +59,24 @@ def make_galaxy(output,
 
     fig.show()
 
-    return linwave, lingal
+    outname = '{}.ms_lin.fits'.format(output)
+    hdu = pyfits.PrimaryHDU(lingal)
+    hdu.header.update('CTYPE1','LINEAR')
+    hdu.header.update('CRPIX1',1)
+    hdu.header.update('CRVAL1',linwave[0])
+    hdu.header.update('CDELT1',np.mean(np.diff(linwave)))
+    hdu.writeto(outname,clobber=True)
+
+    if np.isfinite(SN):
+        errname = '{}.me_lin.fits'.format(output)
+        ehdu = pyfits.PrimaryHDU(error)
+        ehdu.header.update('CTYPE1','LINEAR')
+        ehdu.header.update('CRPIX1',1)
+        ehdu.header.update('CRVAL1',linwave[0])
+        ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
+        ehdu.writeto(errname,clobber=True)
+
+    return linwave, lingal, error
     
 def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
