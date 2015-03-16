@@ -70,14 +70,14 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     for i in range(fibers.size):
         print i
         ax = plt.figure().add_subplot(111)
-        ax.bar(np.arange(AGES.size),data[i,1:-2],align='center',width=1.0)
-        ax.set_ylabel('Light fraction')
-        ax.set_xlim(-1,AGES.size)
-        ax.set_xticks(np.arange(AGES.size))
-        ax.set_xticklabels(agelabels)
+        ax.bar(AGES,np.log(data[i,1:11]),align='center',alpha=0.5)
+        ax.set_ylabel('Log( $\psi (t_i)$ )')
+        # ax.set_xlim(-1,AGES.size)
+        # ax.set_xticks(np.arange(AGES.size))
+        # ax.set_xticklabels(agelabels)
         ax.set_xlabel('Age [Gyr]')
-        MLWA = data[i,-2]
-        ax.set_title('Fiber {}\nMLWA = {:4.3f} Gyr'.format(i+1,MLWA))
+        MMWA = data[i,11]
+        ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
         plt.close(ax.figure)
     
