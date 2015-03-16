@@ -21,25 +21,29 @@ def make_galaxy(output,
     wave = model['WAVE'][0]
     ages = model['AGE'][0]/1e9 #in Gyr
 
-    psi = 10*np.exp(-ages/tau_sf)
+    psi = np.exp(-ages/tau_sf + 2)
     
     galaxy = np.sum(flux*psi[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tau_V*klam)
     galaxy *= e_tau_lam
 
+    linwave = np.linspace(wave.min(),wave.max(),wave.size)
+    lingal = np.interp(linwave, wave, galaxy)
+    
     if np.isfinite(SN):
-        error, noise = add_noise(wave, galaxy, SN)
-        galaxy += noise
+        error, noise = add_noise(linwave, lingal, SN)
+        lingal += noise
     else:
-        error = np.zeros(wave.size)
+        error = np.zeros(linwave.size)
 
     fig = plt.figure()
     axg = fig.add_subplot(211)
     axs = fig.add_subplot(212)
 
-    axg.plot(wave,galaxy,'k')
-    axg.fill_between(wave, galaxy-error, galaxy + error, color='k', alpha=0.6)
+    axg.plot(linwave,lingal,'k')
+    axg.fill_between(linwave, lingal-error, lingal + error, 
+                     color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
     axg.text(0.8,0.8,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
@@ -47,7 +51,7 @@ def make_galaxy(output,
     axs.plot(ages,np.log(psi),'k')
     axs.bar(ages,np.log(psi),align='center',alpha=0.5)
     axs.set_xlabel('$t$ [Gyr]')
-    axs.set_ylabel('$\psi(t)$')
+    axs.set_ylabel('Log( $\psi(t)$ )')
     axs.text(0.8,0.8,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
              transform=axs.transAxes)
     axs.text(0.8,0.7,r'$\tau_V = {:3.1f}$'.format(tau_V),
@@ -55,13 +59,13 @@ def make_galaxy(output,
 
     fig.show()
 
-    return wave, galaxy
+    return linwave, lingal
     
 def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
     idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
     error = np.random.rand(wave.size)*0.01
-    error = np.zeros(wave.size)
+    error = np.random.rand(wave.size)
     mult = 0
     SN = np.inf
     while SN >= desSN:
