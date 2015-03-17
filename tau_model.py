@@ -24,7 +24,7 @@ def make_galaxy(output,
     wave = model['WAVE'][0]
     ages = model['AGE'][0]/1e9 #in Gyr
 
-    psi = np.exp(-ages/tau_sf + 2)
+    psi = np.exp(-(ages[-1] - ages)/tau_sf + 2)
     
     galaxy = np.sum(flux*psi[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
@@ -61,15 +61,15 @@ def make_galaxy(output,
                          color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
-    axg.text(0.8,0.8,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
+    axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
 
     axs.plot(ages,np.log(psi),'k')
     axs.bar(ages,np.log(psi),align='center',alpha=0.5)
-    axs.set_xlabel('$t$ [Gyr]')
+    axs.set_xlabel('SSP age [Gyr]')
     axs.set_ylabel('Log( $\psi(t)$ )')
-    axs.text(0.8,0.8,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
+    axs.text(0.1,0.9,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
              transform=axs.transAxes)
-    axs.text(0.8,0.7,r'$\tau_V = {:3.1f}$'.format(tau_V),
+    axs.text(0.1,0.8,r'$\tau_V = {:3.1f}$'.format(tau_V),
              transform=axs.transAxes)
 
     pp = PDF('{}_galaxy.pdf'.format(output))
