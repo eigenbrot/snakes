@@ -1,9 +1,12 @@
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
+import scipy.ndimage as spnd
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def make_galaxy(output,
                 SSPs = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
+                vdisp = 209.34,
                 tau_sf = 8.0,
                 tau_V = 1.5,
                 SN = np.inf):
@@ -30,6 +33,13 @@ def make_galaxy(output,
 
     linwave = np.linspace(wave.min(),wave.max(),wave.size)
     lingal = np.interp(linwave, wave, galaxy)
+    
+    bc03_pix = 70.0
+    bc03_vdisp = 75.0
+
+    vdisp_add = np.sqrt(vdisp**2 - bc03_vdisp**2)
+    sigma_pix = vdisp_add / bc03_pix
+    lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
     
     if np.isfinite(SN):
         error, noise = add_noise(linwave, lingal, SN)
@@ -62,7 +72,9 @@ def make_galaxy(output,
     axs.text(0.8,0.7,r'$\tau_V = {:3.1f}$'.format(tau_V),
              transform=axs.transAxes)
 
-    fig.show()
+    pp = PDF('{}_galaxy.pdf'.format(output))
+    pp.savefig(fig)
+    pp.close()
 
     outname = '{}.ms_lin.fits'.format(output)
     hdu = pyfits.PrimaryHDU(lingal)

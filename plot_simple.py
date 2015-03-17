@@ -76,6 +76,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         # ax.set_xticks(np.arange(AGES.size))
         # ax.set_xticklabels(agelabels)
         ax.set_xlabel('Age [Gyr]')
+        ax.set_xlim(-2,12)
         MMWA = data[i,11]
         ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
