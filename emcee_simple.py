@@ -187,27 +187,48 @@ def superfit(model, restwl, flux, err, vdisp,
     S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
     #run MCMC
     print 'Burn'
-    pos, prob, state = S.run_mcmc(p0,burn)
-    print 'reset'
-    S.reset()
     rows, cols = os.popen('stty size', 'r').read().split()
     cols = int(cols)*2/3
+    t1 = time.time()
+    tsum = 0
+    pos, prob, state = S.run_mcmc(p0,1)
+    for i in range(burn-1):
+        tt1 = time.time()        
+        pos, prob, state = S.run_mcmc(pos,1,rstate0=state,lnprob0=prob)
+        tt2 = time.time()
+        tsum += tt2 - tt1
+        delta = tsum/(i+1)
+        sys.stdout.write('\r')
+        sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.0f}}s remaining)'.format(cols).\
+                         format('='*(int((i+1)*cols/(burn-1))),time.time() - t1, delta*(burn-i)))
+        sys.stdout.flush()
+    
+    print '\nBurned {} steps in {} s'.format(burn,time.time() - t1)
+    print 'reset'
+    S.reset()
     print 'Run'
     t1 = time.time()
-    tt1 = time.time()
+    tsum = 0
     for i in range(nsample):
-        
-        sys.stdout.write('\r')
-        sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.4e}}s)'.format(cols).\
-                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, time.time() - tt1))
-        sys.stdout.flush()
-        pos, prob, state = S.run_mcmc(pos,1,rstate0=state,lnprob0=prob)
         tt1 = time.time()
-#    pos, prob, state = S.run_mcmc(pos,nsample)
+        pos, prob, state = S.run_mcmc(pos,1,rstate0=state,lnprob0=prob)
+        tt2 = time.time()
+        tsum += tt2 - tt1
+        delta = tsum/(i+1)
+        sys.stdout.write('\r')
+        sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.0f}}s remaining)'.format(cols).\
+                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, delta*(nsample-1)))
+        sys.stdout.flush()
+
     print 
     #Collect results
-    print 'Plotting'
-    fitcoefs = np.mean(S.flatchain,axis=0)
+    # fitcoefs = np.mean(S.flatchain,axis=0)
+    fitcoefs = np.zeros(nmodels+1)
+    for t in range(nmodels+1):
+        hist, bins = np.histogram(S.flatchain[:,t],bins=1000)
+        bins = 0.5*(bins[1:] + bins[:-1])
+        fitcoefs[t] = bins[np.argmax(hist)]
+
     fiterrs = np.std(S.flatchain,axis=0)
 #     labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
 #     fig = triangle.corner(S.flatchain,
@@ -306,12 +327,17 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
         else:
             subplot = 2
 
+    if subplot == 2:
+        tracepp.savefig(tax.figure)
+        plt.close(tax.figure)
+
     tracepp.close()
 
     triname = '{}_tri.pdf'.format(outputprefix)
     tripp = PDF(triname)
     trifig = triangle.corner(sampler.flatchain,labels=labels,truths=truths)
     tripp.savefig(trifig)
+    plt.close(trifig)
     tripp.close()
 
     return
