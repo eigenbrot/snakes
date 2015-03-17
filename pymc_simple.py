@@ -3,7 +3,7 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 import numpy as np
 import scipy.ndimage as spnd
 #import scipy.optimize as spo
-import lmfit
+#import lmfit
 import pymc
 #from sklearn.mixture import GMM
 import matplotlib.pyplot as plt
@@ -68,8 +68,9 @@ def do_simple(datafile, errorfile, output,
         coef, fig = superfit(m, wave, flux, err, vdisp[size_switch],
                              plotlabel='Fiber {}'.format(i+1),
                              nsample = nsample, burn = burn)
+    
         pp.savefig(fig)
-        plt.close(fig)
+#        plt.close(fig)
 
         SNR = np.sqrt(
             np.sum((flux[lightidx]/err[lightidx])**2)/lightidx.size)
@@ -86,7 +87,7 @@ def do_simple(datafile, errorfile, output,
         MLWA = np.sum(light_weight * agearr)/np.sum(light_weight)
 
         f.write('{:11}'.format(i+1))
-        f.write((numages*'{:13.3e}').format(*coef['light_frac']/m['NORM'][0]))
+        f.write((numages*'{:13.3e}').format(*coef['light_frac']))#/m['NORM'][0]))
         f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3f}\n'.\
                 format(MMWA,MLWA,coef['tauv'],SNR,coef['chisq']))
 
@@ -161,7 +162,7 @@ def superfit(model, restwl, flux, err, vdisp,
         custom_lib[i] = np.interp(restwl,model['WAVE'][0],cflux)
     
     #define the priors
-    tauvprior = pymc.Uniform('tauv',0,3.0)
+    tauvprior = pymc.Uniform('tauv',0.0,5.0)
     params = {'wave': restwl[ok],
               'mlib': custom_lib[:,ok],
               'tauv': tauvprior}
@@ -179,14 +180,14 @@ def superfit(model, restwl, flux, err, vdisp,
                                       trace = True,
                                       verbose = 0,
                                       dtype = float,
-                                      plot = False)
+                                      plot = True)
 
     galaxy = pymc.Normal('galaxy',
                          mu = galaxy_model,
-                         tau = 0.01,
+                         tau = 1/(err[ok]**2),
                          value = flux[ok],
                          observed = True)
-    MCmodel['M'] = galaxy
+    MCmodel['galaxy'] = galaxy
 
     #run MCMC
     t1 = time.time()
@@ -200,21 +201,31 @@ def superfit(model, restwl, flux, err, vdisp,
     for i, k in enumerate(['tauv'] + \
                           ['w_{}'.format(p) for p in range(nmodels)]):
         trace = S.trace(k)[:]
-        amp, mu, std = fit_pdf(trace)
-        px = np.linspace(-1*trace.max(),trace.max(),1000)
-        pp = amp*np.exp(-1*((px - mu)/(2*std))**2)
+        # print 'fitting ', k
+        # amp, mu, std = fit_pdf(trace)
+        # px = np.linspace(-1*trace.max(),trace.max(),1000)
+        # pp = amp*np.exp(-1*((px - mu)/(2*std))**2)
+        mu = np.mean(trace)
+        # hist, bins = np.histogram(trace,bins=nsample/100)
+        # bins = 0.5*(bins[1:] + bins[:-1])
+        # hist = spnd.filters.gaussian_filter1d(hist,3)
+        # mu = bins[np.argmax(hist)]
+        std = np.std(trace)
         fitcoefs[i] = mu
         fiterrs[i] = std
         params[k] = mu
-        tax = plt.figure().add_subplot(111)
-        tax.set_xlabel(k)
-        tax.set_ylabel('N')
-        tax.hist(trace,bins=100,histtype='step')
-        tax.plot(px,pp)
-#        tax.set_xlim(-100,trace.max()*1.1)
-        tax.figure.show()
+#         tax = plt.figure().add_subplot(111)
+#         tax.set_xlabel(k)
+#         tax.set_ylabel('N')
+#         #tax.plot(bins,hist,color='k')
+#         tax.hist(trace,bins=nsample/100,histtype='step',color='k')
+#         tax.axvline(x=mu)
+# #        tax.plot(px,pp)
+# #        tax.set_xlim(-100,trace.max()*1.1)
+#         tax.figure.show()
         
     t2 = time.time()
+    pymc.Matplot.plot(S)
     params['wave'] = restwl
     params['mlib'] = custom_lib
     yfit = mcombine(**params)
@@ -252,6 +263,7 @@ def superfit(model, restwl, flux, err, vdisp,
     pax.plot(restwl, masked, 'g')
     pax.plot(restwl, galfit, 'k')
     pax.plot(restwl, yfit, 'r')
+    pax.fill_between(restwl, flux-err, flux+err, color='k', alpha=0.1)
     pax.text(0.1,0.9,'Tau V = {:4.2f}'.format(fitcoefs[0]),
              transform=pax.transAxes)
     
@@ -263,7 +275,7 @@ def superfit(model, restwl, flux, err, vdisp,
         pax.text(0.1, 0.87 - 0.022*i, 'f_{:02} = {:10.3e}'.\
                  format(i,np.mean(yi[lidx])),
                  transform=pax.transAxes,fontsize=9)
-        pax.text(0.8, 0.45 - 0.022*i,'{:6.3f}: {:10.3f}'.\
+        pax.text(0.8, 0.45 - 0.022*i,'{:6.3f}: {:10.3e}'.\
                  format(model['AGE'][0][i]/1e9, 
                         coefs['light_frac'][i]/model['NORM'][0][i]),
                  transform=pax.transAxes,fontsize=9)
@@ -273,8 +285,9 @@ def superfit(model, restwl, flux, err, vdisp,
     rax.set_xlim(xmin,xmax)
     rax.set_ylim(-5,5)
     rax.plot(restwl, (galfit - yfit)/err,'k')
+#    plt.show()
 
-
+#    return S
     return coefs, fig
 
 def mcombine(**pardict):
@@ -282,6 +295,8 @@ def mcombine(**pardict):
     weights = np.zeros(len(pardict) - 3)
     for k in pardict.keys():
         if 'w_' in k:
+            # if pardict[k] < 0:
+            #     return np.ones(pardict['wave'].size)*9e77
             n = int(k.split('_')[1])
             weights[n] = pardict[k]
     
@@ -295,16 +310,19 @@ def mcombine(**pardict):
 
 def fit_pdf(pdf):
 
-    prob, bins = np.histogram(pdf,bins=100)
+    prob, bins = np.histogram(pdf,bins=1000)
     x = 0.5*(bins[1:] + bins[:-1])
     mx = np.linspace(-1*x.max(),x.max(),1000)
 
     params = lmfit.Parameters()
-    params.add_many(('mu', 0, True, 0, None, None),
-                ('sigma', 1, True, 0, None, None),
+    params.add_many(('mu', np.mean(pdf), True, 0, 1e5, None),
+                ('sigma', np.std(pdf), True, 0, 200, None),
                 ('amp', 1, True, 0, None, None))
 
-    status = lmfit.minimize(fit_pdf_func, params, args=(x,prob,mx))
+    status = lmfit.minimize(fit_pdf_func, params,
+                            method='leastsq',
+                            ftol=1e-9,#maxfev=1000000000,
+                            args=(x,prob,mx))
     
     # fit = params['amp'].value*np.exp(
     #     -1*((x - params['mu'].value)/(2*params['sigma'].value))**2)

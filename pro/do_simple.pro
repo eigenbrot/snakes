@@ -124,7 +124,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
    SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
 
-   MMWA = total(agearr*coef.light_frac*m.m_remaining/m.norm) $
+   MMWA = total(agearr*coef.light_frac*1./m.norm) $
           / total(coef.light_frac*m.m_remaining/m.norm)
 
    redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
