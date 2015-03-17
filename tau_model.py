@@ -23,6 +23,8 @@ def make_galaxy(output,
     flux = model['FLUX'][0]
     wave = model['WAVE'][0]
     ages = model['AGE'][0]/1e9 #in Gyr
+    norm = model['NORM'][0]
+    flux /= norm[:,None]
 
     psi = np.exp(-(ages[-1] - ages)/tau_sf + 2)
     
