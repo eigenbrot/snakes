@@ -24,10 +24,10 @@ def make_galaxy(output,
     wave = model['WAVE'][0]
     ages = model['AGE'][0]/1e9 #in Gyr
     norm = model['NORM'][0]
-    flux /= norm[:,None]
 
     psi = np.exp(-(ages[-1] - ages)/tau_sf + 2)
-    
+    w = psi*norm
+
     galaxy = np.sum(flux*psi[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tau_V*klam)
