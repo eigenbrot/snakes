@@ -9,6 +9,7 @@ def make_galaxy(output,
                 vdisp = 209.34,
                 tau_sf = 8.0,
                 tau_V = 1.5,
+                Mtot = 12e9,
                 SN = np.inf):
 
     '''Makes a galaxy by adding up SSPs with different ages based on a tau star
@@ -18,17 +19,33 @@ def make_galaxy(output,
 
     where \psi(t) is the star formation rate.
     '''
+    form_age = 12.0 #in Gyr
 
     model = pyfits.open(SSPs)[1].data
     flux = model['FLUX'][0]
     wave = model['WAVE'][0]
-    ages = model['AGE'][0]/1e9 #in Gyr
+    ssp_age = model['AGE'][0]/1e9 #in Gyr
     norm = model['NORM'][0]
+    flux *= norm[:,None]
 
-    psi = np.exp(-(ages[-1] - ages)/tau_sf + 2)
-    w = psi*norm
+    logt = np.log10(np.r_[1e-99,ssp_age,form_age])
+    tdiff = np.diff(logt)
+    borders = 10**(logt[1:] - tdiff/2.)
+    borders[0] = 1e-99
+    borders[-1] = form_age
+    
+    plot_age = np.linspace(0,form_age,1000)
+    plot_psi = np.exp(plot_age/tau_sf)
+    psi = np.exp(ssp_age/tau_sf)
 
-    galaxy = np.sum(flux*psi[:,None],axis=0)
+    mass = tau_sf*(np.exp(borders[1:]/tau_sf) 
+                   - np.exp(borders[:-1]/tau_sf))
+    psi0 = Mtot/np.sum(mass)
+    mass *= psi0
+    psi *= psi0
+    plot_psi *= psi0
+
+    galaxy = np.sum(flux*mass[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tau_V*klam)
     galaxy *= e_tau_lam
@@ -53,9 +70,10 @@ def make_galaxy(output,
     lingal *= 1e-17
     error *= 1e-17
 
-    fig = plt.figure()
-    axg = fig.add_subplot(211)
-    axs = fig.add_subplot(212)
+    fig = plt.figure(figsize=(10,8))
+    axg = fig.add_subplot(223)
+    axs = fig.add_subplot(211)
+    axc = fig.add_subplot(224)
 
     axg.plot(linwave,lingal,'k')
     if np.isfinite(SN):
@@ -65,14 +83,32 @@ def make_galaxy(output,
     axg.set_ylabel('Flux [Arbitrary]')
     axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
 
-    axs.plot(ages,np.log(psi),'k')
-    axs.bar(ages,np.log(psi),align='center',alpha=0.5)
-    axs.set_xlabel('SSP age [Gyr]')
+    axs.plot(ssp_age,np.log10(psi),'.k')
+    axs.plot(ssp_age,np.log10(mass),'.g', label='Mass [$M_{\odot}$]')
+    for i in range(ssp_age.size):
+        axs.fill_between(plot_age,np.log10(plot_psi),alpha=0.3,
+                         where=(plot_age > borders[:-1][i]) & 
+                         (plot_age < borders[1:][i]))
+
+    axs.set_xlabel('Lookback time [Gyr]')
     axs.set_ylabel('Log( $\psi(t)$ )')
-    axs.text(0.1,0.9,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
+    axs.set_xlim(13,-1)
+    axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
              transform=axs.transAxes)
-    axs.text(0.1,0.8,r'$\tau_V = {:3.1f}$'.format(tau_V),
+    axs.text(0.1,0.65,r'$\tau_V = {:3.1f}$'.format(tau_V),
              transform=axs.transAxes)
+    axs.text(0.1,0.6,r'$M_{{tot}} = {:4.1e} M_{{\odot}}\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/yr$'.format(Mtot,psi0),transform=axs.transAxes)
+    axs.legend(loc=0,frameon=False,numpoints=1)
+
+    # cx = np.logspace(np.log10(ssp_age).min(),np.log10(ssp_age).max(),100)
+    # tauintegral = tau_sf*(1 - np.exp(-cx/tau_sf))
+    # axc.step(np.log10(ssp_age*1e9),
+    #          np.log10(np.cumsum(psi)),where='pre')
+    # axc.step(np.log10(cx*1e9),np.log10(tauintegral),where='pre')
+    # axc.set_xlabel('Log(Years since formation [yr])')
+    # axc.set_ylabel(r"Log$\left(\int\psi(t')dt'\right)$")
+
+    axc.plot(ssp_age,np.log10(mass))
 
     pp = PDF('{}_galaxy.pdf'.format(output))
     pp.savefig(fig)

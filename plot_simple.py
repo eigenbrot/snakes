@@ -70,7 +70,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     for i in range(fibers.size):
         print i
         ax = plt.figure().add_subplot(111)
-        ax.bar(AGES,np.log(data[i,1:11]),align='center',alpha=0.5)
+        ax.bar(AGES,np.log10(data[i,1:11]),align='center',alpha=0.5)
         ax.set_ylabel('Log( $\psi (t_i)$ )')
         # ax.set_xlim(-1,AGES.size)
         # ax.set_xticks(np.arange(AGES.size))
