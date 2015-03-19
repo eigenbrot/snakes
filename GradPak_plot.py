@@ -447,11 +447,14 @@ def plot(values,
                                             reffiber = reffiber,
                                             sky = sky, exclude = exclude)
 
-    xdelt = 2./(60. * hdu.header['CDELT1'])
-    ydelt = 2./(60. * hdu.header['CDELT2'])
-    ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
-    ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
-    
+    if hdu is not None:
+        xdelt = 2./(60. * hdu.header['CDELT1'])
+        ydelt = 2./(60. * hdu.header['CDELT2'])
+        ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+        ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
+    else:
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim(xmax, xmin)
 
     if labelfibers:
         for c in patches:
@@ -573,10 +576,14 @@ def plot_img(values,
                                             center = center,
                                             reffiber = reffiber,
                                             sky = sky, exclude = exclude)
-    xdelt = 2./(60. * hdu.header['CDELT1'])
-    ydelt = 2./(60. * hdu.header['CDELT2'])
-    ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
-    ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
+    if hdu is not None:
+        xdelt = 2./(60. * hdu.header['CDELT1'])
+        ydelt = 2./(60. * hdu.header['CDELT2'])
+        ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
+        ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
+    else:
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim(xmax, xmin)
 
     x = np.array([c.center[0] for c in patches[:,1]])
     y = np.array([c.center[1] for c in patches[:,1]])
