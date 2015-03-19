@@ -75,7 +75,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.plot(AGES,np.log10(data[i,1:11]),'.g')
         ax.set_ylabel(r'Log($\int\psi (t)dt$ )')
         for b in borders:
-            ax.axvline(b,alpha=0.5,ls='--')
+            ax.axvline(b,alpha=0.2,ls='--')
         # ax.set_xlim(-1,AGES.size)
         # ax.set_xticks(np.arange(AGES.size))
         # ax.set_xticklabels(agelabels)

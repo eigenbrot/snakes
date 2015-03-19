@@ -44,6 +44,7 @@ def make_galaxy(output,
     mass *= psi0
     psi *= psi0
     plot_psi *= psi0
+    MMWA = np.sum(ssp_age*mass)/np.sum(mass)
 
     galaxy = np.sum(flux*mass[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
@@ -71,6 +72,7 @@ def make_galaxy(output,
     error *= 1e-17
 
     fig = plt.figure(figsize=(10,8))
+    fig.suptitle('MMWA = {:5.3} Gyr'.format(MMWA))
     axg = fig.add_subplot(212)
     axs = fig.add_subplot(211)
 
@@ -90,7 +92,7 @@ def make_galaxy(output,
                          (plot_age < borders[1:][i]))
 
     axs.set_xlabel('Lookback time [Gyr]')
-    axs.set_ylabel('Log( $\psi(t)$ )')
+    axs.set_ylabel('Log( $\psi(t)$ [$M_{\odot}$/Gyr] )')
     axs.set_xlim(13,-1)
     axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
              transform=axs.transAxes)
