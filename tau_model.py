@@ -100,7 +100,7 @@ def make_galaxy(output,
              transform=axs.transAxes)
     axs.text(0.1,0.55,r'$\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/Gyr$'.\
              format(psi0),transform=axs.transAxes)
-    axs.legend(loc=0,frameon=False,numpoints=1,fontsize=8)
+    axs.legend(loc=0,frameon=True,numpoints=1,fontsize=8)
 
 
     pp = PDF('{}_galaxy.pdf'.format(output))

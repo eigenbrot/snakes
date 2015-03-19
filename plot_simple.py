@@ -73,7 +73,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         print i
         ax = plt.figure().add_subplot(111)
         ax.plot(AGES,np.log10(data[i,1:11]),'.g')
-        ax.set_ylabel(r'Log( $\int\psi (t)$ )')
+        ax.set_ylabel(r'Log($\int\psi (t)dt$ )')
         for b in borders:
             ax.axvline(b,alpha=0.5,ls='--')
         # ax.set_xlim(-1,AGES.size)
@@ -82,7 +82,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_xlabel('Lookback time [Gyr]')
         ax.set_xlim(13,-1)
         ymin, ymax = ax.get_ylim()
-        ax.set_ylim(0,ymax)
+        ax.set_ylim(0,10)
         MMWA = data[i,11]
         ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
