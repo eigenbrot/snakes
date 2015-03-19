@@ -71,9 +71,8 @@ def make_galaxy(output,
     error *= 1e-17
 
     fig = plt.figure(figsize=(10,8))
-    axg = fig.add_subplot(223)
+    axg = fig.add_subplot(212)
     axs = fig.add_subplot(211)
-    axc = fig.add_subplot(224)
 
     axg.plot(linwave,lingal,'k')
     if np.isfinite(SN):
@@ -84,7 +83,7 @@ def make_galaxy(output,
     axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
 
     axs.plot(ssp_age,np.log10(psi),'.k')
-    axs.plot(ssp_age,np.log10(mass),'.g', label='Mass [$M_{\odot}$]')
+    axs.plot(ssp_age,np.log10(mass),'.g', label='Log(Mass [$M_{\odot}$])')
     for i in range(ssp_age.size):
         axs.fill_between(plot_age,np.log10(plot_psi),alpha=0.3,
                          where=(plot_age > borders[:-1][i]) & 
@@ -97,18 +96,12 @@ def make_galaxy(output,
              transform=axs.transAxes)
     axs.text(0.1,0.65,r'$\tau_V = {:3.1f}$'.format(tau_V),
              transform=axs.transAxes)
-    axs.text(0.1,0.6,r'$M_{{tot}} = {:4.1e} M_{{\odot}}\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/yr$'.format(Mtot,psi0),transform=axs.transAxes)
-    axs.legend(loc=0,frameon=False,numpoints=1)
+    axs.text(0.1,0.6,r'$M_{{tot}} = {:4.1e} M_{{\odot}}$'.format(Mtot),
+             transform=axs.transAxes)
+    axs.text(0.1,0.55,r'$\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/Gyr$'.\
+             format(psi0),transform=axs.transAxes)
+    axs.legend(loc=0,frameon=False,numpoints=1,fontsize=8)
 
-    # cx = np.logspace(np.log10(ssp_age).min(),np.log10(ssp_age).max(),100)
-    # tauintegral = tau_sf*(1 - np.exp(-cx/tau_sf))
-    # axc.step(np.log10(ssp_age*1e9),
-    #          np.log10(np.cumsum(psi)),where='pre')
-    # axc.step(np.log10(cx*1e9),np.log10(tauintegral),where='pre')
-    # axc.set_xlabel('Log(Years since formation [yr])')
-    # axc.set_ylabel(r"Log$\left(\int\psi(t')dt'\right)$")
-
-    axc.plot(ssp_age,np.log10(mass))
 
     pp = PDF('{}_galaxy.pdf'.format(output))
     pp.savefig(fig)

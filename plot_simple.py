@@ -61,22 +61,26 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     data = np.loadtxt(inputfile)
     fibers = data[:,0]
 
-    agelabels = ['{:4.0e}'.format(i) if np.log10(i) < -1 
-                 else '{:3.1f}'.format(i)
-                 for i in AGES]
-    print agelabels
+    form_age = 12.0 #Gyr
+    logt = np.log10(np.r_[1e-99,AGES,form_age])
+    tdiff = np.diff(logt)
+    borders = 10**(logt[1:] - tdiff/2.)
+    borders[0] = 1e-99
+    borders[-1] = form_age
 
     pp = PDF(outputfile)
     for i in range(fibers.size):
         print i
         ax = plt.figure().add_subplot(111)
-        ax.bar(AGES,np.log10(data[i,1:11]),align='center',alpha=0.5)
-        ax.set_ylabel('Log( $\psi (t_i)$ )')
+        ax.plot(AGES,np.log10(data[i,1:11]),'.g')
+        ax.set_ylabel(r'Log( $\int\psi (t)$ )')
+        for b in borders:
+            ax.axvline(b,alpha=0.5,ls='--')
         # ax.set_xlim(-1,AGES.size)
         # ax.set_xticks(np.arange(AGES.size))
         # ax.set_xticklabels(agelabels)
-        ax.set_xlabel('Age [Gyr]')
-        ax.set_xlim(-2,12)
+        ax.set_xlabel('Lookback time [Gyr]')
+        ax.set_xlim(13,-1)
         ymin, ymax = ax.get_ylim()
         ax.set_ylim(0,ymax)
         MMWA = data[i,11]
