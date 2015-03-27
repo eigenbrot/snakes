@@ -115,9 +115,13 @@ def main(raw_dir):
         name = 'dFlat_{}.fits'.format(flat.split('.lst')[0].split('_')[1])
         print 'Making flat {}'.format(name)
         iraf.flatcombine('@{}'.format(flat),output=name,combine='average',reject='crreject')
-        
-    print 'Making master dark'
-    iraf.darkcombine('@darks.lst',output='Dark.fits',combine='average',reject='crreject')
+
+    try:
+        print 'Making master dark'
+        iraf.darkcombine('@darks.lst',output='Dark.fits',combine='average',reject='crreject')
+    except Exception as e:
+        print '\t{}'.format(e)
+        print "\tNO DARK FOUND"
     print 'Making master comp'
     iraf.imcombine('@comps.lst','Comp.fits',combine='average',reject='crreject')
 
