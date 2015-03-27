@@ -567,6 +567,7 @@ try:
         return np.array([r_vec,mean_vec,error_vec])
 
 except ImportError:
+    print "WARNING: Could not load Numba, annulize reverting to slow version"
     fast_annulize = annulize
 
 def mediclean(data, zhi=0, keep=False):

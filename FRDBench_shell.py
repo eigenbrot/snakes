@@ -1,16 +1,30 @@
 #! /usr/bin/env python
 
-import numpy as np
-from pyraf import iraf
-import pyfits
-import ADEUtils as ADE
 import os
+import time
 import sys
 import glob
 from datetime import datetime
 import ConfigParser
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker
+from matplotlib import rc
+from matplotlib.backends.backend_pdf import PdfPages as PDF
+import pyfits
+try:
+    import ADEUtils as ADE
+    SLOWAN = False
+except ImportError:
+    print "WARNING: Could not load ADEUtils, falling back on slow version of annulize"
+    SLOWAN = True
 import matplotlib.pyplot as plt
 import pickle
+current_dir = os.getcwd()
+if os.getlogin() == 'guangweifu':
+    os.chdir(os.path.expanduser('~/Desktop/Ureka/iraf/local'))
+from pyraf import iraf
+os.chdir(current_dir)
 
 debug = False
 
@@ -88,19 +102,16 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
 #    fiber[np.where(fiber < 300)] = 0.0
     
     if pot:
-        direct_time_str = direct_HDU.header['TIME-OBS']
-        fiber_time_str = fiber_HDU.header['TIME-OBS']
-
-        direct_time = np.float(direct_time_str[6:])\
-            + np.float(direct_time_str[3:5])*60.\
-            + np.float(direct_time_str[0:2])*3600.
-
-        fiber_time = np.float(fiber_time_str[6:])\
-            + np.float(fiber_time_str[3:5])*60.\
-            + np.float(fiber_time_str[0:2])*3600.
+        direct_start_time = direct_HDU.header['STARTIME']
+        direct_end_time = direct_HDU.header['ENDTIME']
+        fiber_start_time = fiber_HDU.header['STARTIME']
+        fiber_end_time = fiber_HDU.header['ENDTIME']
         
-        fcorrect = pot.get_correction(fiber_time,filt)
-        dcorrect = pot.get_correction(direct_time,filt)
+        pot.set_ref(filt,direct_start_time,direct_end_time)
+
+        dcorrect = pot.get_correction2(direct_start_time,direct_end_time,filt)
+        fcorrect = pot.get_correction2(fiber_start_time,fiber_end_time,filt)
+        
         print '   Direct throughput correction is '+str(dcorrect)
         print '   Fiber throughput correction is '+str(fcorrect)
         
@@ -108,8 +119,8 @@ def FReD(direct_image, fiber_image, num_ap, pot, filt, dir_cut,\
         fiber *= fcorrect
 
     if debug: print '    Annulizing...'
-    d_rvec, d_sb, d_sberr = ADE.annulize(direct,num_ap)
-    f_rvec, f_sb, f_sberr = ADE.annulize(fiber,num_ap)
+    d_rvec, d_sb, d_sberr = annulize(direct,num_ap)
+    f_rvec, f_sb, f_sberr = annulize(fiber,num_ap)
 
     if debug:
         plt.clf()
@@ -403,9 +414,14 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
     for f_ratio in nood.keys():
 
         print 'F'+str(f_ratio)
-        focal_length = nood[f_ratio]['focal_length']
-        print 'Focal length = '+str(focal_length)+'mm'
-    
+        L2_focal_length = nood[f_ratio]['L2f']
+        L3_focal_length = nood[f_ratio]['L3f']
+        diameter = nood[f_ratio]['diameter']
+        print 'L2 focal length = {:0.1f} mm'.format(L2_focal_length)
+        print 'Aperture diameter = {:0.1f} mm'.format(diameter)
+        print 'Fiber fed at f/{:0.1f}'.format(L2_focal_length/diameter)
+        print 'L3 focal length = {:0.1f} mm'.format(L3_focal_length)
+
         for filt in nood[f_ratio]['data'].keys():
             direct_name = nood[f_ratio]['data'][filt]['direct']['final']
             fiber_name = nood[f_ratio]['data'][filt]['fiber']['final']
@@ -416,22 +432,28 @@ def soba(nood,num_ap,dir_cut,exten,pot,mfile):
             print '  Fiber image is  '+fiber_name
 
             metric = FReD(direct_name,fiber_name,num_ap,pot,filt,dir_cut,EXTEN=exten,\
-                     FL=focal_length,FR=f_ratio,OUTPUT=name+'.dat')
+                     FL=L3_focal_length,FR=f_ratio,OUTPUT=name+'.dat')
             
             f.write('{0:9.1f}{1:>9}'.format(f_ratio,filt))
             for m in metric: f.write('{:9.4f}'.format(m))
             f.write('\n')
 
             '''now generate the FRD plots using supermongo'''
-            sm = open('tmp_'+name+'.sm','wb')
-            sm.write('verbose 0\n'
-                     +'macro read plot_FRD.sm\n'
-                     +'device postencap_color '+name+'.ps\n'
-                     +'plot_FRD '+name+'.dat\ndevice nodevice\n')
-            sm.close()
-            os.system('sm < tmp_'+name+'.sm')
-            os.system('convert -density 200 '+name+'.ps -quality 92 '+name+'.jpg')
-            os.system('rm tmp_'+name+'.sm')
+            if os.system('which sm'): #No superMongo found
+                make_plots('{}.dat'.format(name),'{}.pdf'.format(name))
+                os.system('convert -density 200 {0}.pdf -quality 92 {0}.jpg'.\
+                          format(name))
+            else: #sm found
+                os.system('cp ~/snakes/plot_FRD.sm .')
+                sm = open('tmp_'+name+'.sm','wb')
+                sm.write('verbose 0\n'
+                         +'macro read plot_FRD.sm\n'
+                         +'device postencap_color '+name+'.ps\n'
+                         +'plot_FRD '+name+'.dat\ndevice nodevice\n')
+                sm.close()
+                os.system('sm < tmp_'+name+'.sm')
+                os.system('convert -density 200 '+name+'.ps -quality 92 '+name+'.jpg')
+                os.system('rm tmp_'+name+'.sm')
 
     f.close()
     return
@@ -453,20 +475,22 @@ def main():
         print 'Saving data run to '+noodsave
         pickle.dump(N,open(noodsave,'wb'))
 
-#    T = thePot(options)
-    T = False
+    T = thePot(options)
 
     num_ap = options.getint('Options','num_ap')
     dir_cut = options.getint('Options','direct_cutoff')
     gogo = options.getboolean('Options','gogo')
     mfile = options.get('Options','metric_file')
-    hname = options.get('Options','html_name')
-    html = options.getboolean('Options','html_go')
     global debug
     debug = options.getboolean('Options','debug')
+    
+    try:
+        hname = options.get('Options','html_name')
+        html = options.getboolean('Options','html_go')
+    except ConfigParser.NoOptionError:
+        html = False
 
     if gogo: 
-        os.system('cp ~/snakes/plot_FRD.sm .')
         soba(N.ratios,num_ap,dir_cut,N.exten,T,mfile)
 #        soba(N,num_ap,dir_cut,0,T,mfile)
         if html: webit(hname)
@@ -625,22 +649,29 @@ class Noodle:
         for exp in data.keys():
             for ds in data[exp]['ds']:
                 head = pyfits.open(ds)[self.exten].header
-                focal_length = head['FOCALLEN']
+                L2_focal_length = float(head['APTAREA'])
+                L3_focal_length = float(head['FOCALLEN'])
                 diameter = float(head['APTDIA'])
-                focal_ratio = round(focal_length/diameter,1)
+                focal_ratio = round(L2_focal_length/diameter,1)
                 filt = head['FILTER']
                 ftype = head['OBSERVER']
+                timestr = head['TIME-OBS']
+                obstime = np.float(timestr[6:])\
+                    + np.float(timestr[3:5])*60.\
+                    + np.float(timestr[0:2])*3600.
             
                 if focal_ratio not in self.ratios.keys():
                     self.ratios[focal_ratio] =\
-                        {'data':{},'focal_length':focal_length}
+                        {'data':{},'L2f':L2_focal_length,
+                         'L3f':L3_focal_length,'diameter':diameter}
                 if filt not in self.ratios[focal_ratio]['data'].keys():
                     self.ratios[focal_ratio]['data'][filt] = {}
                 if ftype not in self.ratios[focal_ratio]['data'][filt].keys():
                     self.ratios[focal_ratio]['data'][filt][ftype] =\
-                        {'raw':[],'final':None}
+                        {'raw':[],'obstimes':[],'exptime':exp,'final':None}
                 
                 self.ratios[focal_ratio]['data'][filt][ftype]['raw'].append(ds)
+                self.ratios[focal_ratio]['data'][filt][ftype]['obstimes'].append(obstime)
 
     def clean_up(self,data):
         for fratio in data.keys():
@@ -658,43 +689,74 @@ class Noodle:
                 for ftype in self.ratios[f_ratio]['data'][filt].keys():
                     name = self.ratios[f_ratio]['data'][filt][ftype]['raw'][0]
                     name = name[:name.rfind('.0')]+'.fits'
+                    mintime = min(self.ratios[f_ratio]['data'][filt][ftype]['obstimes'])
+                    maxtime = max(self.ratios[f_ratio]['data'][filt][ftype]['obstimes'])
+                    maxtime += float(self.ratios[f_ratio]['data'][filt][ftype]['exptime'])
                     iraf.imcombine(\
                         ','.join(self.ratios\
                                      [f_ratio]['data'][filt][ftype]['raw']),\
                             name)
                     self.ratios[f_ratio]['data'][filt][ftype]['final'] = name
+                    iraf.nhedit(name,'STARTIME',mintime,'Start time of first combined image',
+                                addonly=True)
+                    iraf.nhedit(name,'ENDTIME',maxtime,'End time of last combined image',
+                                addonly=True)
 
 class thePot:
 
-    def __init__(self, config):
+    def __init__(self, options):
 
-        self.functions = {}
+        t_file = options.get('Data','Tput_file')
+        if not t_file:
+            return False
+
         self.ref_levels = {}
 
-        t_file = config.get('Data','Tput_file')
-        order = config.getint('Data','Tput_fit_order')
+##        t_file = config.get('Data','Tput_file')
+ ##       self.order = config.getint('Data','Tput_fit_order')
 
-        self.times, self.levels = np.loadtxt(t_file,usecols=(0,1),unpack=True,
-                                   converters={0: self.format_time})
-        self.filters = np.loadtxt(t_file,usecols=(2,),dtype=np.str)
+        try: self.times, self.levels, self.errs = np.loadtxt(t_file,usecols=(0,1,2),
+                                                             unpack=True,
+                                                             converters={0: self.format_time})
+        except ValueError:
+            self.times, self.levels = np.loadtxt(t_file,usecols=(0,1),unpack=True,
+                                                 converters={0: self.format_time})
 
-        for filt in np.unique(self.filters):
-            fidx = np.where(self.filters == filt)
-            firstidx = np.where(self.times[fidx] == self.times[fidx].min())
-            self.functions[filt] = \
-                np.polyfit(self.times[fidx],self.levels[fidx],order)
-            self.ref_levels[filt] = \
-                self.make_func(self.times[fidx],self.functions[filt])
+        self.filters = np.loadtxt(t_file,usecols=(-1,),dtype=np.str)
 
-    def get_correction(self, time, filt):
 
-        try: level = self.make_func(time,self.functions[filt])
-        except KeyError:
-            print 'Oops! For some reason I am trying to get a correction'+\
-                'for a filter that isn\'t in my database.'
+    def set_ref(self, filt, time1, time2):
+
+        if time2 > self.times.max() or time1 < self.times.min():
+            self.ref_levels[filt] = {'level': 1.0, 'times': [time1,time2]}
             return
-        return (level/self.ref_levels[filt])[0]
+
+        tidx = np.where((self.times >= time1) & (self.times <= time2))
+        avg_level = np.mean(self.levels[tidx])
+        self.ref_levels[filt] = {'level': avg_level, 'times': [time1,time2]}
+#        self.plot(filt,times=[time1,time2])
+
     
+    def get_correction2(self, time1, time2, filt):
+
+        if time2 > self.times.max() or time1 < self.times.min():
+            print "Asking for time outside of range"
+            return 1.0
+        
+        tidx = np.where((self.times >= time1) & (self.times <= time2))
+        avg_level = np.mean(self.levels[tidx])
+        return self.ref_levels[filt]['level']/avg_level
+
+    def get_voltage(self,time1,time2,filt,std=False):
+        
+        idx = np.where((self.times >= time1) & (self.times <= time2))
+        rawlevel = np.mean(self.levels[idx])
+
+        if std:
+            return rawlevel, np.std(self.levels[idx])
+        
+        else: return rawlevel
+                
     def format_time(self,string):
         
         h = np.float(string[0:2])*3600.
@@ -702,35 +764,28 @@ class thePot:
         s = np.float(string[6:])
         
         return h+m+s
-
-    def make_func(self,x,p):
-        
-        out = 0.
-        for i in range(p.size):
-            out += p[i]*x**(p.size-1-i)
-            
-        return out
     
-    def test(self,filt):
+    def plot(self,filt,times=False):
         fig = plt.figure(0)
         plt.clf()
-        ax1 = fig.add_subplot(211)
+        ax1 = fig.add_subplot(111)
         
         idx = np.where(self.filters == filt)
-        t = np.linspace(self.times[idx].min(),self.times[idx].max())
-        l = self.make_func(t,self.functions[filt])
         
-        ax1.plot(self.times[idx],self.levels[idx],'.',t,l,'-')
+        ax1.plot(self.times[idx],self.levels[idx],'.')#,t,l,'-')
+        try: ax1.plot(self.ref_levels[filt]['times'],\
+                          [self.ref_levels[filt]['level'] for i in range(2)],linestyle='',marker='s')
+        except KeyError: pass
+        ax1.set_ylabel('$V$')
+        ax1.set_xlabel('time [s]')
+        fig.suptitle(os.popen('pwd').readlines()[0]+datetime.now().isoformat(' '))
         
-        ax2 = fig.add_subplot(212)
-        residuals = self.levels[idx]\
-                     - self.make_func(self.times[idx],self.functions[filt])
-        ax2.plot(self.times[idx],residuals,'.')
-
-        ax2.set_title('Residuals\n$\sigma$='+str(np.std(residuals)))
-
+        if times:
+            for time in times:
+                ax1.axvline(ls=':',x=time,color='r')
         fig.show()
         return
+
 
 def ABABA(filter_list,prestr):
     Nood = {6.3: {'focal_length': 50, 'data':{} } }
@@ -876,5 +931,260 @@ def webit(name):
     m.close()
 
 
+def annulize(data, num_an, distances=np.array([0])):
+    '''
+    Description:
+        annulize takes in a FITS image and computes the total power 
+        contained within progressivly larger annuli. The number of 
+        annuli used is set by the user and, unlike annulize_sb, it 
+        is the width of the annuli that remains constant, not the area.
+
+    Inputs:
+        data      - ndarray
+                    The data to be annulized
+        num_an    - Int
+                    The number of annuli to use
+        distances - ndarray
+                    This is expected to be a transformed distance array
+
+    Output:
+        r_vec - ndarray
+                vector of radii where each entry is the radius of the
+                middle of the corresponding annulus.
+        fluxes- ndarray
+                each entry is the flux contained within that annulus.
+        errors- ndarray
+                The standard deviation of the pixels in each annulus.
+    '''
+
+    if debug: print'annulizing...'
+    if debug: print"data type is "+str(data.dtype)
+
+    dims = data.shape
+
+    '''check to see if we got some transformed distances and generate
+    a basic distance array if we didn't'''
+    if not(distances.any()):
+        center = centroid(data)
+        if debug: print "center at "+str(center)
+        distances = dist_gen(data, center)
+
+
+    rlimit = distances.max()
+    rstep = rlimit/num_an
+
+    'initialize future output arrays. I think that maybe with python'
+    'these can be left empty, but w/e'
+    fluxes = np.zeros(num_an, dtype=np.float32)
+    r_vec = np.zeros(num_an, dtype=np.float32)
+    outarray = np.zeros(dims, dtype=np.float32)
+    area_array = np.zeros(dims, dtype=np.float32) + 1
+    errors = np.zeros(num_an, dtype=np.float32)
+    r1 = 0.0
+    r2 = rstep
+    
+    for i in range(num_an):
+        idx = np.where((distances <= r2) & (distances > r1))
+        
+        '''The correction is designed to correct annuli that are not
+        entirely contained in the data array, but I still can't decide
+        if it screws up the data or not'''
+        correction = np.pi*(r2**2 - r1**2)/np.sum(area_array[idx])
+        fluxes[i] = np.sum(data[idx])#*correction
+        errors[i] = np.std(data[idx])
+
+        if debug == 3: print(i,r1,r2,fluxes[i],correction) 
+        
+        '''this is only used during debug to show where the annuli
+        lie on the image'''
+        outarray[idx] = np.mod(i,2) + 1
+
+        r_mid = (r1 + r2)*0.5
+        r_vec[i] = r_mid
+        r1 = r2
+        r2 = r1 + rstep
+
+    if debug == 2:
+        pyfits.PrimaryHDU(data+outarray*data.max()/2)\
+            .writeto('an_show.fits',clobber=True)
+                    
+    return(r_vec,fluxes,errors)
+
+def centroid(image, zhi=2):
+    '''takes in an array and returns a list containing the
+    center of mass of that array'''
+  
+    if debug: print('finding center...')
+
+    '''just to make sure we don't mess up the original data somehow'''
+    data = np.copy(image)
+
+    size = data.shape
+    totalMass = np.sum(data)
+    
+    xcom = np.sum(np.sum(data,1) * np.arange(size[0]))/totalMass
+    ycom = np.sum(np.sum(data,0) * np.arange(size[1]))/totalMass
+    
+    return (xcom,ycom)
+
+def dist_gen(data, center):
+    '''takes in a data array with known center and returns an
+    array where the value at each location is the distance of
+    that point from the center.
+    center - expected to be a list of two numbers'''
+    
+    vecvec = np.indices(data.shape,dtype=np.float32)
+    distances = ((center[0] - vecvec[0,])**2 + (center[1] - vecvec[1,])**2)**0.5
+
+    return distances
+
+def write_stew():
+    
+    f = open('stew.ini','w')
+    f.write("""[Data]
+;Info about the data, all lengths are in mm
+
+fiber_directory=../raw/Fiber
+direct_directory=../raw/Direct
+dark_directory=../../../darks
+Tput_file=../20150106_Tput.txt.txt
+fits_exten=0
+
+[Options]
+;;These are options for the IRAF reduction of the raw images
+;
+;If resume=True then IRAF reduction will not be done. In this case FRD will
+; look for a pickel file to load a previous reduction from.
+resume=False
+;The name of the pickel file that contains a previous IRAF reduction. Only
+; used if resume=True
+noodle_file=nood.pkl
+
+;IRAF options
+darkcombine=average
+datacombine=average
+datareject=avsigclip
+rejectpar=3
+
+;The name of the pickel file that the completed IRAF reduction will be saved to
+noodle_save=nood.pkl
+
+;Remove intermediate IRAF files?
+cleanup=True
+
+;Continue with analysis after the reduction?
+gogo=True
+
+
+;;These are options for the FRD analysis
+;
+debug=False
+;The number of appetures to use when constructing surface brightness profiles
+num_ap=300
+
+;Set this != 0 only if a) you know what you're doing b) you really think you
+; need it
+direct_cutoff=0
+
+;The name of the file that contains data on FRD metrics for the data run
+metric_file=nood_metrics.txt""")
+    return
+            
+def make_plots(datafile, output):
+    '''Cribbed as closely as possible to plot_FRD.sm'''
+
+    rc('text', usetex=False)
+    rc('font', family='serif')
+    rc('font', size=9.0)
+    rc('axes', linewidth=0.4)
+    rc('lines', linewidth=0.4)
+    
+    
+    Dr, Fr, Df, Ff, Dr_c, Fr_c,\
+    Df_c, Ff_c, EED, EEF, feD, feF, feD_c, feF_c = np.loadtxt(datafile,unpack=True)
+    
+    with open(datafile,'r') as f:
+        lines = f.readlines()
+        fratio = lines[5].split()[7]
+        direct_image = lines[2].split()[-1]
+        fiber_image = lines[3].split()[-1]
+        filt = lines[6].split()[2]
+
+    pp = PDF(output)
+    fig = plt.figure(figsize=(8.5,11))
+    fig.subplots_adjust(hspace = 0.3)
+    
+    ### EE vs. Radius
+    rEEax = fig.add_subplot(311)
+    rEEax.set_xlabel('Radius [mm]')
+    rEEax.set_ylabel('Normalized Curve of Growth (EE)')
+    rEEax.set_ylim(-0.05,1.05)
+    rEEax.set_xlim(-0.999,19)
+    rEEax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    rEEax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2))
+    rEEax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    rEEax.plot(Dr_c,EED,'r-')
+    rEEax.plot(Dr,EED,'r--')
+    rEEax.plot(Fr_c,EEF,'b-')
+    rEEax.plot(Fr,EEF,'b--')
+
+    rEEax.text(-1,1.2,'Direct beam: {}'.format(direct_image))
+    rEEax.text(7,1.2,'Fiber beam: {}'.format(fiber_image))
+    rEEax.text(-1,1.1,'f/{}'.format(fratio))
+    rEEax.text(7,1.1,'{} band'.format(filt))
+    rEEax.text(14,1.2,time.asctime())
+
+    ### EE vs. log f-ratio
+    fEEax = fig.add_subplot(312)
+    fEEax.set_xlabel('f-ratio')
+    fEEax.set_ylabel('Normalized Curve of Growth (EE)')
+    fEEax.set_ylim(-0.05,1.05)
+    fEEax.set_xlim(1,100)
+    fEEax.set_xscale('log')
+    fEEax.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%i'))
+    fEEax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    fEEax.plot(Df_c,EED,'r-',label='direct, corrected')
+    fEEax.plot(Df,EED,'r--',label='direct')
+    fEEax.plot(Ff_c,EEF,'b-',label='fiber, corrected')
+    fEEax.plot(Ff,EEF,'b--',label='fiber')
+
+    fEEax.legend(loc=0,numpoints=1,frameon=False,fontsize=8)
+
+    ### f-ratio vs. EE
+    EEfax = fig.add_subplot(313)
+    EEfax.set_xlabel('Normalized Curve of Growth (EE)')
+    EEfax.set_ylabel('Effective f-ratio')
+    ylimvec = np.r_[feD_c, feD, feF, feF_c]
+    ymean = np.mean(ylimvec)
+    ystd = np.std(ylimvec)
+    EEfax.set_ylim(ymean - 1.5*ystd, ymean + 2.*ystd)
+    EEfax.set_xlim(-0.05,1.05)
+    EEfax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    EEfax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+
+    EEfax.plot(EED,feD_c,'r-')
+    EEfax.plot(EED,feD,'r--')
+    EEfax.plot(EEF,feF_c,'b-')
+    EEfax.plot(EEF,feF,'b--')
+
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+    
+    return
+    
+
+if not SLOWAN:
+    annulize = ADE.fast_annulize
+
 if __name__ == '__main__':
-    sys.exit(main())
+    
+    if len(sys.argv) < 2:
+        print "The request was made but it was not good"
+        sys.exit(1)
+    elif 'init' in sys.argv[1]:
+        sys.exit(write_stew())
+    else:
+        sys.exit(main())
