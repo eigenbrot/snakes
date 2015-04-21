@@ -44,7 +44,7 @@ def do_simple(datafile, errorfile, output,
     f = open(output, 'w')
     f.write('{:11}'.format('# Fiber Num'))
     f.write((numages*'{:9.3f} Gyr').format(*agearr))
-    f.write((5*'{:>13}').\
+    f.write((4*'{:>13}'+'{:>15}').\
             format('MMWA [Gyr]','MLWA [Gyr]','Tau_V','S/N','Chisq'))
     f.write('\n#\n')
 
@@ -92,7 +92,7 @@ def do_simple(datafile, errorfile, output,
 
         f.write('{:11}'.format(i+1))
         f.write((numages*'{:13.3e}').format(*coef['light_frac']/m['NORM'][0]))
-        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3f}\n'.\
+        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:15.3f}\n'.\
                 format(MMWA,MLWA,coef['tauv'],SNR,coef['chisq']))
 
     pp.close()
