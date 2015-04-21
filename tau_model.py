@@ -1,5 +1,7 @@
 import numpy as np
 import pyfits
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import scipy.ndimage as spnd
 from matplotlib.backends.backend_pdf import PdfPages as PDF
@@ -50,6 +52,10 @@ def make_galaxy(output,
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tau_V*klam)
     galaxy *= e_tau_lam
+    idx = np.where((wave >= 4550) & (wave <= 5550))[0]
+
+    light_weight = np.mean(flux[:,idx] * e_tau_lam[idx],axis=1)*mass
+    MLWA = np.sum(light_weight * ssp_age)/np.sum(light_weight)
 
     linwave = np.linspace(wave.min(),wave.max(),wave.size)
     lingal = np.interp(linwave, wave, galaxy)
@@ -66,7 +72,6 @@ def make_galaxy(output,
         lingal += noise
     else:
         error = np.ones(linwave.size)
-
 
     lingal *= 1e-17
     error *= 1e-17
@@ -94,6 +99,7 @@ def make_galaxy(output,
     axs.set_xlabel('Lookback time [Gyr]')
     axs.set_ylabel('Log( $\psi(t)$ [$M_{\odot}$/Gyr] )')
     axs.set_xlim(13,-1)
+    axs.set_ylim(5,11)
     axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
              transform=axs.transAxes)
     axs.text(0.1,0.65,r'$\tau_V = {:3.1f}$'.format(tau_V),
@@ -125,7 +131,8 @@ def make_galaxy(output,
     ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
     ehdu.writeto(errname,clobber=True)
 
-    return linwave, lingal, error
+    return {'wave':linwave, 'flux':lingal, 'err':error,
+            'MMWA': MMWA, 'MLWA': MLWA, 'age': ssp_age, 'mass': mass}
     
 def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
@@ -144,3 +151,36 @@ def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
     print SN
 
     return error + mult, specnoise
+
+def tau_age(output, taulist = None,
+            mintau = 0.1, maxtau = 12, numtau = 10):
+
+    
+    if taulist is None:
+        taulist = np.linspace(mintau, maxtau, numtau)
+
+    MMWA_list = np.zeros(taulist.size)
+    MLWA_list = np.zeros(taulist.size)
+    for i, tau in enumerate(taulist):
+        d = make_galaxy('tau_{:3.1f}'.format(tau),tau_sf=tau)
+        MMWA_list[i] = d['MMWA']
+        MLWA_list[i] = d['MLWA']
+
+    ax = plt.figure().add_subplot(111)
+    ax.plot(taulist,MMWA_list,'.',label='MMWA')
+    ax.plot(taulist,MLWA_list,'x',label='MLWA')
+    ax.set_xlabel(r'$\tau_{sf}$ [Gyr]')
+    ax.set_ylabel('Age [Gyr]')
+    ax.legend(loc=0, frameon=False, numpoints=1, scatterpoints=1)
+
+    ax1 = plt.figure().add_subplot(111)
+    ax1.plot(taulist,MMWA_list - MLWA_list,'.')
+    ax1.set_xlabel(r'$\tau_{sf}$ [Gyr]')
+    ax1.set_ylabel('MMWA - MLWA')
+    
+    pp = PDF('{}_age.pdf'.format(output))
+    pp.savefig(ax.figure)
+    pp.savefig(ax1.figure)
+    pp.close()
+    
+    return taulist, MMWA_list
