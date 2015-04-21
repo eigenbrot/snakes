@@ -82,7 +82,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_xlabel('Lookback time [Gyr]')
         ax.set_xlim(13,-1)
         ymin, ymax = ax.get_ylim()
-        ax.set_ylim(0,10)
+        ax.set_ylim(5,11)
         MMWA = data[i,11]
         ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
@@ -378,7 +378,52 @@ def all_heights(output,err=True):
 
     pp.close()
     f.close()
-
-    
  
     return
+
+def radial_gradient(input_file, output, col=1):
+
+    f = open(input_file,'r')
+    lines = f.readlines()
+
+    radii = np.array([])
+    values = np.array([])
+    errs = np.array([])
+    
+    tmp = np.array([])
+    for line in lines:
+        
+        if line == '\n':
+            continue
+        if line[0] == '#':
+            if len(line) < 3:
+                continue
+            elif line[2] == 'r':
+                print tmp
+                values = np.append(values, np.mean(tmp))
+                errs = np.append(errs, np.std(tmp))
+                tmp = np.array([])
+                radii = np.append(radii, float(line.split()[3]))
+                continue
+            else:
+                continue
+
+        cols = line.split()
+        Av = float(cols[4])
+        if Av <= 1.0:
+            tmp = np.append(tmp, float(cols[col]))
+
+    print tmp
+    values = np.append(values, np.mean(tmp))
+    errs = np.append(errs, np.std(tmp))
+    f.close()
+    
+    values = values[1:]
+    errs = errs[1:]
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel('~r [kpc]')
+    ax.set_ylabel('MLWA [Gyr]')
+    ax.set_xlim(-11, 11)
+    ax.errorbar(radii, values, yerr=errs, marker='.', ms=15, ls='')
+
+    return radii, values, ax
