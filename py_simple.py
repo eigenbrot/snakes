@@ -20,7 +20,12 @@ def do_simple(datafile, errorfile, output,
     data = dhdu.data
     error = pyfits.open(errorfile)[0].data
 
-    numfibers, wavesize = data.shape
+    try:
+        numfibers, wavesize = data.shape
+    except ValueError:
+        numfibers = 1
+        wavesize = data.size
+        print 'Found one fiber with length {}'.format(wavesize)
 
     wave = (np.arange(wavesize) - header['CRPIX1']) * header['CDELT1'] \
            +  header['CRVAL1']
@@ -55,8 +60,12 @@ def do_simple(datafile, errorfile, output,
     for i in range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
-        flux = data[i,idx][0]*flux_factor
-        err = error[i,idx][0]*flux_factor
+        if numfibers == 1:
+            flux = data[idx]*flux_factor
+            err = error[idx]*flux_factor
+        else:
+            flux = data[i,idx][0]*flux_factor
+            err = error[i,idx][0]*flux_factor
 
         if i == size_borders[0]:
             size_switch += 1
@@ -162,7 +171,7 @@ def superfit(model, restwl, flux, err, vdisp,
     
     t1 = time.time()
     status = lmfit.minimize(mcombine, params,method='leastsq',
-                            ftol=1e-5,#xtol=1e-5,
+                            ftol=1e-5,xtol=1e-5,
                             args=(restwl[ok],flux[ok],err[ok],
                                   custom_lib[:,ok],False))
     t2 = time.time()
