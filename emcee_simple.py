@@ -29,7 +29,12 @@ def do_simple(datafile, errorfile, output,
     data = dhdu.data
     error = pyfits.open(errorfile)[0].data
 
-    numfibers, wavesize = data.shape
+    try:
+        numfibers, wavesize = data.shape
+    except ValueError:
+        numfibers = 1
+        wavesize = data.size
+        print 'Found one fiber with length {}'.format(wavesize)
 
     wave = (np.arange(wavesize) - header['CRPIX1']) * header['CDELT1'] \
            +  header['CRVAL1']
@@ -64,8 +69,12 @@ def do_simple(datafile, errorfile, output,
     for i in [2]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
-        flux = data[i,idx][0]*flux_factor
-        err = error[i,idx][0]*flux_factor
+        if numfibers == 1:
+            flux = data[idx]*flux_factor
+            err = error[idx]*flux_factor
+        else:
+            flux = data[i,idx][0]*flux_factor
+            err = error[i,idx][0]*flux_factor
 
         if i == size_borders[0]:
             size_switch += 1
