@@ -60,7 +60,11 @@ def plot_age(inputfile):
 def plot_age_hist(inputfile, outputfile, exclude=[]):
 
     data = np.loadtxt(inputfile)
-    fibers = data[:,0]
+    try:
+        fibers = data[:,0]
+    except IndexError:
+        fibers = np.array([data[0]])
+        data = np.array([data])
 
     form_age = 12.0 #Gyr
     logt = np.log10(np.r_[1e-99,AGES,form_age])
@@ -72,6 +76,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     pp = PDF(outputfile)
     for i in range(fibers.size):
         print i
+        print np.log10(data[i,1:11])
         ax = plt.figure().add_subplot(111)
         ax.plot(AGES,np.log10(data[i,1:11]),'.g')
         ax.set_ylabel(r'Log($\int\psi (t)dt$ )')
@@ -83,7 +88,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_xlabel('Lookback time [Gyr]')
         ax.set_xlim(13,-1)
         ymin, ymax = ax.get_ylim()
-        ax.set_ylim(5,11)
+#        ax.set_ylim(5,11)
         MMWA = data[i,11]
         ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
