@@ -63,7 +63,7 @@ def do_simple(datafile, errorfile, output,
 
     L_sun = 3.826e33 #erg / s
     dist_mpx = 10.062
-    flux_factor = 1e19
+    flux_factor = 1e17
     tau = 2*np.pi
 
     for i in [2]:#range(numfibers):
@@ -386,7 +386,7 @@ def lnprior(theta):
         return supersmall
 
     for w in weights:
-        if w < 0.0 or w > 1e5:
+        if w < 0.0 or w > 1e11:
             return supersmall
 
     return 0.0
