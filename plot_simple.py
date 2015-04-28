@@ -13,6 +13,7 @@ rc('font', family='serif')
 rc('font', size=10.0)
 rc('axes', linewidth=1.0)
 rc('lines', linewidth=0.4)
+rc('patch', linewidth=0.1)
 rc('ps', usedistiller='Xpdf')
 rc('xtick', labelsize=10.0)
 rc('ytick', labelsize=10.0)
@@ -172,7 +173,7 @@ def plot_heights(inputfile, outputfile, title=''):
 
 def all_maps(output,col=12,labelfibers=False,
              label='Mean Light Weighted Age [Gyr]',
-             minval = None, maxval = None):
+             minval = None, maxval = None, exclude = None):
 
     pp = PDF(output)
     centers = [
@@ -184,10 +185,13 @@ def all_maps(output,col=12,labelfibers=False,
         [35.648196,42.401217]]
 
     ax = None
+    if exclude is None:
+        exclude = [[],[],[],[],[],[]]
     for i in range(6):
         print i
-        inputfile = 'P{}.dat'.format(i+1)
+        inputfile = 'multi_Z_P{}.dat'.format(i+1)
         data = np.loadtxt(inputfile,usecols=(col,),unpack=True)
+        data = np.log10(data)
         if col==12:
             label = 'Mean Light Weighted Age [Gyr]'
             minval = 0
@@ -203,7 +207,7 @@ def all_maps(output,col=12,labelfibers=False,
             # norm = mplcolors.BoundaryNorm([0,0.005,0.02,0.2,0.4,1,2.5], cmap.N)
             minval = -4
             maxval = 1
-
+        print 'excluding', exclude[i]
         ax = GPP.plot(data,
                       ax=ax,
                       figsize=(8,4),
@@ -216,7 +220,7 @@ def all_maps(output,col=12,labelfibers=False,
                       clabel=label,
                       cmap='gnuplot2',
                       labelfibers=labelfibers,
-                      exclude=[],
+                      exclude=exclude[i],
                       sky=False,
                       minval=minval,
                       maxval=maxval)

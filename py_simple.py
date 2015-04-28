@@ -171,7 +171,7 @@ def superfit(model, restwl, flux, err, vdisp,
     
     t1 = time.time()
     status = lmfit.minimize(mcombine, params,method='leastsq',
-                            ftol=1e-5,xtol=1e-5,
+                            ftol=1e-5,xtol=1e-9,
                             args=(restwl[ok],flux[ok],err[ok],
                                   custom_lib[:,ok],False))
     t2 = time.time()
