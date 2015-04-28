@@ -68,8 +68,8 @@ def make_galaxy(output,
     lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
     
     if np.isfinite(SN):
-        error, noise = add_noise(linwave, lingal, SN)
-        lingal += noise
+        error = add_noise(linwave, lingal, SN)
+        lingal += error
     else:
         error = np.ones(linwave.size)
 
@@ -82,9 +82,9 @@ def make_galaxy(output,
     axs = fig.add_subplot(211)
 
     axg.plot(linwave,lingal,'k')
-    if np.isfinite(SN):
-        axg.fill_between(linwave, lingal-error, lingal + error, 
-                         color='k', alpha=0.6)
+    # if np.isfinite(SN):
+    #     axg.fill_between(linwave, lingal-np.mean(error), lingal + np.mean(error), 
+    #                      color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
     axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
@@ -137,20 +137,24 @@ def make_galaxy(output,
 def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
     idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
-    error = np.random.rand(wave.size)*0.01
+#    error = np.random.rand(wave.size)*0.01
     error = np.random.rand(wave.size)
-    mult = 0
-    SN = np.inf
+    mult = np.mean(spectrum[idx])/(desSN - 1)
+    error /= np.mean(error[idx])
+    SN = np.mean((spectrum[idx] + mult*error[idx])/(mult*error[idx]))
     while SN >= desSN:
-        mult += 0.001
-        tmp = error + mult
-        SN = np.sqrt(np.sum((spectrum[idx]/tmp[idx])**2)/idx.size)
+        print SN
+        mult += 1
+        tmp = error * mult
+        tmpg = spectrum[idx] + tmp[idx]
+        #SN = np.sqrt(np.sum((tmpg/tmp[idx])**2)/idx.size)
+        SN = np.mean(tmpg/tmp[idx])
 
-    specnoise = np.mean(error + mult)*np.random.randn(wave.size)
+    #specnoise = np.mean(error + mult)*np.random.randn(wave.size)
         
     print SN
 
-    return error + mult, specnoise
+    return error * mult#, specnoise
 
 def tau_age(output, taulist = None,
             mintau = 0.1, maxtau = 12, numtau = 10):
