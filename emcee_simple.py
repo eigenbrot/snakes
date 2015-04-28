@@ -63,7 +63,7 @@ def do_simple(datafile, errorfile, output,
 
     L_sun = 3.826e33 #erg / s
     dist_mpx = 10.062
-    flux_factor = 1e17
+    flux_factor = 1e19
     tau = 2*np.pi
 
     for i in [2]:#range(numfibers):
@@ -103,7 +103,7 @@ def do_simple(datafile, errorfile, output,
 
         f.write('{:11}'.format(i+1))
         f.write((numages*'{:13.3e}').format(*coef['light_frac']))#/m['NORM'][0]))
-        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3f}\n'.\
+        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3e}\n'.\
                 format(MMWA,MLWA,coef['tauv'],SNR,coef['chisq']))
 
     pp.close()
@@ -226,7 +226,7 @@ def superfit(model, restwl, flux, err, vdisp,
         delta = tsum/(i+1)
         sys.stdout.write('\r')
         sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.0f}}s remaining)'.format(cols).\
-                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, delta*(nsample-1)))
+                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, delta*(nsample-i)))
         sys.stdout.flush()
 
     print 
