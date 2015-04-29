@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pyfits
 import matplotlib
@@ -143,7 +144,7 @@ def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
     error /= np.mean(error[idx])
     SN = np.mean((spectrum[idx] + mult*error[idx])/(mult*error[idx]))
     while SN >= desSN:
-        print SN
+#        print SN
         mult += 1
         tmp = error * mult
         tmpg = spectrum[idx] + tmp[idx]
@@ -152,7 +153,7 @@ def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
 
     #specnoise = np.mean(error + mult)*np.random.randn(wave.size)
         
-    print SN
+#    print SN
 
     return error * mult#, specnoise
 
@@ -188,3 +189,22 @@ def tau_age(output, taulist = None,
     pp.close()
     
     return taulist, MMWA_list
+
+def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
+               N = 100):
+
+    ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
+    for SN in SNlist:
+        direc = 'SN{}'.format(SN)
+        if not os.path.exists(direc):
+            os.makedirs(direc)
+        f = open('{}/run.pro'.format(direc),'w')
+        for tau in taulist:
+            for i in range(N):
+                name = '{}/SN{:02}_t{:03}_N{:03}'.format(direc,SN,tau,i+1)
+                print name
+                make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau)
+                f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}.dat', wavemin=3750., wavemax=6800., model='{1:}', /plot\n".format(os.path.basename(name),ssp))
+        f.close()
+    return
+
