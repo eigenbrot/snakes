@@ -231,12 +231,12 @@ def superfit(model, restwl, flux, err, vdisp,
 
     print 
     #Collect results
-    # fitcoefs = np.mean(S.flatchain,axis=0)
-    fitcoefs = np.zeros(nmodels+1)
-    for t in range(nmodels+1):
-        hist, bins = np.histogram(S.flatchain[:,t],bins=1000)
-        bins = 0.5*(bins[1:] + bins[:-1])
-        fitcoefs[t] = bins[np.argmax(hist)]
+    fitcoefs = np.mean(S.flatchain,axis=0)
+    # fitcoefs = np.zeros(nmodels+1)
+    # for t in range(nmodels+1):
+    #     hist, bins = np.histogram(S.flatchain[:,t],bins=1000)
+    #     bins = 0.5*(bins[1:] + bins[:-1])
+    #     fitcoefs[t] = bins[np.argmax(hist)]
 
     fiterrs = np.std(S.flatchain,axis=0)
 #     labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
@@ -317,6 +317,17 @@ def superfit(model, restwl, flux, err, vdisp,
 
 def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 
+    if labels is None:
+        labels = [r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(sampler.flatchain.shape[1])]
+    if truths is None:
+#        truths = np.mean(sampler.flatchain,axis=0)
+        fitcoefs = np.zeros(sampler.flatchain.shape[1])
+        for t in range(sampler.flatchain.shape[1]):
+            hist, bins = np.histogram(sampler.flatchain[:,t],bins=1000)
+            bins = 0.5*(bins[1:] + bins[:-1])
+            fitcoefs[t] = bins[np.argmax(hist)]
+        truths = fitcoefs
+
     tracename = '{}_trace.pdf'.format(outputprefix)
     tracepp = PDF(tracename)
     subplot = 1
@@ -386,7 +397,7 @@ def lnprior(theta):
         return supersmall
 
     for w in weights:
-        if w < 0.0 or w > 1e11:
+        if w < 0.0 or w > 1e14:
             return supersmall
 
     return 0.0
