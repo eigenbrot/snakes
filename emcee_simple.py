@@ -180,18 +180,22 @@ def superfit(model, restwl, flux, err, vdisp,
     # Find best fit
     nll = lambda *args: -lnprob(*args)
     x0 = np.zeros(nmodels+1)
-    result = spo.minimize(nll, x0, method='Nelder-Mead', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    x0[1:] += 1e5
+    result = spo.minimize(nll, x0, method='Powell', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    #result = spo.fmin(nll, x0, xtol=1e-5, ftol=1e-5, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    #xf = result
+    xf = result['x']
 
-    # lmy = mcombine(result['x'], restwl, custom_lib)
-    # ax = plt.figure().add_subplot(111)
-    # ax.plot(restwl,flux,'k')
-    # ax.plot(restwl,lmy,'r')
-    # ax.figure.show()
-    # print result['x']
-    # raw_input('minimized fit')
+    lmy = mcombine(xf, restwl, custom_lib)
+    ax = plt.figure().add_subplot(111)
+    ax.plot(restwl,flux,'k')
+    ax.plot(restwl,lmy,'r')
+    ax.figure.savefig('minimized_fit.png')
+#    print xf
+#    raw_input('minimized fit')
 
     ndim = nmodels + 1
-    p0 = [result['x'] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)]
+    p0 = [xf + 1e-1*xf*np.random.randn(ndim) for i in range(nwalkers)]
 
     S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
     #run MCMC
@@ -231,12 +235,12 @@ def superfit(model, restwl, flux, err, vdisp,
 
     print 
     #Collect results
-    fitcoefs = np.mean(S.flatchain,axis=0)
-    # fitcoefs = np.zeros(nmodels+1)
-    # for t in range(nmodels+1):
-    #     hist, bins = np.histogram(S.flatchain[:,t],bins=1000)
-    #     bins = 0.5*(bins[1:] + bins[:-1])
-    #     fitcoefs[t] = bins[np.argmax(hist)]
+#    fitcoefs = np.mean(S.flatchain,axis=0)
+    fitcoefs = np.zeros(nmodels+1)
+    for t in range(nmodels+1):
+        hist, bins = np.histogram(S.flatchain[:,t],bins=100)
+        bins = 0.5*(bins[1:] + bins[:-1])
+        fitcoefs[t] = bins[np.argmax(hist)]
 
     fiterrs = np.std(S.flatchain,axis=0)
 #     labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(nmodels)]
@@ -323,7 +327,7 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 #        truths = np.mean(sampler.flatchain,axis=0)
         fitcoefs = np.zeros(sampler.flatchain.shape[1])
         for t in range(sampler.flatchain.shape[1]):
-            hist, bins = np.histogram(sampler.flatchain[:,t],bins=1000)
+            hist, bins = np.histogram(sampler.flatchain[:,t],bins=100)
             bins = 0.5*(bins[1:] + bins[:-1])
             fitcoefs[t] = bins[np.argmax(hist)]
         truths = fitcoefs
@@ -378,7 +382,7 @@ def mcombine(theta, wave, mlib):
 def lnprob(theta, wave, mlib, data, err):
 
     lp = lnprior(theta)
-    
+
     model = mcombine(theta, wave, mlib)
     # val = lp - np.sum(((data - model)/err)**2)
     
@@ -397,7 +401,7 @@ def lnprior(theta):
         return supersmall
 
     for w in weights:
-        if w < 0.0 or w > 1e14:
+        if w < 0.0 or w > 1e11:
             return supersmall
 
     return 0.0
