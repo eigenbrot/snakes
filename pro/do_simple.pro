@@ -122,7 +122,8 @@ for i = 0, numfibers - 1 DO BEGIN
 
    outputarray[i] = coef
 
-   SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
+   ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
+   SNR = mean(flux[lightidx]/err[lightidx])
 
    MMWA = total(agearr*coef.light_frac*1./m.norm) $
           / total(coef.light_frac*1./m.norm)
