@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 import pyfits
 import matplotlib
@@ -131,6 +132,17 @@ def make_galaxy(output,
     ehdu.header.update('CRVAL1',linwave[0])
     ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
     ehdu.writeto(errname,clobber=True)
+
+    f = open('{}_model.dat'.format(output),'w')
+    f.write(str('# Generated on {}\n' + 
+                '# tau_sf = {:}\n' +
+                '# tau_V = {:}\n' +
+                '# vdisp = {:}\n' +
+                '# Mtot = {:3.1e}\n').format(time.asctime(),tau_sf,tau_V,vdisp,Mtot))
+    f.write('# {:>11}{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>13}{:>13}\n#\n'.format('Num',*ssp_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
+    f.write(str('{:13}'+'{:13.3e}'*12).format(1,*mass.tolist()+[MMWA,MLWA]))
+    f.write('\n')
+    f.close()
 
     return {'wave':linwave, 'flux':lingal, 'err':error,
             'MMWA': MMWA, 'MLWA': MLWA, 'age': ssp_age, 'mass': mass}
