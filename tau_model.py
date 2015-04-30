@@ -202,55 +202,55 @@ def tau_age(output, taulist = None,
     
     return taulist, MMWA_list
 
-def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
-               N = 100):
+# def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
+#                N = 100):
 
-    ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
-    for SN in SNlist:
-        direc = 'SN{}'.format(SN)
-        if not os.path.exists(direc):
-            os.makedirs(direc)
-        f = open('{}/run.pro'.format(direc),'w')
-        for tau in taulist:
-            for i in range(N):
-                name = '{}/SN{:02}_t{:03}_N{:03}'.format(direc,SN,tau,i+1)
-                print name
-                make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau)
-                f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_fit.dat', wavemin=3750., wavemax=6800., model='{1:}', /plot\n".format(os.path.basename(name),ssp))
-        f.close()
-    return
+#     ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
+#     for SN in SNlist:
+#         direc = 'SN{}'.format(SN)
+#         if not os.path.exists(direc):
+#             os.makedirs(direc)
+#         f = open('{}/run.pro'.format(direc),'w')
+#         for tau in taulist:
+#             for i in range(N):
+#                 name = '{}/SN{:02}_t{:03}_N{:03}'.format(direc,SN,tau,i+1)
+#                 print name
+#                 make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau)
+#                 f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_fit.dat', wavemin=3750., wavemax=6800., model='{1:}', /plot\n".format(os.path.basename(name),ssp))
+#         f.close()
+#     return
 
-def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
+# def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
 
-    ratios = np.zeros((len(SNlist),len(taulist)))
-    errs = np.zeros(ratios.shape)
+#     ratios = np.zeros((len(SNlist),len(taulist)))
+#     errs = np.zeros(ratios.shape)
 
-    for s, SN in enumerate(SNlist):
-        direc = 'SN{}'.format(SN)
-        for t, tau in enumerate(taulist):
-            tmp = np.zeros(N)
-            for i in range(N):
-                model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
-                             format(direc,SN,tau,i+1)
-                fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
-                           format(direc,SN,tau,i+1)
-                print model_name
-                mMMWA, mMLWA = np.loadtxt(model_name,
-                                          usecols=(11,12),unpack=True)
-                fMMWA, fMLWA = np.loadtxt(fit_name,usecols=(11,12),unpack=True)
-                tmp[i] = 1 - fMMWA/mMMWA
-                ratios[s,t] = np.mean(tmp)
-                errs[s,t] = np.std(tmp)
+#     for s, SN in enumerate(SNlist):
+#         direc = 'SN{}'.format(SN)
+#         for t, tau in enumerate(taulist):
+#             tmp = np.zeros(N)
+#             for i in range(N):
+#                 model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
+#                              format(direc,SN,tau,i+1)
+#                 fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
+#                            format(direc,SN,tau,i+1)
+#                 print model_name
+#                 mMMWA, mMLWA = np.loadtxt(model_name,
+#                                           usecols=(11,12),unpack=True)
+#                 fMMWA, fMLWA = np.loadtxt(fit_name,usecols=(11,12),unpack=True)
+#                 tmp[i] = 1 - fMMWA/mMMWA
+#                 ratios[s,t] = np.mean(tmp)
+#                 errs[s,t] = np.std(tmp)
 
-    ax = plt.figure().add_subplot(111)
-    for i in range(len(taulist)):
-        ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], label=taulist[i])
-#        ax.plot(SNlist,errs[:,i], label=taulist[i])
+#     ax = plt.figure().add_subplot(111)
+#     for i in range(len(taulist)):
+#         ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], label=taulist[i])
+# #        ax.plot(SNlist,errs[:,i], label=taulist[i])
 
-    ax.set_xlim(0,70)
-    ax.set_xlabel('SNR')
-#    ax.set_ylabel(r'$\sigma$(1 - MLWA$_{fit}$/MLWA$_{true}$)')
-    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
-    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}$')
+#     ax.set_xlim(0,70)
+#     ax.set_xlabel('SNR')
+# #    ax.set_ylabel(r'$\sigma$(1 - MLWA$_{fit}$/MLWA$_{true}$)')
+#     ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
+#     ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}$')
 
-    return ratios, errs, SNlist, taulist, ax
+#     return ratios, errs, SNlist, taulist, ax
