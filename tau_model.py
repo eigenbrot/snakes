@@ -10,6 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def make_galaxy(output,
                 SSPs = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
+                sigma = '/d/monk/eigenbrot/WIYN/14B-0456/anal/SN_realization/Noise.fits',
                 vdisp = 209.34,
                 tau_sf = 8.0,
                 tau_V = 1.5,
@@ -70,8 +71,7 @@ def make_galaxy(output,
     lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
     
     if np.isfinite(SN):
-        error = add_noise(linwave, lingal, SN)
-        lingal += error
+        linwave, lingal, error = add_noise(linwave, lingal, sigma, SN)
     else:
         error = np.ones(linwave.size)
 
@@ -84,9 +84,9 @@ def make_galaxy(output,
     axs = fig.add_subplot(211)
 
     axg.plot(linwave,lingal,'k')
-    # if np.isfinite(SN):
-    #     axg.fill_between(linwave, lingal-np.mean(error), lingal + np.mean(error), 
-    #                      color='k', alpha=0.6)
+    if np.isfinite(SN):
+        axg.fill_between(linwave, lingal-error, lingal + error, 
+                         color='k', alpha=0.6)
     axg.set_xlabel('Wavelength [Angstroms]')
     axg.set_ylabel('Flux [Arbitrary]')
     axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
@@ -147,27 +147,29 @@ def make_galaxy(output,
     return {'wave':linwave, 'flux':lingal, 'err':error,
             'MMWA': MMWA, 'MLWA': MLWA, 'age': ssp_age, 'mass': mass}
     
-def add_noise(wave, spectrum, desSN, lightmin = 5450., lightmax = 5550.):
+def add_noise(wave, spectrum, sigmafile, 
+              desSN, lightmin = 5450., lightmax = 5550.):
 
+    hdu = pyfits.open(sigmafile)[0]
+    sigma = hdu.data
+    swave = (np.arange(sigma.size) + hdu.header['CRPIX1'])*hdu.header['CDELT1'] + hdu.header['CRVAL1']
+    bidx = np.where((wave >= swave.min()) & (wave <= swave.max()))
+    wave = wave[bidx]
+    spectrum = spectrum[bidx]
+    sigma = np.interp(wave, swave, sigma)
+    
     idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
-#    error = np.random.rand(wave.size)*0.01
-    error = np.random.rand(wave.size)
-    mult = np.mean(spectrum[idx])/(desSN - 1)
-    error /= np.mean(error[idx])
-    SN = np.mean((spectrum[idx] + mult*error[idx])/(mult*error[idx]))
-    while SN >= desSN:
-#        print SN
-        mult += 1
-        tmp = error * mult
-        tmpg = spectrum[idx] + tmp[idx]
-        #SN = np.sqrt(np.sum((tmpg/tmp[idx])**2)/idx.size)
-        SN = np.mean(tmpg/tmp[idx])
 
-    #specnoise = np.mean(error + mult)*np.random.randn(wave.size)
-        
-#    print SN
+    s = np.mean(spectrum[idx]/sigma[idx])/desSN
+    noise = s * sigma
 
-    return error * mult#, specnoise
+    r = np.random.randn(wave.size)
+    fp = spectrum + r * s * sigma
+    
+    print np.mean(spectrum[idx]/(noise[idx]))
+    print np.mean(fp[idx]/(noise[idx]))
+
+    return wave, fp, noise
 
 def tau_age(output, taulist = None,
             mintau = 0.1, maxtau = 12, numtau = 10):
