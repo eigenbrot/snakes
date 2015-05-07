@@ -12,13 +12,23 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
     modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
+    if type(N) is not list:
+        N = [N]
     for SN in SNlist:
         direc = 'SN{}'.format(SN)
         if not os.path.exists(direc):
             os.makedirs(direc)
-        f = open('{}/run.pro'.format(direc),'w')
+        filename = '{}/run.pro'.format(direc)
+        if os.path.exists(filename):
+            n=2
+            filename = '{}_{}.pro'.format(filename.split('.pro')[0],n)
+            while os.path.exists(filename):
+                n += 1
+                filename = '{}_{}.pro'.format(filename.split('_')[0],n)
+
+        f = open(filename,'w')
         for tau in taulist:
-            for i in range(N):
+            for i in range(*N):
                 name = '{}/SN{:02}_t{:03}_N{:03}'.format(direc,SN,tau,i+1)
                 print name
                 tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau)
@@ -31,6 +41,7 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
 
     ratios = np.zeros((len(SNlist),len(taulist)))
     errs = np.zeros(ratios.shape)
+    agelist = np.zeros(len(taulist))
 
     for s, SN in enumerate(SNlist):
         direc = 'SN{}'.format(SN)
@@ -44,21 +55,28 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
                 print model_name
                 mMMWA, mMLWA = np.loadtxt(model_name,
                                           usecols=(11,12),unpack=True)
-                fMMWA, fMLWA = np.loadtxt(fit_name,usecols=(11,12),unpack=True)
-                tmp[i] = 1 - fMMWA/mMMWA
-                ratios[s,t] = np.mean(tmp)
-                errs[s,t] = np.std(tmp)
+                fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
+                # tmp[i] = 1 - fMMWA/mMMWA
+                # tmp[i] = 1 - ftauV/1.5
+                tmp[i] = 1 - fZ/0.4
+
+            agelist[t] = mMLWA
+            ratios[s,t] = np.mean(tmp)
+            errs[s,t] = np.std(tmp)/np.sqrt(N)
 
     ax = plt.figure().add_subplot(111)
     for i in range(len(taulist)):
-        ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], label=taulist[i])
+        ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
 #        ax.plot(SNlist,errs[:,i], label=taulist[i])
 
     ax.set_xlim(0,70)
     ax.set_xlabel('SNR')
 #    ax.set_ylabel(r'$\sigma$(1 - MLWA$_{fit}$/MLWA$_{true}$)')
-    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
-    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}$')
+#    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
+#    ax.set_ylabel(r'1 - $\tau_\mathrm{V,fit}$/$\tau_\mathrm{V,true}$')
+    ax.set_ylabel(r'1 - Z$_\mathrm{fit}$/Z$_\mathrm{true}$')
+    ax.set_ylim(-2,0.5)
+    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}\Rightarrow\mathrm{MLWA}$')
 
     return ratios, errs, SNlist, taulist, ax
 
