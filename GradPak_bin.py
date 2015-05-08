@@ -12,8 +12,10 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
         wave = (np.arange(data.shape[1]) + hdu.header['CRPIX1'])\
                *hdu.header['CDELT1'] + hdu.header['CRVAL1']
         waveidx = np.where((wave >= waverange[0]) & (wave <= waverange[1]))[0]
-        data = data[:,waveidx]
-        err = err[:,waveidx]
+        # data = data[:,waveidx]
+        # err = err[:,waveidx]
+    else:
+        waveidx = None
 
     data *= 1e17
     err *= 1e17
@@ -26,6 +28,7 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
     bine = np.zeros(data.shape[1])
 
     fibdict = {}
+    binnum = 1
     for i in range(row_pos.size):
 
         if row_pos[i] > 80:
@@ -38,27 +41,29 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
         while n < len(idx):
             tmpf = data[idx[n]]
             tmpe = err[idx[n]]
-            tmp = compute_SN(tmpf, tmpe)
+            tmp = compute_SN(tmpf, tmpe, waveidx)
             fibers = [fibnums[idx[n]]]
-        
+
             while tmp < SNR:
+                n += 1
                 print 'fibers: {}, SNR: {}'.format(fibers, tmp)
                 if n > len(idx) - 1:
                     print "WARNING, SN threshold not met in row {}, bin {}".\
                         format(i,b)
                     break
                     
-                tmpf, tmpe = add_to_bin(tmpf, tmpe, data[idx[n]], err[idx[n]])
-                tmp = compute_SN(tmpf, tmpe)
+                tmpf, tmpe = add_to_bin(tmpf, tmpe, data[idx[n]], err[idx[n]], 
+                                        waveidx)
+                tmp = compute_SN(tmpf, tmpe, waveidx)
                 fibers.append(fibnums[idx[n]])
-                n += 1
 
-            print 'fibers: {}, SNR: {}'.format(fibers, tmp)
+            print 'binned fiber {}: {}, SNR: {}'.format(binnum,fibers, tmp)
             binf = np.vstack((binf,tmpf))
             bine = np.vstack((bine,tmpe))
             fibdict['{}_{}'.format(i,b)] = fibers
             b += 1
             n += 1
+            binnum += 1
 
     binf = binf[1:]/1e17
     bine = bine[1:]/1e17
@@ -68,10 +73,10 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
         writeto('{}.me.fits'.format(outputfile),clobber=True)
     return binf, bine, fibdict
 
-def add_to_bin(binf, bine, data, error):
+def add_to_bin(binf, bine, data, error, idx=None):
 
-    binSNR = compute_SN(binf, bine)
-    addSNR = compute_SN(data, error)
+    binSNR = compute_SN(binf, bine, idx)
+    addSNR = compute_SN(data, error, idx)
     sumSNR = binSNR**2 + addSNR**2
 
     newbin = (binf * binSNR**2 + data * addSNR**2)/sumSNR
@@ -80,11 +85,11 @@ def add_to_bin(binf, bine, data, error):
 
     return newbin, newerr
 
-def compute_SN(signal, noise):
+def compute_SN(signal, noise, idx=None):
 
-    idx = np.where(noise != 0)
+    zidx = np.where(noise[idx] != 0)
 
-    return np.sqrt(np.mean((signal[idx]/noise[idx])**2))
+    return np.mean(signal[idx][zidx]/(noise[idx][zidx]))
 
 def plot_test():
 
