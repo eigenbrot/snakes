@@ -2,7 +2,7 @@ import numpy as np
 import pyfits
 import GradPak_plot as GPP
 
-def bin(datafile, errfile, SNR, outputfile, waverange=None):
+def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
 
     hdu = pyfits.open(datafile)[0]
     data = hdu.data
@@ -21,6 +21,7 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
     err *= 1e17
 
     y_values = np.array([c.center[1] for c in GPP.GradPak_patches()[:,1]])
+    x_values = np.array([c.center[0] for c in GPP.GradPak_patches()[:,1]])
     fibnums = np.arange(109) + 1
     row_pos = np.unique(y_values)
 
@@ -38,11 +39,16 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
         b = 0
         n = 0
 
+        while fibnums[idx[n]] in exclude:
+            n += 1
+
         while n < len(idx):
             tmpf = data[idx[n]]
             tmpe = err[idx[n]]
             tmp = compute_SN(tmpf, tmpe, waveidx)
             fibers = [fibnums[idx[n]]]
+            xpos = [x_values[idx[n]]]
+            ypos = [y_values[idx[n]]]
 
             while tmp < SNR:
                 n += 1
@@ -51,13 +57,24 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None):
                     print "WARNING, SN threshold not met in row {}, bin {}".\
                         format(i,b)
                     break
+                if fibnums[idx[n]] in exclude:
+                    print 'Skipping fiber {}'.format(fibnums[idx[n]])
+                    continue
                     
                 tmpf, tmpe = add_to_bin(tmpf, tmpe, data[idx[n]], err[idx[n]], 
                                         waveidx)
                 tmp = compute_SN(tmpf, tmpe, waveidx)
                 fibers.append(fibnums[idx[n]])
+                xpos.append(x_values[idx[n]])
+                ypos.append(y_values[idx[n]])
 
             print 'binned fiber {}: {}, SNR: {}'.format(binnum,fibers, tmp)
+            bin_x_pos = np.mean(xpos)
+            bin_y_pos = np.mean(ypos)
+            fibstr = [str(i) for i in fibers]
+            hdu.header.update('BIN{:03}F'.format(binnum),' '.join(fibstr))
+            hdu.header.update('BIN{:03}P'.format(binnum),' '.\
+                              join([str(bin_x_pos),str(bin_y_pos)]))
             binf = np.vstack((binf,tmpf))
             bine = np.vstack((bine,tmpe))
             fibdict['{}_{}'.format(i,b)] = fibers
@@ -94,16 +111,18 @@ def compute_SN(signal, noise, idx=None):
 def plot_test():
 
     import matplotlib.pyplot as plt
-    for SN in [0, 5, 60]:
+    for SN in [0, 20, 60]:
 
         flux, err, _ = bin('../NGC_891_P1_final.ms_rfsz_lin.fits',
                            '../NGC_891_P1_final.me_rfz_lin.fits',
                            SN, 'NGC_891_P1_bin{}'.format(SN), 
-                           waverange=[3750,6800])
+                           waverange=[5450,5550])
 
         ax = plt.figure().add_subplot(111)
         ax.plot(np.arange(flux.shape[1]), flux[3])
         ax.set_title('SN > {}'.format(SN))
+        ax.set_ylim(-0.2e-15,0.8e-15)
         ax.figure.show()
+
 
 
