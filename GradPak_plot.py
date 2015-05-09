@@ -156,7 +156,30 @@ def GradPak_patches():
 
     return np.array(patch_list)
 
-def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.):
+def get_binned_patches(header):
+
+    patches = GradPak_patches()[:,1]
+    patch_list = []
+
+    for i in range(109):
+
+        try:
+            fibers = header['BIN{:03}F'.format(i+1)]
+            pos = header['BIN{:03}P'.format(i+1)]
+            print fibers
+            print pos
+        except KeyError:
+            break
+
+        r = patches[int(fibers.split(' ')[0]) - 1].get_radius()
+        xpos = float(pos.split(' ')[0])
+        ypos = float(pos.split(' ')[1])
+        patch_list.append([i+1,Circle((xpos,ypos), radius=r)])
+
+    return np.array(patch_list)
+
+def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.,
+                      refpatches=None):
     '''
     Rotate and shift the centers of the GradPak Patches.
 
@@ -176,7 +199,14 @@ def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.):
     Returns:
         The shifted, rotated, and scaled patches
     '''
-    refcenter = np.array(patches[reffiber - 1,1].center) #in arcsec
+    print refpatches
+    if refpatches is None:
+        refpatches = np.copy(patches)
+        recurse = False
+    else:
+        recurse = True
+    refcenter = np.array(refpatches[reffiber - 1,1].center) #in arcsec
+    print refcenter
     parad = -1.*pa*tau/360.      #Radians
     decrad = center[1]*tau/360.  #Radians
     rotrefx = refcenter[0]*np.cos(parad) - refcenter[1]*np.sin(parad)
@@ -196,7 +226,14 @@ def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.):
         c.center = (shiftx, shifty)
         c.radius *= scale
 
-    return patches
+    print refpatches[reffiber - 1,1].center
+    if recurse:
+        print 'recursing'
+        return patches, transform_patches(refpatches, pa=pa, center=center,
+                                          reffiber=reffiber, scale=scale,
+                                          refpatches=None)[0]
+    else:
+        return patches, False
 
 def wcs2pix(patches, header):
     '''
@@ -292,6 +329,7 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
     return ax, hdu
 
 def prep_patches(values,
+                 binheader = None,
                  hdu = None, pa = 0, center = [0,0], reffiber = 105,
                  sky = False, exclude = []):
     '''
@@ -320,21 +358,34 @@ def prep_patches(values,
 
         refcenter - The pixel center of the reference fiber
     '''
-    patches = GradPak_patches()
+    if binheader is not None:
+        patches = get_binned_patches(binheader)
+        refpatches = GradPak_patches()
+    else:
+        patches = GradPak_patches()
+        refpatches = None
     skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108] 
     if hdu:
         scale = 2./((np.abs(hdu.header['CDELT1']) + \
                      np.abs(hdu.header['CDELT2']))*
                     3600.) #px/arcsec
-        patches = transform_patches(patches,
-                                    reffiber = reffiber,
-                                    pa = pa,
-                                    center = center,
-                                    scale = scale)
+        patches, refpatches = transform_patches(patches,
+                                                reffiber = reffiber,
+                                                pa = pa,
+                                                center = center,
+                                                scale = scale,
+                                                refpatches = refpatches)
         patches = wcs2pix(patches, hdu.header) # now in px
+        if refpatches is False:
+            refpatches = patches
+        else:
+            refpatches = wcs2pix(refpatches, hdu.header)
 
-    refcenter = patches[reffiber - 1,1].center # in px
-
+    if binheader is None:
+        refpatches = patches
+    refcenter = refpatches[reffiber - 1,1].center # in px
+    print refcenter
+    
     if not sky:
         exclude = np.r_[skyidx,np.array(exclude)-1] #-1 needed because fiber
                                                     #numbers start at 1
@@ -350,7 +401,7 @@ def prep_patches(values,
 
     return patches, pval, refcenter
 
-def plot(values,
+def plot(values, binheader = None,
          ax = None, figsize = (8,8),
          fitsfile = None, imrot = False, wcsax = True, invert=True,
          pa = 0, center = [0,0], reffiber = 105, 
@@ -441,7 +492,7 @@ def plot(values,
     if not ax:
         ax = tmpax
   
-    patches, pval, refcenter = prep_patches(values,
+    patches, pval, refcenter = prep_patches(values, binheader=binheader,
                                             hdu = hdu, pa = pa, 
                                             center = center,
                                             reffiber = reffiber,
