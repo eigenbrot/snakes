@@ -15,7 +15,10 @@ def make_galaxy(output,
                 tau_sf = 8.0,
                 tau_V = 1.5,
                 Mtot = 12e9,
-                SN = np.inf):
+                SN = np.inf,
+                lightmin = 5450.,
+                lightmax = 5550.,
+                makeplot=True):
 
     '''Makes a galaxy by adding up SSPs with different ages based on a tau star
     formation model:
@@ -55,7 +58,7 @@ def make_galaxy(output,
     klam = (wave / 5500.)**(-0.7)
     e_tau_lam = np.exp(-1*tau_V*klam)
     galaxy *= e_tau_lam
-    idx = np.where((wave >= 4550) & (wave <= 5550))[0]
+    idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
 
     light_weight = np.mean(flux[:,idx] * e_tau_lam[idx],axis=1)*mass
     MLWA = np.sum(light_weight * ssp_age)/np.sum(light_weight)
@@ -71,51 +74,54 @@ def make_galaxy(output,
     lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
     
     if np.isfinite(SN):
-        linwave, lingal, error = add_noise(linwave, lingal, sigma, SN)
+        linwave, lingal, error = add_noise(linwave, lingal, sigma, SN,
+                                           lightmin = lightmin, 
+                                           lightmax = lightmax)
     else:
         error = np.ones(linwave.size)
 
     lingal *= 1e-17
     error *= 1e-17
 
-    fig = plt.figure(figsize=(10,8))
-    fig.suptitle('MMWA = {:5.3} Gyr'.format(MMWA))
-    axg = fig.add_subplot(212)
-    axs = fig.add_subplot(211)
+    if makeplot:
+        print 'making plot'
+        fig = plt.figure(figsize=(10,8))
+        fig.suptitle('MMWA = {:5.3} Gyr'.format(MMWA))
+        axg = fig.add_subplot(212)
+        axs = fig.add_subplot(211)
 
-    axg.plot(linwave,lingal,'k')
-    if np.isfinite(SN):
-        axg.fill_between(linwave, lingal-error, lingal + error, 
-                         color='k', alpha=0.6)
-    axg.set_xlabel('Wavelength [Angstroms]')
-    axg.set_ylabel('Flux [Arbitrary]')
-    axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
+        axg.plot(linwave,lingal,'k')
+        if np.isfinite(SN):
+            axg.fill_between(linwave, lingal-error, lingal + error, 
+                             color='k', alpha=0.6)
+        axg.set_xlabel('Wavelength [Angstroms]')
+        axg.set_ylabel('Flux [Arbitrary]')
+        axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
 
-    axs.plot(ssp_age,np.log10(psi),'.k')
-    axs.plot(ssp_age,np.log10(mass),'.g', label='Log(Mass [$M_{\odot}$])')
-    for i in range(ssp_age.size):
-        axs.fill_between(plot_age,np.log10(plot_psi),alpha=0.3,
-                         where=(plot_age > borders[:-1][i]) & 
-                         (plot_age < borders[1:][i]))
+        axs.plot(ssp_age,np.log10(psi),'.k')
+        axs.plot(ssp_age,np.log10(mass),'.g', label='Log(Mass [$M_{\odot}$])')
+        for i in range(ssp_age.size):
+            axs.fill_between(plot_age,np.log10(plot_psi),alpha=0.3,
+                             where=(plot_age > borders[:-1][i]) & 
+                             (plot_age < borders[1:][i]))
 
-    axs.set_xlabel('Lookback time [Gyr]')
-    axs.set_ylabel('Log( $\psi(t)$ [$M_{\odot}$/Gyr] )')
-    axs.set_xlim(13,-1)
-    axs.set_ylim(5,11)
-    axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
-             transform=axs.transAxes)
-    axs.text(0.1,0.65,r'$\tau_V = {:3.1f}$'.format(tau_V),
-             transform=axs.transAxes)
-    axs.text(0.1,0.6,r'$M_{{tot}} = {:4.1e} M_{{\odot}}$'.format(Mtot),
-             transform=axs.transAxes)
-    axs.text(0.1,0.55,r'$\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/Gyr$'.\
-             format(psi0),transform=axs.transAxes)
-    axs.legend(loc=0,frameon=True,numpoints=1,fontsize=8)
+        axs.set_xlabel('Lookback time [Gyr]')
+        axs.set_ylabel('Log( $\psi(t)$ [$M_{\odot}$/Gyr] )')
+        axs.set_xlim(13,-1)
+        axs.set_ylim(5,11)
+        axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
+                 transform=axs.transAxes)
+        axs.text(0.1,0.65,r'$\tau_V = {:3.1f}$'.format(tau_V),
+                 transform=axs.transAxes)
+        axs.text(0.1,0.6,r'$M_{{tot}} = {:4.1e} M_{{\odot}}$'.format(Mtot),
+                 transform=axs.transAxes)
+        axs.text(0.1,0.55,r'$\Rightarrow\psi_0 = {:4.1e} M_{{\odot}}/Gyr$'.\
+                 format(psi0),transform=axs.transAxes)
+        axs.legend(loc=0,frameon=True,numpoints=1,fontsize=8)
 
-
-    pp = PDF('{}_galaxy.pdf'.format(output))
-    pp.savefig(fig)
-    pp.close()
+        pp = PDF('{}_galaxy.pdf'.format(output))
+        pp.savefig(fig)
+        pp.close()
 
     outname = '{}.ms_lin.fits'.format(output)
     hdu = pyfits.PrimaryHDU(lingal)
