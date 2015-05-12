@@ -16,6 +16,8 @@ def make_galaxy(output,
                 tau_V = 1.5,
                 Mtot = 12e9,
                 SN = np.inf,
+                SNmin = 5450.,
+                SNMax = 5550.,
                 lightmin = 5450.,
                 lightmax = 5550.,
                 makeplot=True):
@@ -75,8 +77,8 @@ def make_galaxy(output,
     
     if np.isfinite(SN):
         linwave, lingal, error = add_noise(linwave, lingal, sigma, SN,
-                                           lightmin = lightmin, 
-                                           lightmax = lightmax)
+                                           SNmin = SNmin, 
+                                           SNmax = SNmax)
     else:
         error = np.ones(linwave.size)
 
@@ -154,7 +156,7 @@ def make_galaxy(output,
             'MMWA': MMWA, 'MLWA': MLWA, 'age': ssp_age, 'mass': mass}
     
 def add_noise(wave, spectrum, sigmafile, 
-              desSN, lightmin = 5450., lightmax = 5550.):
+              desSN, SNmin = 5450., SNmax = 5550.):
 
     hdu = pyfits.open(sigmafile)[0]
     sigma = hdu.data
@@ -164,7 +166,7 @@ def add_noise(wave, spectrum, sigmafile,
     spectrum = spectrum[bidx]
     sigma = np.interp(wave, swave, sigma)
     
-    idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
+    idx = np.where((wave >= SNmin) & (wave <= SNmax))[0]
 
     s = np.mean(spectrum[idx]/sigma[idx])/desSN
     noise = s * sigma

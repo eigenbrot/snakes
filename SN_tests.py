@@ -7,7 +7,7 @@ import os
 import time
 
 def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
-               N = 10, lightmin = 5450., lightmax = 5550.):
+               N = 10, SNmin = 5450., SNmax = 5550., lightmin = 5450., lightmax = 5550.):
     
     modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
