@@ -32,9 +32,11 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                 name = '{}/SN{:02}_t{:03}_N{:03}'.format(direc,SN,tau,i+1)
                 print name
                 if i == N[0] - 1:
-                    tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,makeplot=True)
+                    tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,SNmin = SNmin, SNmax = SNmax,
+                                   makeplot=True)
                 else:
-                    tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,makeplot=False)
+                    tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,SNmin = SNmin, SNmax = SNmax,
+                                   makeplot=False)
                 for z in range(fraclist.size):
                     f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
         f.close()
