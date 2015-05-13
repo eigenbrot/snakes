@@ -9,7 +9,7 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
     err = pyfits.open(errfile)[0].data
 
     if waverange is not None:
-        wave = (np.arange(data.shape[1]) + hdu.header['CRPIX1'])\
+        wave = (np.arange(data.shape[1]) + hdu.header['CRPIX1'] - 1)\
                *hdu.header['CDELT1'] + hdu.header['CRVAL1']
         waveidx = np.where((wave >= waverange[0]) & (wave <= waverange[1]))[0]
         # data = data[:,waveidx]
