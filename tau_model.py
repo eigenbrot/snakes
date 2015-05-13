@@ -17,7 +17,7 @@ def make_galaxy(output,
                 Mtot = 12e9,
                 SN = np.inf,
                 SNmin = 5450.,
-                SNMax = 5550.,
+                SNmax = 5550.,
                 lightmin = 5450.,
                 lightmax = 5550.,
                 makeplot=True):
@@ -65,7 +65,8 @@ def make_galaxy(output,
     light_weight = np.mean(flux[:,idx] * e_tau_lam[idx],axis=1)*mass
     MLWA = np.sum(light_weight * ssp_age)/np.sum(light_weight)
 
-    linwave = np.linspace(wave.min(),wave.max(),wave.size)
+#    linwave = np.linspace(wave.min(),wave.max(),wave.size)
+    linwave = np.arange(wave.min(),wave.max(),2.1)
     lingal = np.interp(linwave, wave, galaxy)
     
     bc03_pix = 70.0
