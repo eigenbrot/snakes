@@ -1,5 +1,6 @@
 import numpy as np
 import GradPak_plot as GPP
+import model_A as mA
 import matplotlib.pyplot as plt
 import pyfits
 import pywcs
@@ -7,6 +8,8 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 from matplotlib import colors as mplcolors
 from matplotlib.ticker import ScalarFormatter
+import glob
+glob = glob.glob
 
 rc('text', usetex=False)
 rc('font', family='serif')
@@ -250,7 +253,7 @@ def all_maps(output,col=12,labelfibers=False,
     plt.close(ax.figure)
     return ax
 
-def all_heights(output,err=True):
+def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
 
     datname = output.split('.pdf')[0]+'.dat'
     f = open(datname,'w')
@@ -272,12 +275,20 @@ def all_heights(output,err=True):
     metalax = None
     for i in range(6):
 
-        inputfile = 'multi_Z_P{}.dat'.format(plist[i])
+        inputfile = glob('{}*P{}*dat'.format(inputprefix,plist[i]))[0]
         print inputfile
-        MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,usecols=(11,12,13,14,17),
+        if binned:
+            fitsname = glob('{}*P{}*ms*fits'.format(inputprefix,plist[i]))[0]
+            print fitsname
+            binhead = pyfits.open(fitsname)[0].header
+        else:
+            binhead = False
+        MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,
+                                              usecols=(11,12,13,14,17),
                                               unpack=True)
         
         ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
+                                                          binheader = binhead,
                                                           weights=SNR,
                                                           ax=ax,
                                                           label='{}'.\
@@ -289,6 +300,7 @@ def all_heights(output,err=True):
                                                           linestyle='',
                                                           color=colorlist[i])
         AVax, _, tmpAV, tmpAVerr, tmpAVstd = GPP.plot_rows(TAUV*1.086,
+                                                           binheader = binhead,
                                                            weights=SNR,
                                                            ax=AVax,
                                                            label='{}'.\
@@ -299,7 +311,8 @@ def all_heights(output,err=True):
                                                            marker=symblist[i],
                                                            linestyle='',
                                                            color=colorlist[i])
-        metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z,
+        metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z, 
+                                                                       binheader = binhead,
                                                                        weights=SNR,
                                                                        ax=metalax,
                                                                        label='{}'.\
@@ -370,7 +383,12 @@ def all_heights(output,err=True):
     AVax.fill_between(bigz,bigAV-bigAVerr,bigAV+bigAVerr,alpha=0.1)
     AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     AVax.set_xlim(-0.1,2.6)
+    AVax.set_ylim(0,6)
     AVax.set_ylabel(r'$A_V$')
+    plotz = np.linspace(0,2.5,20)
+    for t in range(len(rlist)):
+        modelAv = mA.A_vec(np.abs(rlist[t]),plotz,zd=0.8)
+        AVax.plot(plotz,modelAv,color=colorlist[t])
 
     metalax.plot(bigz,bigmetal)
     metalax.fill_between(bigz, bigmetal-bigmetalerr, bigmetal+bigmetalerr,alpha=0.1)
@@ -436,3 +454,23 @@ def radial_gradient(input_file, output, col=1):
     ax.errorbar(radii, values, yerr=errs, marker='.', ms=15, ls='')
 
     return radii, values, ax
+
+def age_metal():
+
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+
+    prefix = '/d/monk/eigenbrot/WIYN/14B-0456/bin/metal_dat/NGC_891_P2_bin30'
+
+    age = np.zeros(fraclist.size)
+    metal = np.zeros(fraclist.size)
+    chi = np.zeros(fraclist.size)
+
+    for i, z in enumerate(fraclist):
+        
+        name = '{}_Z{:04}.dat'.format(prefix,int(z*1000))        
+        data = np.loadtxt(name)
+        age[i] = data[5,12]
+        chi[i] = data[5,15]
+        metal[i] = z
+
+    return age, metal, chi
