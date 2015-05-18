@@ -13,6 +13,7 @@ def make_galaxy(output,
                 sigma = '/d/monk/eigenbrot/WIYN/14B-0456/anal/SN_realization/Noise.fits',
                 vdisp = 209.34,
                 tau_sf = 8.0,
+                t_form = 12.0,
                 tau_V = 1.5,
                 Mtot = 12e9,
                 SN = np.inf,
@@ -29,7 +30,6 @@ def make_galaxy(output,
 
     where \psi(t) is the star formation rate.
     '''
-    form_age = 12.0 #in Gyr
 
     model = pyfits.open(SSPs)[1].data
     flux = model['FLUX'][0]
@@ -38,22 +38,28 @@ def make_galaxy(output,
     norm = model['NORM'][0]
     flux *= norm[:,None]
 
-    logt = np.log10(np.r_[1e-99,ssp_age,form_age])
+    useidx = np.where(ssp_age <= t_form)
+    flux = flux[useidx]
+    ssp_age = ssp_age[useidx]
+
+    logt = np.log10(np.r_[1e-99,ssp_age,t_form])
     tdiff = np.diff(logt)
     borders = 10**(logt[1:] - tdiff/2.)
     borders[0] = 1e-99
-    borders[-1] = form_age
+    borders[-1] = t_form
     
-    plot_age = np.linspace(0,form_age,1000)
+    plot_age = np.linspace(0,t_form,1000)
     plot_psi = np.exp(plot_age/tau_sf)
     psi = np.exp(ssp_age/tau_sf)
 
     mass = tau_sf*(np.exp(borders[1:]/tau_sf) 
                    - np.exp(borders[:-1]/tau_sf))
+
     psi0 = Mtot/np.sum(mass)
     mass *= psi0
     psi *= psi0
     plot_psi *= psi0
+    print mass
     MMWA = np.sum(ssp_age*mass)/np.sum(mass)
 
     galaxy = np.sum(flux*mass[:,None],axis=0)
@@ -87,9 +93,8 @@ def make_galaxy(output,
     error *= 1e-17
 
     if makeplot:
-        print 'making plot'
         fig = plt.figure(figsize=(10,8))
-        fig.suptitle('MMWA = {:5.3} Gyr'.format(MMWA))
+        fig.suptitle('MLWA = {:5.3} Gyr'.format(MLWA))
         axg = fig.add_subplot(212)
         axs = fig.add_subplot(211)
 
@@ -110,7 +115,7 @@ def make_galaxy(output,
 
         axs.set_xlabel('Lookback time [Gyr]')
         axs.set_ylabel('Log( $\psi(t)$ [$M_{\odot}$/Gyr] )')
-        axs.set_xlim(13,-1)
+        axs.set_xlim(t_form + 1,-1)
         axs.set_ylim(5,11)
         axs.text(0.1,0.7,r'$\tau_{{SF}} = {:3.1f}$'.format(tau_sf),
                  transform=axs.transAxes)
@@ -148,8 +153,9 @@ def make_galaxy(output,
                 '# tau_V = {:}\n' +
                 '# vdisp = {:}\n' +
                 '# Mtot = {:3.1e}\n').format(time.asctime(),tau_sf,tau_V,vdisp,Mtot))
-    f.write('# {:>11}{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>9.3f} Gyr{:>13}{:>13}\n#\n'.format('Num',*ssp_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
-    f.write(str('{:13}'+'{:13.3e}'*12).format(1,*mass.tolist()+[MMWA,MLWA]))
+    f.write(str('# {:>11}'+ssp_age.size*'{:>9.3f} Gyr'+'{:>13}{:>13}\n#\n').\
+            format('Num',*ssp_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
+    f.write(str('{:13}'+'{:13.3e}'*(ssp_age.size+2)).format(1,*mass.tolist()+[MMWA,MLWA]))
     f.write('\n')
     f.close()
 
