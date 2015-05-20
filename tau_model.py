@@ -38,22 +38,25 @@ def make_galaxy(output,
     norm = model['NORM'][0]
     flux *= norm[:,None]
 
-    useidx = np.where(ssp_age <= t_form)
-    flux = flux[useidx]
-    ssp_age = ssp_age[useidx]
-
     logt = np.log10(np.r_[1e-99,ssp_age,t_form])
     tdiff = np.diff(logt)
     borders = 10**(logt[1:] - tdiff/2.)
     borders[0] = 1e-99
     borders[-1] = t_form
+
+    while np.diff(borders)[-1] < 0:
+        useidx = np.where(np.diff(borders) >= 0)
+        useidx = np.r_[useidx[0],useidx[0][-1]+1]
+        borders = borders[useidx]
+        borders[-1] = t_form
+        flux = flux[(useidx[:-1],)]
     
     mass = tau_sf*(np.exp(borders[1:]/tau_sf) 
                    - np.exp(borders[:-1]/tau_sf))
 
     weighted_age = tau_sf*np.log(0.5*(np.exp(borders[1:]/tau_sf)
                                       + np.exp(borders[:-1]/tau_sf)))
-
+    
     plot_age = np.linspace(0,t_form,1000)
     plot_psi = np.exp(plot_age/tau_sf)
     psi = np.exp(weighted_age/tau_sf)

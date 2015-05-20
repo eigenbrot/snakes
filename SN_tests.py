@@ -61,8 +61,8 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
                 mMMWA, mMLWA = np.loadtxt(model_name,
                                           usecols=(11,12),unpack=True)
                 fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
-                # tmp[i] = 1 - fMLWA/mMLWA
-                tmp[i] = 1 - fMMWA/mMMWA
+                tmp[i] = 1 - fMLWA/mMLWA
+                # tmp[i] = 1 - fMMWA/mMMWA
                 # tmp[i] = 1 - ftauV/1.5
                 # tmp[i] = 1 - fZ/0.4
 
@@ -88,8 +88,8 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
     eax.set_xlim(ax.get_xlim())
     eax.set_ylim(eax.get_ylim()[0],eax.get_ylim()[1]*0.9)
 #    ax.set_xlabel('SNR')
-#    ax.set_ylabel('1 - MLWA$_{fit}$/MLWA$_{true}$')
-    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
+    ax.set_ylabel('1 - MLWA$_{fit}$/MLWA$_{true}$')
+#    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
 #    ax.set_ylabel(r'1 - $\tau_\mathrm{V,fit}$/$\tau_\mathrm{V,true}$')
 #    ax.set_ylabel(r'1 - Z$_\mathrm{fit}$/Z$_\mathrm{true}$')
 #    ax.set_ylim(-2,0.5)
