@@ -48,20 +48,21 @@ def make_galaxy(output,
     borders[0] = 1e-99
     borders[-1] = t_form
     
-    print borders
+    mass = tau_sf*(np.exp(borders[1:]/tau_sf) 
+                   - np.exp(borders[:-1]/tau_sf))
+
+    weighted_age = tau_sf*np.log(0.5*(np.exp(borders[1:]/tau_sf)
+                                      + np.exp(borders[:-1]/tau_sf)))
 
     plot_age = np.linspace(0,t_form,1000)
     plot_psi = np.exp(plot_age/tau_sf)
-    psi = np.exp(ssp_age/tau_sf)
-
-    mass = tau_sf*(np.exp(borders[1:]/tau_sf) 
-                   - np.exp(borders[:-1]/tau_sf))
+    psi = np.exp(weighted_age/tau_sf)
 
     psi0 = Mtot/np.sum(mass)
     mass *= psi0
     psi *= psi0
     plot_psi *= psi0
-    MMWA = np.sum(ssp_age*mass)/np.sum(mass)
+    MMWA = np.sum(weighted_age*mass)/np.sum(mass)
 
     galaxy = np.sum(flux*mass[:,None],axis=0)
     klam = (wave / 5500.)**(-0.7)
@@ -70,7 +71,7 @@ def make_galaxy(output,
     idx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
 
     light_weight = np.mean(flux[:,idx] * e_tau_lam[idx],axis=1)*mass
-    MLWA = np.sum(light_weight * ssp_age)/np.sum(light_weight)
+    MLWA = np.sum(light_weight * weighted_age)/np.sum(light_weight)
 
 #    linwave = np.linspace(wave.min(),wave.max(),wave.size)
     linwave = np.arange(wave.min(),wave.max(),2.1)
@@ -107,9 +108,9 @@ def make_galaxy(output,
         axg.set_ylabel('Flux [Arbitrary]')
         axg.text(0.1,0.9,'$S/N =  {}$'.format(SN),transform=axg.transAxes)
 
-        axs.plot(ssp_age,np.log10(psi),'.k')
-        axs.plot(ssp_age,np.log10(mass),'.g', label='Log(Mass [$M_{\odot}$])')
-        for i in range(ssp_age.size):
+        axs.plot(weighted_age,np.log10(psi),'.k')
+        axs.plot(weighted_age,np.log10(mass),'.g', label='Log(Mass [$M_{\odot}$])')
+        for i in range(weighted_age.size):
             axs.fill_between(plot_age,np.log10(plot_psi),alpha=0.3,
                              where=(plot_age > borders[:-1][i]) & 
                              (plot_age < borders[1:][i]))
@@ -154,14 +155,14 @@ def make_galaxy(output,
                 '# tau_V = {:}\n' +
                 '# vdisp = {:}\n' +
                 '# Mtot = {:3.1e}\n').format(time.asctime(),tau_sf,tau_V,vdisp,Mtot))
-    f.write(str('# {:>11}'+ssp_age.size*'{:>9.3f} Gyr'+'{:>13}{:>13}\n#\n').\
-            format('Num',*ssp_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
-    f.write(str('{:13}'+'{:13.3e}'*(ssp_age.size+2)).format(1,*mass.tolist()+[MMWA,MLWA]))
+    f.write(str('# {:>11}'+weighted_age.size*'{:>9.3f} Gyr'+'{:>13}{:>13}\n#\n').\
+            format('Num',*weighted_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
+    f.write(str('{:13}'+'{:13.3e}'*(weighted_age.size+2)).format(1,*mass.tolist()+[MMWA,MLWA]))
     f.write('\n')
     f.close()
 
     return {'wave':linwave, 'flux':lingal, 'err':error,
-            'MMWA': MMWA, 'MLWA': MLWA, 'age': ssp_age, 'mass': mass}
+            'MMWA': MMWA, 'MLWA': MLWA, 'age': weighted_age, 'mass': mass}
     
 def add_noise(wave, spectrum, sigmafile, 
               desSN, SNmin = 5450., SNmax = 5550.):
