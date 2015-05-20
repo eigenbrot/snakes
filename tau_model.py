@@ -48,6 +48,8 @@ def make_galaxy(output,
     borders[0] = 1e-99
     borders[-1] = t_form
     
+    print borders
+
     plot_age = np.linspace(0,t_form,1000)
     plot_psi = np.exp(plot_age/tau_sf)
     psi = np.exp(ssp_age/tau_sf)
@@ -59,7 +61,6 @@ def make_galaxy(output,
     mass *= psi0
     psi *= psi0
     plot_psi *= psi0
-    print mass
     MMWA = np.sum(ssp_age*mass)/np.sum(mass)
 
     galaxy = np.sum(flux*mass[:,None],axis=0)
@@ -186,35 +187,39 @@ def add_noise(wave, spectrum, sigmafile,
 
     return wave, fp, noise
 
-def tau_age(output, taulist = None,
+def tau_age(output, taulist = None, t_formlist = None,
             mintau = 0.1, maxtau = 12, numtau = 10):
 
     
     if taulist is None:
         taulist = np.linspace(mintau, maxtau, numtau)
 
-    MMWA_list = np.zeros(taulist.size)
-    MLWA_list = np.zeros(taulist.size)
-    for i, tau in enumerate(taulist):
-        d = make_galaxy('tau_{:3.1f}'.format(tau),tau_sf=tau)
-        MMWA_list[i] = d['MMWA']
-        MLWA_list[i] = d['MLWA']
-
     ax = plt.figure().add_subplot(111)
-    ax.plot(taulist,MMWA_list,'.',label='MMWA')
-    ax.plot(taulist,MLWA_list,'x',label='MLWA')
-    ax.set_xlabel(r'$\tau_{sf}$ [Gyr]')
-    ax.set_ylabel('Age [Gyr]')
-    ax.legend(loc=0, frameon=False, numpoints=1, scatterpoints=1)
-
     ax1 = plt.figure().add_subplot(111)
-    ax1.plot(taulist,MMWA_list - MLWA_list,'.')
+    for t_form in t_formlist:
+        MMWA_list = np.zeros(taulist.size)
+        MLWA_list = np.zeros(taulist.size)
+        for i, tau in enumerate(taulist):
+            name = 'tau_{:3.1f}_{:3.1f}'.format(tau,t_form)
+            print name
+            d = make_galaxy(name,tau_sf=tau,t_form=t_form)
+            MMWA_list[i] = d['MMWA']
+            MLWA_list[i] = d['MLWA']
+
+        #    ax.plot(taulist,MMWA_list,'.',label='MMWA')
+        ax.plot(taulist,MLWA_list,label=t_form)
+        ax1.plot(taulist,MMWA_list - MLWA_list,'.')
+
+    ax.set_xlabel(r'$\tau_{sf}$ [Gyr]')
+    ax.set_ylabel('MLWA [Gyr]')
+    ax.legend(loc=0, frameon=False, numpoints=1, scatterpoints=1, title='t$_{\mathrm{form}}$')
+
     ax1.set_xlabel(r'$\tau_{sf}$ [Gyr]')
     ax1.set_ylabel('MMWA - MLWA')
     
     pp = PDF('{}_age.pdf'.format(output))
     pp.savefig(ax.figure)
-    pp.savefig(ax1.figure)
+#    pp.savefig(ax1.figure)
     pp.close()
     
     return taulist, MMWA_list
