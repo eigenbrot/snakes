@@ -387,7 +387,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
     AVax.set_ylabel(r'$A_V$')
     plotz = np.linspace(0,2.5,20)
     for t in range(len(rlist)):
-        modelAv = mA.A_vec(np.abs(rlist[t]),plotz,zd=0.8)
+        modelAv = mA.A_vec(np.abs(rlist[t]),plotz,zd=1.0,tau0=0.85,hd=7.68)
         AVax.plot(plotz,modelAv,color=colorlist[t])
 
     metalax.plot(bigz,bigmetal)
