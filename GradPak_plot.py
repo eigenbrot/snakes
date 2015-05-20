@@ -166,8 +166,6 @@ def get_binned_patches(header):
         try:
             fibers = header['BIN{:03}F'.format(i+1)]
             pos = header['BIN{:03}P'.format(i+1)]
-            print fibers
-            print pos
         except KeyError:
             break
 
@@ -199,14 +197,12 @@ def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.,
     Returns:
         The shifted, rotated, and scaled patches
     '''
-    print refpatches
     if refpatches is None:
         refpatches = np.copy(patches)
         recurse = False
     else:
         recurse = True
     refcenter = np.array(refpatches[reffiber - 1,1].center) #in arcsec
-    print refcenter
     parad = -1.*pa*tau/360.      #Radians
     decrad = center[1]*tau/360.  #Radians
     rotrefx = refcenter[0]*np.cos(parad) - refcenter[1]*np.sin(parad)
@@ -226,9 +222,7 @@ def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.,
         c.center = (shiftx, shifty)
         c.radius *= scale
 
-    print refpatches[reffiber - 1,1].center
     if recurse:
-        print 'recursing'
         return patches, transform_patches(refpatches, pa=pa, center=center,
                                           reffiber=reffiber, scale=scale,
                                           refpatches=None)[0]
@@ -384,7 +378,6 @@ def prep_patches(values,
     if binheader is None:
         refpatches = patches
     refcenter = refpatches[reffiber - 1,1].center # in px
-    print refcenter
     
     if not sky:
         exclude = np.r_[skyidx,np.array(exclude)-1] #-1 needed because fiber
@@ -660,7 +653,8 @@ def plot_img(values,
 
     return ax
 
-def plot_rows(values, ylabel='', label='',
+def plot_rows(values, binheader = False,
+              ylabel='', label='',
               ax = None, fullout = False,
               weights=None, kpc_scale=None, err=False,
               **plot_kwargs):
@@ -725,7 +719,10 @@ def plot_rows(values, ylabel='', label='',
         o binned_stds (ndarray) - The weighted standard deviation of each row
 
     '''
-    y_values = np.array([c.center[1] for c in GradPak_patches()[:,1]])
+    if binheader:
+        y_values = np.array([c.center[1] for c in get_binned_patches(binheader)[:,1]])
+    else:
+        y_values = np.array([c.center[1] for c in GradPak_patches()[:,1]])
     row_pos = np.unique(y_values)
     binned_vals = np.array([])
     binned_errs = np.array([])
