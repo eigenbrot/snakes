@@ -1,7 +1,7 @@
 
 pro do_simple, datafile, errorfile, output, model=model, plot=plot, $
                wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-               lightmax=lightmax, multimodel=multimodel
+               lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
 
 ; read in models
 if keyword_set(multimodel) then begin
@@ -70,6 +70,22 @@ printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         format='(A-11,'+string(numages+2)+'A13,A7,3A12,2A10)'
 printf, lun, '#'
 
+if n_elements(savefiber) ne 0 then begin
+   savename = (strsplit(output,'.',/extract))[0] + '_steps.dat'
+   openw, savelun, savename, /get_lun
+   printf, savelun, '# Generated on ',systime()
+   printf, savelun, '# Data file: ',datafile
+   printf, savelun, '# Error file: ',errorfile
+   printf, savelun, '# Model file: ',model,format='(A14,A90)'
+   printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
+           'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
+           format='(A-11,'+string(numages+2)+'A13,A7,3A12,2A10)'
+   printf, savelun, '#'
+endif else begin
+   savefiber = -1
+   savelun = 0
+endelse
+
 if keyword_set(plot) then begin
    plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
    dfpsplot, plotfile, /color, /times, /landscape
@@ -104,10 +120,18 @@ for i = 0, numfibers - 1 DO BEGIN
       size_borders = size_borders[1:*]
    endif
 
+   if i eq savefiber then begin
+      savestep = 1
+   endif else begin
+      savestep = 0
+   endelse
+
 ; fit continuum
    coef = bc_continuum(m, wave, flux, err, vdisp[size_switch], $
                        plotlabel=string('Fiber',i+1,format='(A5,I4)'),$
-                       yfit=continuum)
+                       yfit=continuum, $
+                       savestep=savestep, lun=savelun, $
+                       lightidx=lightidx, fmt=fmt)
 
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
