@@ -2,7 +2,7 @@ import pyfits
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 import numpy as np
 import scipy.ndimage as spnd
-#import scipy.optimize as spo
+import scipy.optimize as spo
 import lmfit
 import matplotlib.pyplot as plt
 import time
@@ -164,28 +164,36 @@ def superfit(model, restwl, flux, err, vdisp,
         cflux = spnd.filters.gaussian_filter1d(model['FLUX'][0][i], sigma_pix)
         custom_lib[i] = np.interp(restwl,model['WAVE'][0],cflux)
     
-    params = lmfit.Parameters()
-    params.add('tauv',value=1)
-    for p in range(10):
-        params.add('w_{}'.format(p),value=0,min=0.0)
+    # params = lmfit.Parameters()
+    # params.add('tauv',value=1)
+    # for p in range(10):
+    #     params.add('w_{}'.format(p),value=0,min=0.0)
     
     t1 = time.time()
-    status = lmfit.minimize(mcombine, params,method='leastsq',
-                            ftol=1e-5,xtol=1e-9,
-                            args=(restwl[ok],flux[ok],err[ok],
-                                  custom_lib[:,ok],False))
+    # status = lmfit.minimize(mcombine, params,method='leastsq',
+    #                         ftol=1e-5,xtol=1e-9,
+    #                         args=(restwl[ok],flux[ok],err[ok],
+    #                               custom_lib[:,ok],False))
+    p0 = np.zeros(nmodels + 1)
+    p0[1:] += 1e5
+    result = spo.minimize(chi_comp,p0,method='Powell',
+                          args=(restwl[ok],flux[ok],err[ok],custom_lib[:,ok]))
+    params = result['x']
+
     t2 = time.time()
     yfit = mcombine(params,restwl,flux,err,custom_lib,True)
     chisq = np.sum((yfit - flux)**2/err**2)
 
-    print '\tRan {:n} evaluations in {:4.2f} seconds'.format(status.nfev,t2-t1)
-    print '\tReported chisq = {} ({})'.format(status.chisqr,status.redchi)
+    print '\tRan {:n} evaluations in {:4.2f} seconds'.format(99,t2-t1)
+#    print '\tReported chisq = {} ({})'.format(status.chisqr,status.redchi)
     print '\tComputed chisq = {}'.format(chisq)
 
     fitcoefs = np.zeros(nmodels+1)
-    fitcoefs[0] = params['tauv']
-    for p in range(10):
-        fitcoefs[p+1] = params['w_{}'.format(p)]
+    fitcoefs[0] = params[0]
+    fitcoefs[1:] = params[1:]
+    # fitcoefs[0] = params['tauv']
+    # for p in range(10):
+    #     fitcoefs[p+1] = params['w_{}'.format(p)]
 
     coefs = {'tauv': fitcoefs[0], 'light_frac': fitcoefs[1:],
              'model_age': model['AGE'][0], 'chisq': chisq}
@@ -236,7 +244,7 @@ def superfit(model, restwl, flux, err, vdisp,
 
     return coefs, fig
 
-def mcombine(X, wave, flux, err, mlib, final):
+def mcombine_old(X, wave, flux, err, mlib, final):
 
     weights = np.zeros(len(X)-1)
     for p in range(weights.size):
@@ -253,3 +261,26 @@ def mcombine(X, wave, flux, err, mlib, final):
     else:
         #print np.sum((flux - y)**2/err**2)
         return (flux - y)/err
+
+def mcombine(X, wave, flux, err, mlib, final):
+
+    tauv = X[0]
+    weights = np.array(X[1:])
+    
+    y = np.sum(mlib * weights[:,None],axis=0)
+    
+    klam = (wave / 5500.)**(-0.7)
+    e_tau_lam = np.exp(-1*tauv*klam)
+    y *= e_tau_lam
+
+    if final:
+        return y
+    else:
+        return (flux - y)/err
+
+def chi_comp(X, wave, flux, err, mlib):
+
+    if np.any(X[1:] < 0):
+        return 1e99
+
+    return np.sum(mcombine(X,wave,flux,err,mlib,False)**2)
