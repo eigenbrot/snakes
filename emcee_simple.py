@@ -66,7 +66,7 @@ def do_simple(datafile, errorfile, output,
     flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in [2]:#range(numfibers):
+    for i in range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
         if numfibers == 1:

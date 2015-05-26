@@ -10,11 +10,13 @@ def kappa(r, z, tau=0.7, zd=0.29, hd=8.1):
 
 def A(r, z, tau0=0.7, zd=0.29, hd=8.1):
 
-        kappa0 = tau0/(2 * zd)
-        
-        return 1.086 * 2 * kappa0 * r * sps.kn(1,r/hd) * np.exp(-1 * z/zd)
+    r = np.abs(r)
 
-def A_vec(r, Z, tau0=0.7, zd=0.29, hd=8.1):
+    kappa0 = tau0/(2 * zd)
+        
+    return 1.086 * 2 * kappa0 * r * sps.kn(1,r/hd) * np.exp(-1 * z/zd)
+
+def A_vec(r, Z, tau0=0.2, zd=0.25, hd=7.68):
     
     output = np.zeros(Z.size)
 
@@ -23,7 +25,7 @@ def A_vec(r, Z, tau0=0.7, zd=0.29, hd=8.1):
 
     return output
 
-def plot_A(r, tau0=0.7, zd=0.29, hd=8.1):
+def plot_A(r, tau0=0.85, zd=0.29, hd=8.1):
     
     zlist = np.linspace(0,2.5,20)
     #Alist = np.zeros(20)
