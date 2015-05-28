@@ -110,7 +110,7 @@ tau = 2*!DPI
 
 for i = 0, numfibers - 1 DO BEGIN
    
-   print, 'Grabbing fiber '+string(i+1,format='(I3)')
+   print, 'Grabbing aperture '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
    
@@ -134,7 +134,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
 ; fit continuum
    coef = bc_continuum_tau(m, wave, flux, err, vdisp[size_switch], $
-                           plotlabel=string('Fiber',i+1,format='(A5,I4)'),$
+                           plotlabel=string('Aperture',i+1,format='(A5,I4)'),$
                            yfit=continuum, $
                            savestep=savestep, lun=savelun, $
                            lightidx=lightidx, fmt=fmt)
