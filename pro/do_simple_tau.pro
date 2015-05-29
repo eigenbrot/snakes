@@ -1,5 +1,6 @@
 
-pro do_simple_tau, datafile, errorfile, output, model=model, plot=plot, $
+pro do_simple_tau, datafile, errorfile, output, location=location, $
+                   model=model, plot=plot, $
                    wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                    lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
 
@@ -31,6 +32,11 @@ print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
 wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
 ;vdisp = 377. ; measured velocity dispersion
+
+if keyword_set(location) then begin
+   readcol, location, apnum, fiber_radii, ra, dec, rkpc, zkpc
+   sizeidx = [0.937,1.406,1.875,2.344,2.812]
+endif
 
 vdisp = [493., 589., 691., 796., 966.]/2.355
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
@@ -120,11 +126,21 @@ for i = 0, numfibers - 1 DO BEGIN
       print, 'Using mode '+models[i]
    endif
 
-   print, i, size_borders
-   if i eq size_borders[0] then begin
-      size_switch += 1
-      size_borders = size_borders[1:*]
-   endif
+   if keyword_set(location) then begin
+      lidx = where(sizeidx eq fiber_radii[i])
+      vd = vdisp[lidx]
+      plotlabel = string('Aperture',i+1,'r=',rkpc[i],'z=',zkpc[i],$
+                         format='(A8,I4,A3,F5.2,A3,F5.2)')
+      print, plotlabel
+   endif else begin
+      print, i, size_borders
+      if i eq size_borders[0] then begin
+         size_switch += 1
+         size_borders = size_borders[1:*]
+         vd = vdisp[size_switch]
+         plotlabel = string('Aperture',i+1,format='(A5,I4)')
+      endif
+   endelse
 
    if i eq savefiber then begin
       savestep = 1
@@ -133,8 +149,8 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
 ; fit continuum
-   coef = bc_continuum_tau(m, wave, flux, err, vdisp[size_switch], $
-                           plotlabel=string('Aperture',i+1,format='(A5,I4)'),$
+   coef = bc_continuum_tau(m, wave, flux, err, vd, $
+                           plotlabel=plotlabel,$
                            yfit=continuum, $
                            savestep=savestep, lun=savelun, $
                            lightidx=lightidx, fmt=fmt)
