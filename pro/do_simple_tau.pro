@@ -61,15 +61,15 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,2E12.3,2F10.3)'
+fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,2E12.3,F10.3,E12.3,2F10.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
-        format='(A-11,'+string(numages+2)+'A13,A7,3A12,2A10)'
+        'Tau_V','S/N','Chisq','redChi','Z/Z_sol','psi_0','tau_sf','t_form',$
+        format='(A-11,'+string(numages+2)+'A13,A7,3A12,A10,A12,2A10)'
 printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
@@ -169,7 +169,8 @@ for i = 0, numfibers - 1 DO BEGIN
    MLWA = total(light_weight * coef.weighted_age[goodidx]) / total(light_weight)
 
    printf, lun, i+1, coef.mass, MMWA, MLWA, coef.tauv,$
-           SNR, coef.chisq, coef.redchi, metal, format=fmt
+           SNR, coef.chisq, coef.redchi, metal, coef.psi0, $
+           coef.tau_sf, coef.t_form, format=fmt
 
 ENDFOR
 

@@ -248,13 +248,13 @@ plot, restwl, (galfit - yfit)/err, xtitle='Wavelength (Angstroms)', ytitle='Resi
       yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $
       /xs, /ys, /noerase, /t3d
 ;, ytickv=[-200,0,200]
-xyouts, 0.2, 0.9, 'Tau V = ' + string(coefs.tauv, format = '(F8.2)'), $
+xyouts, 0.2, 0.9, 'Tau V = ' + string(coefs.tauv, format = '(F10.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.87, 'psi0 = ' + string(coefs.psi0, format = '(F8.2)'), $
+xyouts, 0.2, 0.87, 'psi0 = ' + string(coefs.psi0, format = '(F10.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.84, 'tau_sf = ' + string(coefs.tau_sf, format = '(F8.2)'), $
+xyouts, 0.2, 0.84, 'tau_sf = ' + string(coefs.tau_sf, format = '(F10.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.81, 't_form = ' + string(coefs.t_form, format = '(F8.2)'), $
+xyouts, 0.2, 0.81, 't_form = ' + string(coefs.t_form, format = '(F10.2)'), $
         /norm, /t3d
 
 ;; for i = 0, n_elements(coefs.light_frac) - 1 do begin
