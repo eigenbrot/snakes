@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pyfits
 import GradPak_plot as GPP
@@ -107,6 +108,65 @@ def compute_SN(signal, noise, idx=None):
     zidx = np.where(noise[idx] != 0)
 
     return np.mean(signal[idx][zidx]/(noise[idx][zidx]))
+
+def create_locations(binfile, galcenter=[35.637962,42.347629], 
+                     ifucenter=[35.637962,42.347629], reffiber=105,
+                     pa=295.787, kpc_scale=0.0485):
+
+    hdu = pyfits.open(binfile)[0]
+    numaps = hdu.data.shape[0]
+    binhead = hdu.header
+    
+    patches = GPP.get_binned_patches(binhead)
+    refpatches = GPP.GradPak_patches()
+    
+    patches, refpatches = GPP.transform_patches(patches,refpatches=refpatches,
+                                                pa=0, center=ifucenter, 
+                                                reffiber=reffiber)
+
+    decrad = galcenter[1]*2*np.pi/360.
+    parad = pa*2*np.pi/360.
+    ra_diff = 3600*(galcenter[0] - ifucenter[0])*np.cos(decrad)
+    dec_diff = 3600*(galcenter[1] - ifucenter[1])
+    print ra_diff, dec_diff, np.sqrt(ra_diff**2 + dec_diff**2)
+
+    refr_diff = ra_diff*np.cos(parad) - dec_diff*np.sin(parad)
+    refz_diff = -1*(ra_diff*np.sin(parad) + dec_diff*np.cos(parad))
+
+    print refz_diff, refr_diff
+
+    reffiber_r, reffiber_z = refpatches[reffiber-1,1].center
+
+    f = open('{}_locations.dat'.format(binfile.split('.ms.fits')[0]),'w')
+    f.write("""# Generated on {}
+# Inpute file: {}
+#
+""".format(time.asctime(),binfile))
+    f.write('# {:4}{:>10}{:>10}{:>10}{:>10}{:>10}\n#\n'.format('Apnum',
+                                                              'size (")',
+                                                              'r (")',
+                                                              'z (")',
+                                                              'r (kpc)',
+                                                              'z (kpc)'))
+            
+    for i, p in enumerate(patches[:,1]):
+
+        fibers = binhead['BIN{:03}F'.format(i+1)]
+        radius = refpatches[int(fibers.split(' ')[0]) - 1][1].get_radius()
+
+        r_diff = 3600*(p.center[0] - reffiber_r) - refr_diff
+        z_diff = 3600*(p.center[1] - reffiber_z) + refz_diff
+        r_diff *= -1
+        print i, p.center, r_diff, z_diff
+
+        f.write(str('{:7n}'+5*'{:10.3f}'+'\n').format(i,
+                                                             radius,
+                                                             r_diff,
+                                                             z_diff,
+                                                             r_diff*kpc_scale,
+                                                             z_diff*kpc_scale))
+    f.close()
+    return
 
 def plot_test():
 
