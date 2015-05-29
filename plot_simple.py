@@ -181,7 +181,7 @@ def plot_heights(inputfile, outputfile, title=''):
 
 def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
              label='Mean Light Weighted Age [Gyr]',
-             minval = None, maxval = None, exclude = None):
+             minval = None, maxval = None, exclude = None, binned=False):
 
     pp = PDF(output)
     centers = [
@@ -198,6 +198,15 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
     for i in range(6):
         print i
         inputfile = glob('{}*P{}*.dat'.format(inputprefix,i+1))[0]
+        print inputfile
+
+        if binned:
+            fitsname = glob('{}*P{}*ms*fits'.format(inputprefix,i+1))[0]
+            print fitsname
+            binhead = pyfits.open(fitsname)[0].header
+        else:
+            binhead = None
+        
         data = np.loadtxt(inputfile,usecols=(col,),unpack=True)
         data = np.log10(data)
         if col==12:
@@ -218,6 +227,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
         print 'excluding', exclude[i]
         ax = GPP.plot(data,
                       ax=ax,
+                      binheader=binhead,
                       figsize=(8,4),
                       fitsfile=\
                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',

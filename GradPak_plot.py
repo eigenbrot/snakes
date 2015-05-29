@@ -653,7 +653,7 @@ def plot_img(values,
 
     return ax
 
-def plot_rows(values, binheader = False,
+def plot_rows(values, binheader = None,
               ylabel='', label='',
               ax = None, fullout = False,
               weights=None, kpc_scale=None, err=False,
