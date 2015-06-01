@@ -73,12 +73,12 @@ parinfo[0].limits = [-5.0,5.0]
 parinfo[1].value = 10.0
 parinfo[1].limited = [1,1]
 parinfo[1].limits = [0,1e9]
-parinfo[2].value = 5.0
-parinfo[2].limited = [1,0]
+parinfo[2].value = 0.2
+parinfo[2].limited = [0,0]
 parinfo[2].limits = [-12.0, 20.0]
-parinfo[3].value = 12.0
+parinfo[3].value = 10
 parinfo[3].limited = [1,1]
-parinfo[3].limits = [0, 13.8]
+parinfo[3].limits = [8, 10]
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 
@@ -164,25 +164,29 @@ yfit = bc_tau_combine(restwl, fitcoefs, mlib=custom_lib, ages=model.age/1e9)
 chisq = total((yfit - flux)^2/err^2)
 redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
-logt = alog10([99,model.age/1e9,fitcoefs[3]])
+psi0 = fitcoefs[1]
+tau_sf = 1./fitcoefs[2]
+t_form = fitcoefs[3]
+
+logt = alog10([99,model.age/1e9,t_form])
 tdiff = logt[1:*] - logt[0:-2]
 borders = 10.^(logt[1:*] - tdiff/2.)
 borders[0] = 1e-99
-borders[-1] = fitcoefs[3]
+borders[-1] = t_form
 
 while (borders[1:*] - borders[0:-2])[-1] lt 0 do begin
    useidx = where(borders[1:*] - borders[0:-2] ge 0)
    useidx = [useidx,useidx[-1]+1]
    borders = borders[useidx]
-   borders[-1] = fitcoefs[3]
+   borders[-1] = t_form
    custom_lib = custom_lib[*,useidx[0:-2]]
    nmodels -= 1
 endwhile
 
-mass = fitcoefs[1] * fitcoefs[2] * (exp(borders[1:*]/fitcoefs[2]) - $
-                                    exp(borders[0:-2]/fitcoefs[2]))
-weighted_age = fitcoefs[2] * alog(0.5 * (exp(borders[1:*]/fitcoefs[2]) + $
-                                    exp(borders[0:-2]/fitcoefs[2])))
+mass = psi0 * tau_sf * (exp(borders[1:*]/tau_sf) - $
+                                    exp(borders[0:-2]/tau_sf))
+weighted_age = tau_sf * alog(0.5 * (exp(borders[1:*]/tau_sf) + $
+                                    exp(borders[0:-2]/tau_sf)))
 while n_elements(mass) lt 10 do begin
    mass = [mass, -99]
 endwhile
@@ -193,9 +197,9 @@ endwhile
 
 ; structure containing fit coefs
 coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
-         psi0: fitcoefs[1], psi0_err: perror[1], $
-         tau_sf: fitcoefs[2], tau_sf_err: perror[2], $
-         t_form: fitcoefs[3], t_form_err: perror[3], $
+         psi0: psi0, psi0_err: perror[1], $
+         tau_sf: tau_sf, tau_sf_err: perror[2], $
+         t_form: t_form, t_form_err: perror[3], $
          model_age: model.age, chisq: chisq, redchi: redchi, $
          mass: mass, weighted_age: weighted_age}
 

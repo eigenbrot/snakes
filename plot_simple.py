@@ -450,35 +450,35 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
             masserr = tmpmasserr
             massstd = tmpmassstd
 
-    bigz = np.mean(z,axis=0)
-    bigage = np.mean(age,axis=0)
+    bigz = np.nanmean(z,axis=0)
+    bigage = np.nanmean(age,axis=0)
     bigerr = np.sqrt(
-        np.sum(err*(age - bigage)**2,axis=0)/
-        ((err.shape[0] - 1.)/(err.shape[0]) * np.sum(err,axis=0)))
-    bigAV = np.mean(AV,axis=0)
+        np.nansum(err*(age - bigage)**2,axis=0)/
+        ((err.shape[0] - 1.)/(err.shape[0]) * np.nansum(err,axis=0)))
+    bigAV = np.nanmean(AV,axis=0)
     bigAVerr = np.sqrt(
-        np.sum(AVerr*(AV - bigAV)**2,axis=0)/
-        ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.sum(AVerr,axis=0)))
-    bigmetal = np.mean(metal,axis=0)
+        np.nansum(AVerr*(AV - bigAV)**2,axis=0)/
+        ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.nansum(AVerr,axis=0)))
+    bigmetal = np.nanmean(metal,axis=0)
     bigmetalerr = np.sqrt(
-        np.sum(metalerr*(metal - bigmetal)**2,axis=0)/
-        ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.sum(metalerr,axis=0)))
-    bigpsi0 = np.mean(psi0,axis=0)
-    bigpsi0err = np.sqrt(
-        np.sum(psi0err*(psi0 - bigpsi0)**2,axis=0)/
-        ((psi0err.shape[0] - 1.)/(psi0err.shape[0]) * np.sum(psi0err,axis=0)))
-    bigtausf = np.mean(tausf,axis=0)
+        np.nansum(metalerr*(metal - bigmetal)**2,axis=0)/
+        ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.nansum(metalerr,axis=0)))
+    bigpsi0 = np.nanmean(psi0,axis=0)
+    bigpsi0err = np.sqrt(np.abs(
+        np.nansum(psi0err*(psi0 - bigpsi0)**2,axis=0)/
+        ((psi0err.shape[0] - 1.)/(psi0err.shape[0]) * np.nansum(psi0err,axis=0))))
+    bigtausf = np.nanmean(tausf,axis=0)
     bigtausferr = np.sqrt(
-        np.sum(tausferr*(tausf - bigtausf)**2,axis=0)/
-        ((tausferr.shape[0] - 1.)/(tausferr.shape[0]) * np.sum(tausferr,axis=0)))
-    bigtform = np.mean(tform,axis=0)
+        np.nansum(tausferr*(tausf - bigtausf)**2,axis=0)/
+        ((tausferr.shape[0] - 1.)/(tausferr.shape[0]) * np.nansum(tausferr,axis=0)))
+    bigtform = np.nanmean(tform,axis=0)
     bigtformerr = np.sqrt(
-        np.sum(tformerr*(tform - bigtform)**2,axis=0)/
-        ((tformerr.shape[0] - 1.)/(tformerr.shape[0]) * np.sum(tformerr,axis=0)))
-    bigmass = np.mean(mass,axis=0)
+        np.nansum(tformerr*(tform - bigtform)**2,axis=0)/
+        ((tformerr.shape[0] - 1.)/(tformerr.shape[0]) * np.nansum(tformerr,axis=0)))
+    bigmass = np.nanmean(mass,axis=0)
     bigmasserr = np.sqrt(
-        np.sum(masserr*(mass - bigmass)**2,axis=0)/
-        ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.sum(masserr,axis=0)))
+        np.nansum(masserr*(mass - bigmass)**2,axis=0)/
+        ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.nansum(masserr,axis=0)))
     with open('means.dat','w') as fm:
         for i in range(bigz.size):
             fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
@@ -518,7 +518,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
     tausfax.plot(bigz,bigtausf)
     tausfax.fill_between(bigz, bigtausf-bigtausferr, bigtausf+bigtausferr,alpha=0.1)
     tausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
-    tausfax.set_ylim(0,20)
+    tausfax.set_ylim(-1,5)
     tausfax.set_xlim(-0.1,2.6)
     tausfax.set_ylabel(r'$\tau_{\mathrm{sf}}$')
 

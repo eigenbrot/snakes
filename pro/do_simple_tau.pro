@@ -67,7 +67,7 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,2E12.3,F10.3,E12.3,2F10.3)'
+fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,2E12.3,F10.3,E12.3,2F13.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
@@ -75,7 +75,7 @@ printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         'Tau_V','S/N','Chisq','redChi','Z/Z_sol','psi_0','tau_sf','t_form',$
-        format='(A-11,'+string(numages+2)+'A13,A7,3A12,A10,A12,2A10)'
+        format='(A-11,'+string(numages+2)+'A13,A7,3A12,A10,A12,2A13)'
 printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
@@ -122,6 +122,7 @@ for i = 0, numfibers - 1 DO BEGIN
    
    if keyword_set(multimodel) then begin
       m = mrdfits(models[i], 1)
+      m.flux *= rebin(transpose(m.norm), size(m.flux, /dimensions))
       metal = metals[i]
       print, 'Using mode '+models[i]
    endif
@@ -138,7 +139,7 @@ for i = 0, numfibers - 1 DO BEGIN
          size_switch += 1
          size_borders = size_borders[1:*]
          vd = vdisp[size_switch]
-         plotlabel = string('Aperture',i+1,format='(A5,I4)')
+         plotlabel = string('Aperture',i+1,format='(A8,I4)')
       endif
    endelse
 

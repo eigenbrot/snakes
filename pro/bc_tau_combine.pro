@@ -32,7 +32,7 @@ function bc_tau_combine, x, a, mlib=mlib, ages=ages, savestep=savestep
 ; Create a linear combination of the templates
 tau_V = a[0]
 psi0 = a[1]
-tau_sf = a[2]
+tau_sf = 1./a[2]
 t_form = a[3]
 
 logt = alog10([99,ages,t_form])
