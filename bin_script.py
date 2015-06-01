@@ -64,10 +64,39 @@ def step2():
         f.write(head)
         for i in range(tmp.shape[1]):
             tmp[bdx[i],i,17] = fraclist[bdx[i]]
-            f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+2*'{:12.3e}'+'{:10.3f}{:12.3e}'+2*'{:10.3f}'+'\n').format(*tmp[bdx[i],i,:]))
+            f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+2*'{:12.3e}'+'{:10.3f}{:12.3e}'+2*'{:13.3f}'+'\n').format(*tmp[bdx[i],i,:]))
             
         f.close()
         h.close()
+        del tmp
+
+    return
+
+def step2b():
+
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    for p in range(6):
+    
+        basename = 'NGC_891_P{}'.format(p+1)
+       
+        for z in range(fraclist.size):
+            name = glob('{}*_Z{:04}.dat'.format(basename,int(fraclist[z]*1000)))[0]
+            print name
+            try:
+                tmp[z] = np.loadtxt(name)
+            except UnboundLocalError:
+                data = np.loadtxt(name)
+                tmp = np.zeros((fraclist.size,data.shape[0],data.shape[1]))
+                tmp[z] = data
+        
+        outfile = 'P{}_models.dat'.format(p+1)
+        f = open(outfile,'w')
+
+        bdx = np.argmin(tmp[:,:,16],axis=0)
+        for i in range(tmp.shape[1]):
+            f.write('{:5.3f} {:}\n'.format(fraclist[bdx[i]], modellist[bdx[i]]))
+            
         del tmp
 
     return
