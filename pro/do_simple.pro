@@ -100,7 +100,8 @@ endif
 fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
 outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
                LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
-               CHISQ: 0.0D, REDCHI: 0.0D}
+               CHISQ: 0.0D, REDCHI: 0.0D, MMWA: 0.0D, MLWA: 0.0D,$
+               SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -164,19 +165,19 @@ for i = 0, numfibers - 1 DO BEGIN
    outputarray[i] = coef
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
-   SNR = mean(flux[lightidx]/err[lightidx])
+   ;; SNR = mean(flux[lightidx]/err[lightidx])
 
-   MMWA = total(agearr*coef.light_frac*1./m.norm) $
-          / total(coef.light_frac*1./m.norm)
+   ;; MMWA = total(agearr*coef.light_frac*1./m.norm) $
+   ;;        / total(coef.light_frac*1./m.norm)
 
-   redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
-   light_weight = mean(m.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
-                                                  n_elements(agearr)), $
-                       dimension=1) * coef.light_frac
-   MLWA = total(light_weight * agearr) / total(light_weight)
+   ;; redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
+   ;; light_weight = mean(m.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
+   ;;                                                n_elements(agearr)), $
+   ;;                     dimension=1) * coef.light_frac
+   ;; MLWA = total(light_weight * agearr) / total(light_weight)
 
-   printf, lun, i+1, coef.light_frac/m.norm, MMWA, MLWA, coef.tauv,$
-           SNR, coef.chisq, coef.redchi, metal, format=fmt
+   printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, coef.MLWA, coef.tauv,$
+           coef.SNR, coef.chisq, coef.redchi, metal, format=fmt
 
 ENDFOR
 

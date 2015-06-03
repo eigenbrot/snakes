@@ -155,10 +155,22 @@ yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
 chisq = total((yfit - flux)^2/err^2)
 redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
+SNR = mean(flux[lightidx]/err[lightidx])
+
+MMWA = total(model.age/1e9*fitcoefs[1:*]*1./model.norm) $
+          / total(fitcoefs[1:*]*1./model.norm)
+
+redd = exp(-fitcoefs[0]*(restwl[lightidx]/5500)^(-0.7))
+light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
+                                                   n_elements(model.age)), $
+                    dimension=1) * fitcoefs[1:*]
+MLWA = total(light_weight * model.age/1e9) / total(light_weight)
+
 ; structure containing fit coefs
 coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
          light_frac: fitcoefs[1:*], light_frac_err: perror[1:*], $
-         model_age: model.age, chisq: chisq, redchi: redchi}
+         model_age: model.age, chisq: chisq, redchi: redchi, $
+         MMWA: MMWA, MLWA: MLWA, SNR: SNR}
 
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
@@ -178,10 +190,10 @@ for i=0, nmodels - 1 do begin
    yi = fitcoefs[i+1] * custom_lib[*,i] * $
          exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
     oplot, restwl, smooth(yi,smoothkern), color = !lblue, thick=thick, linestyle=0, /t3d
-    xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
-                            mean(yi[lightidx]),$
-                            format='(A2,I02,A3,E10.3)'),$
-           charsize=0.6, /norm, /t3d
+    ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
+    ;;                         mean(yi[lightidx]),$
+    ;;                         format='(A2,I02,A3,E10.3)'),$
+    ;;        charsize=0.6, /norm, /t3d
 endfor
 
 errsmooth = 5
@@ -200,9 +212,6 @@ oplot, restwl, smooth(yfit,smoothkern), color = !red, thick=thick, /t3d
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
-
-if keyword_set(plotlabel) then $
-   xyouts, 0.2, 0.93, plotlabel, color = !black, /norm, /t3d
  
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $
@@ -210,10 +219,21 @@ plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (A
       yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $
       /xs, /ys, /noerase, /t3d
 ;, ytickv=[-200,0,200]
-xyouts, 0.2, 0.9, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
+if keyword_set(plotlabel) then $
+   xyouts, 0.2, 0.95, plotlabel, color = !black, /norm, /t3d
+
+xyouts, 0.2, 0.90, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.95, 'V_disp = ' + string(vdisp, format = '(F8.2)'), $
+xyouts, 0.2, 0.88, 'V_disp = ' + string(vdisp, format = '(F8.2)'), $
         /norm, /t3d
+xyouts, 0.2, 0.86, 'MLWA = ' + string(MLWA, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.2, 0.84, 'MMWA = ' + string(MMWA, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.2, 0.82, 'SNR = ' + string(SNR, format = '(F8.2)'), $
+        /norm, /t3d
+
+print, MLWA
 
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
    xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i], $
