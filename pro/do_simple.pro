@@ -115,12 +115,6 @@ for i = 0, numfibers - 1 DO BEGIN
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
    
-   if keyword_set(multimodel) then begin
-      m = mrdfits(models[i], 1)
-      metal = metals[i]
-      print, 'Using mode '+models[i]
-   endif
-
    if keyword_set(location) then begin
       lidx = where(sizeidx eq fiber_radii[i])
       vd = vdisp[lidx]
@@ -137,6 +131,14 @@ for i = 0, numfibers - 1 DO BEGIN
          plotlabel = string('Aperture',i+1,format='(A8,I4)')
       endif
    endelse
+
+   if keyword_set(multimodel) then begin
+      m = mrdfits(models[i], 1)
+      metal = metals[i]
+      plotlabel += '!c!c'
+      plotlabel += string('Z/Z_sol = ',metal,format='(A10,F8.4)')
+      print, 'Using mode '+models[i]
+   endif
 
    if i eq savefiber then begin
       savestep = 1

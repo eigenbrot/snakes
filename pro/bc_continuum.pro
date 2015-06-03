@@ -220,7 +220,7 @@ plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (A
       /xs, /ys, /noerase, /t3d
 ;, ytickv=[-200,0,200]
 if keyword_set(plotlabel) then $
-   xyouts, 0.2, 0.95, plotlabel, color = !black, /norm, /t3d
+   xyouts, 0.2, 0.955, plotlabel, color = !black, /norm, /t3d
 
 xyouts, 0.2, 0.90, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
         /norm, /t3d
