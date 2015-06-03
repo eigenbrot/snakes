@@ -152,8 +152,21 @@ print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 ; fit to full spectrum including masked pixels
 yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
 
-chisq = total((yfit - flux)^2/err^2)
-redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+redidx = where(restwl ge 5250)
+blueidx = where(restwl lt 5250)
+hklow = 3920
+hkhigh = 4000
+hkidx = where(restwl gt hklow and restwl lt hkhigh)
+
+chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
+         (n_elements(redidx) + n_elements(fitcoefs) - 1)
+bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
+          (n_elements(blueidx) + n_elements(fitcoefs) - 1)
+hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
+        (n_elements(hkidx) + n_elements(fitcoefs) - 1)
+;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+
 
 SNR = mean(flux[lightidx]/err[lightidx])
 
@@ -169,7 +182,8 @@ MLWA = total(light_weight * model.age/1e9) / total(light_weight)
 ; structure containing fit coefs
 coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
          light_frac: fitcoefs[1:*], light_frac_err: perror[1:*], $
-         model_age: model.age, chisq: chisq, redchi: redchi, $
+         model_age: model.age, chisq: chisq, $
+         redchi: redchi, bluechi: bluechi, hkchi: hkchi, $
          MMWA: MMWA, MLWA: MLWA, SNR: SNR}
 
 ;---------------------------------------------------------------------------
@@ -185,6 +199,10 @@ xmax = max(restwl) * 1.02
 plot, restwl, flux, xtickformat='(A1)', /nodata,$
       ytitle = 'Flux', yrange = [1, ymax], xrange = [xmin,xmax], $
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
+
+vline, 5250., color=!gray, linestyle=2
+vline, hklow, color=!gray, linestyle=2
+vline, hkhigh, color=!gray, linestyle=2
 
 for i=0, nmodels - 1 do begin
    yi = fitcoefs[i+1] * custom_lib[*,i] * $
@@ -231,6 +249,15 @@ xyouts, 0.2, 0.86, 'MLWA = ' + string(MLWA, format = '(F8.2)'), $
 xyouts, 0.2, 0.84, 'MMWA = ' + string(MMWA, format = '(F8.2)'), $
         /norm, /t3d
 xyouts, 0.2, 0.82, 'SNR = ' + string(SNR, format = '(F8.2)'), $
+        /norm, /t3d
+
+xyouts, 0.4, 0.90, 'Chisq = ' + string(chisq, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.4, 0.88, 'redChi = ' + string(redchi, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.4, 0.86, 'bluChi = ' + string(bluechi, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
         /norm, /t3d
 
 print, MLWA

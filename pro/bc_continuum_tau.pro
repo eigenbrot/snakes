@@ -68,8 +68,8 @@ nmodels = n_elements(model.age)
 parinfo = replicate({value:0.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0}, 4)
 
-parinfo[0].limited = [1,1]
-parinfo[0].limits = [-5.0,5.0]
+parinfo[0].limited = [0,1]
+parinfo[0].limits = [-5.0,20.0]
 parinfo[1].value = 10.0
 parinfo[1].limited = [1,1]
 parinfo[1].limits = [0,1e9]
