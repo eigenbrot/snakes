@@ -77,8 +77,8 @@ parinfo[2].value = 0.2
 parinfo[2].limited = [0,0]
 parinfo[2].limits = [-12.0, 20.0]
 parinfo[3].value = 10
-parinfo[3].limited = [1,1]
-parinfo[3].limits = [8, 10]
+parinfo[3].limited = [0,0]
+parinfo[3].limits = [7, 9]
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 

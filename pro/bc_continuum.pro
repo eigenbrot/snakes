@@ -68,7 +68,7 @@ parinfo = replicate({value:0.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0]}, nmodels + 1)
 
 parinfo[0].limited = [0,1]
-parinfo[0].limits = [0.0,5.0]
+parinfo[0].limits = [-5.0,20.0]
 parinfo[1:*].limited = [1,0]
 parinfo[1:*].limits = [0,0]
 
@@ -210,6 +210,8 @@ plot, restwl, (galfit - yfit)/err, xtitle='Wavelength (Angstroms)', ytitle='Resi
       /xs, /ys, /noerase, /t3d
 ;, ytickv=[-200,0,200]
 xyouts, 0.2, 0.9, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
+        /norm, /t3d
+xyouts, 0.2, 0.95, 'V_disp = ' + string(vdisp, format = '(F8.2)'), $
         /norm, /t3d
 
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
