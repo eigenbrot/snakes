@@ -263,7 +263,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
     plt.close(ax.figure)
     return ax
 
-def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
+def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
 
     datname = output.split('.pdf')[0]+'.dat'
     f = open(datname,'w')
@@ -284,10 +284,12 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
     ax = None
     AVax = None
     metalax = None
-    psi0ax = None
-    tausfax = None
-    tformax = None
-    massax = None
+    if reg:
+        psi0ax = None
+        tausfax = None
+        invtausfax = None
+        tformax = None
+        massax = None
     for i in range(6):
 
         inputfile = glob('{}*P{}*dat'.format(inputprefix,plist[i]))[0]
@@ -298,13 +300,18 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
             binhead = pyfits.open(fitsname)[0].header
         else:
             binhead = False
-        MMWA, MLWA, TAUV, SNR, Z, PSI0, TAUSF, TFORM = np.loadtxt(inputfile,
-                                                                  usecols=(11,12,13,14,17,18,19,20),
-                                                                  unpack=True)
+        if reg:
+            MMWA, MLWA, TAUV, SNR, Z, PSI0, TAUSF, TFORM = np.loadtxt(inputfile,
+                                                                      usecols=(11,12,13,14,17,18,19,20),
+                                                                      unpack=True)
 
-        mdata = np.loadtxt(inputfile)
-        MASS = np.sum(mdata[:,1:11],axis=1)
-        
+            mdata = np.loadtxt(inputfile)
+            MASS = np.sum(mdata[:,1:11],axis=1)
+        else:
+            MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,
+                                                  usecols=(11,12,13,14,17),
+                                                  unpack=True)
+
         ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
                                                           binheader = binhead,
                                                           weights=SNR,
@@ -329,6 +336,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
                                                            marker=symblist[i],
                                                            linestyle='',
                                                            color=colorlist[i])
+
         metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z, 
                                                                        binheader = binhead,
                                                                        weights=SNR,
@@ -342,23 +350,11 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
                                                                        linestyle='',
                                                                        color=colorlist[i])
 
-        psi0ax, _, tmppsi0, tmppsi0err, tmppsi0std = GPP.plot_rows(np.log10(PSI0), 
-                                                                   binheader = binhead,
-                                                                   weights=SNR,
-                                                                   ax=psi0ax,
-                                                                   label='{}'.\
-                                                                   format(rlist[i]),
-                                                                   fullout=True,
-                                                                   kpc_scale=kpc_scale,
-                                                                   err=err,
-                                                                   marker=symblist[i],
-                                                                   linestyle='',
-                                                                   color=colorlist[i])
-
-        tausfax, _, tmptausf, tmptausferr, tmptausfstd = GPP.plot_rows(TAUSF, 
+        if reg:
+            psi0ax, _, tmppsi0, tmppsi0err, tmppsi0std = GPP.plot_rows(np.log10(PSI0), 
                                                                        binheader = binhead,
                                                                        weights=SNR,
-                                                                       ax=tausfax,
+                                                                       ax=psi0ax,
                                                                        label='{}'.\
                                                                        format(rlist[i]),
                                                                        fullout=True,
@@ -367,11 +363,50 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
                                                                        marker=symblist[i],
                                                                        linestyle='',
                                                                        color=colorlist[i])
-
-        tformax, _, tmptform, tmptformerr, tmptformstd = GPP.plot_rows(TFORM, 
+            
+            tausfax, _, tmptausf, tmptausferr, tmptausfstd = GPP.plot_rows(TAUSF, 
+                                                                           binheader = binhead,
+                                                                           weights=SNR,
+                                                                           ax=tausfax,
+                                                                           label='{}'.\
+                                                                           format(rlist[i]),
+                                                                           fullout=True,
+                                                                           kpc_scale=kpc_scale,
+                                                                           err=err,
+                                                                           marker=symblist[i],
+                                                                           linestyle='',
+                                                                           color=colorlist[i])
+            
+            invtausfax, _, tmpinvtausf, tmpinvtausferr, tmpinvtausfstd = GPP.plot_rows(1./TAUSF, 
+                                                                                       binheader = binhead,
+                                                                                       weights=SNR,
+                                                                                       ax=invtausfax,
+                                                                                       label='{}'.\
+                                                                                       format(rlist[i]),
+                                                                                       fullout=True,
+                                                                                       kpc_scale=kpc_scale,
+                                                                                       err=err,
+                                                                                       marker=symblist[i],
+                                                                                       linestyle='',
+                                                                                       color=colorlist[i])
+            
+            tformax, _, tmptform, tmptformerr, tmptformstd = GPP.plot_rows(TFORM, 
+                                                                           binheader = binhead,
+                                                                           weights=SNR,
+                                                                           ax=tformax,
+                                                                           label='{}'.\
+                                                                           format(rlist[i]),
+                                                                           fullout=True,
+                                                                           kpc_scale=kpc_scale,
+                                                                           err=err,
+                                                                           marker=symblist[i],
+                                                                           linestyle='',
+                                                                           color=colorlist[i])
+            
+            massax, _, tmpmass, tmpmasserr, tmpmassstd = GPP.plot_rows(np.log10(MASS), 
                                                                        binheader = binhead,
                                                                        weights=SNR,
-                                                                       ax=tformax,
+                                                                       ax=massax,
                                                                        label='{}'.\
                                                                        format(rlist[i]),
                                                                        fullout=True,
@@ -380,19 +415,6 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
                                                                        marker=symblist[i],
                                                                        linestyle='',
                                                                        color=colorlist[i])
-
-        massax, _, tmpmass, tmpmasserr, tmpmassstd = GPP.plot_rows(np.log10(MASS), 
-                                                                   binheader = binhead,
-                                                                   weights=SNR,
-                                                                   ax=massax,
-                                                                   label='{}'.\
-                                                                   format(rlist[i]),
-                                                                   fullout=True,
-                                                                   kpc_scale=kpc_scale,
-                                                                   err=err,
-                                                                   marker=symblist[i],
-                                                                   linestyle='',
-                                                                   color=colorlist[i])
 
 
         f.write('\n# P{} '.format(i+1)+92*'#'+'\n# r ~ {} kpc\n'.\
@@ -414,18 +436,22 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
             metal = np.vstack((metal,tmpmetal))
             metalerr = np.vstack((metalerr,tmpmetalerr))
             metalstd = np.vstack((metalstd,tmpmetalstd))
-            psi0 = np.vstack((psi0,tmppsi0))
-            psi0err = np.vstack((psi0err,tmppsi0err))
-            psi0std = np.vstack((psi0std,tmppsi0std))
-            tausf = np.vstack((tausf,tmptausf))
-            tausferr = np.vstack((tausferr,tmptausferr))
-            tausfstd = np.vstack((tausfstd,tmptausfstd))
-            tform = np.vstack((tform,tmptform))
-            tformerr = np.vstack((tformerr,tmptformerr))
-            tformstd = np.vstack((tformstd,tmptformstd))
-            mass = np.vstack((mass,tmpmass))
-            masserr = np.vstack((masserr,tmpmasserr))
-            massstd = np.vstack((massstd,tmpmassstd))
+            if reg:
+                psi0 = np.vstack((psi0,tmppsi0))
+                psi0err = np.vstack((psi0err,tmppsi0err))
+                psi0std = np.vstack((psi0std,tmppsi0std))
+                tausf = np.vstack((tausf,tmptausf))
+                tausferr = np.vstack((tausferr,tmptausferr))
+                tausfstd = np.vstack((tausfstd,tmptausfstd))
+                invtausf = np.vstack((invtausf,tmpinvtausf))
+                invtausferr = np.vstack((invtausferr,tmpinvtausferr))
+                invtausfstd = np.vstack((invtausfstd,tmpinvtausfstd))
+                tform = np.vstack((tform,tmptform))
+                tformerr = np.vstack((tformerr,tmptformerr))
+                tformstd = np.vstack((tformstd,tmptformstd))
+                mass = np.vstack((mass,tmpmass))
+                masserr = np.vstack((masserr,tmpmasserr))
+                massstd = np.vstack((massstd,tmpmassstd))
         except UnboundLocalError:
             z = tmpz
             age = tmpage
@@ -437,18 +463,22 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
             metal = tmpmetal
             metalerr = tmpmetalerr
             metalstd = tmpmetalstd
-            psi0 = tmppsi0
-            psi0err = tmppsi0err
-            psi0std = tmppsi0std
-            tausf = tmptausf
-            tausferr = tmptausferr
-            tausfstd = tmptausfstd            
-            tform = tmptform
-            tformerr = tmptformerr
-            tformstd = tmptformstd
-            mass = tmpmass
-            masserr = tmpmasserr
-            massstd = tmpmassstd
+            if reg:
+                psi0 = tmppsi0
+                psi0err = tmppsi0err
+                psi0std = tmppsi0std
+                tausf = tmptausf
+                tausferr = tmptausferr
+                tausfstd = tmptausfstd            
+                invtausf = tmpinvtausf
+                invtausferr = tmpinvtausferr
+                invtausfstd = tmpinvtausfstd            
+                tform = tmptform
+                tformerr = tmptformerr
+                tformstd = tmptformstd
+                mass = tmpmass
+                masserr = tmpmasserr
+                massstd = tmpmassstd
 
     bigz = np.nanmean(z,axis=0)
     bigage = np.nanmean(age,axis=0)
@@ -463,22 +493,28 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
     bigmetalerr = np.sqrt(
         np.nansum(metalerr*(metal - bigmetal)**2,axis=0)/
         ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.nansum(metalerr,axis=0)))
-    bigpsi0 = np.nanmean(psi0,axis=0)
-    bigpsi0err = np.sqrt(np.abs(
-        np.nansum(psi0err*(psi0 - bigpsi0)**2,axis=0)/
-        ((psi0err.shape[0] - 1.)/(psi0err.shape[0]) * np.nansum(psi0err,axis=0))))
-    bigtausf = np.nanmean(tausf,axis=0)
-    bigtausferr = np.sqrt(
-        np.nansum(tausferr*(tausf - bigtausf)**2,axis=0)/
-        ((tausferr.shape[0] - 1.)/(tausferr.shape[0]) * np.nansum(tausferr,axis=0)))
-    bigtform = np.nanmean(tform,axis=0)
-    bigtformerr = np.sqrt(
-        np.nansum(tformerr*(tform - bigtform)**2,axis=0)/
-        ((tformerr.shape[0] - 1.)/(tformerr.shape[0]) * np.nansum(tformerr,axis=0)))
-    bigmass = np.nanmean(mass,axis=0)
-    bigmasserr = np.sqrt(
-        np.nansum(masserr*(mass - bigmass)**2,axis=0)/
-        ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.nansum(masserr,axis=0)))
+    
+    if reg:
+        bigpsi0 = np.nanmean(psi0,axis=0)
+        bigpsi0err = np.sqrt(np.abs(
+            np.nansum(psi0err*(psi0 - bigpsi0)**2,axis=0)/
+            ((psi0err.shape[0] - 1.)/(psi0err.shape[0]) * np.nansum(psi0err,axis=0))))
+        bigtausf = np.nanmean(tausf,axis=0)
+        bigtausferr = np.sqrt(
+            np.nansum(tausferr*(tausf - bigtausf)**2,axis=0)/
+            ((tausferr.shape[0] - 1.)/(tausferr.shape[0]) * np.nansum(tausferr,axis=0)))
+        biginvtausf = np.nanmean(invtausf,axis=0)
+        biginvtausferr = np.sqrt(
+            np.nansum(invtausferr*(invtausf - biginvtausf)**2,axis=0)/
+            ((invtausferr.shape[0] - 1.)/(invtausferr.shape[0]) * np.nansum(invtausferr,axis=0)))
+        bigtform = np.nanmean(tform,axis=0)
+        bigtformerr = np.sqrt(
+            np.nansum(tformerr*(tform - bigtform)**2,axis=0)/
+            ((tformerr.shape[0] - 1.)/(tformerr.shape[0]) * np.nansum(tformerr,axis=0)))
+        bigmass = np.nanmean(mass,axis=0)
+        bigmasserr = np.sqrt(
+            np.nansum(masserr*(mass - bigmass)**2,axis=0)/
+            ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.nansum(masserr,axis=0)))
     with open('means.dat','w') as fm:
         for i in range(bigz.size):
             fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
@@ -509,46 +545,58 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False):
     metalax.set_ylim(-1.5,3.0)
     metalax.set_ylabel(r'$Z/Z_{\odot}$')
 
-    psi0ax.plot(bigz,bigpsi0)
-    psi0ax.fill_between(bigz, bigpsi0-bigpsi0err, bigpsi0+bigpsi0err,alpha=0.1)
-    psi0ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
-    psi0ax.set_xlim(-0.1,2.6)
-    psi0ax.set_ylabel(r'Log($\psi_0$)')
-
-    tausfax.plot(bigz,bigtausf)
-    tausfax.fill_between(bigz, bigtausf-bigtausferr, bigtausf+bigtausferr,alpha=0.1)
-    tausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
-    tausfax.set_ylim(-1,5)
-    tausfax.set_xlim(-0.1,2.6)
-    tausfax.set_ylabel(r'$\tau_{\mathrm{sf}}$')
-
-    tformax.plot(bigz,bigtform)
-    tformax.fill_between(bigz, bigtform-bigtformerr, bigtform+bigtformerr,alpha=0.1)
-    tformax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
-    tformax.set_xlim(-0.1,2.6)
-    tformax.set_ylabel(r'$t_{\mathrm{form}}$')
-
-    massax.plot(bigz,bigmass)
-    massax.fill_between(bigz, bigmass-bigmasserr, bigmass+bigmasserr,alpha=0.1)
-    massax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
-    massax.set_xlim(-0.1,2.6)
-    massax.set_ylabel(r'Log($M_{\mathrm{total}}$)')
+    if reg:
+        psi0ax.plot(bigz,bigpsi0)
+        psi0ax.fill_between(bigz, bigpsi0-bigpsi0err, bigpsi0+bigpsi0err,alpha=0.1)
+        psi0ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        psi0ax.set_xlim(-0.1,2.6)
+        psi0ax.set_ylabel(r'Log($\psi_0$)')
+        
+        tausfax.plot(bigz,bigtausf)
+        tausfax.fill_between(bigz, bigtausf-bigtausferr, bigtausf+bigtausferr,alpha=0.1)
+        tausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        tausfax.set_ylim(-1,5)
+        tausfax.set_xlim(-0.1,2.6)
+        tausfax.set_ylabel(r'$\tau_{\mathrm{sf}}$')
+        
+        invtausfax.plot(bigz,biginvtausf)
+        invtausfax.fill_between(bigz, biginvtausf-biginvtausferr, biginvtausf+biginvtausferr,alpha=0.1)
+        invtausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        invtausfax.set_ylim(-1,5)
+        invtausfax.set_xlim(-0.1,2.6)
+        invtausfax.set_ylabel(r'$1/\tau_{\mathrm{sf}}$')
+        
+        tformax.plot(bigz,bigtform)
+        tformax.fill_between(bigz, bigtform-bigtformerr, bigtform+bigtformerr,alpha=0.1)
+        tformax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        tformax.set_xlim(-0.1,2.6)
+        tformax.set_ylabel(r'$t_{\mathrm{form}}$')
+        
+        massax.plot(bigz,bigmass)
+        massax.fill_between(bigz, bigmass-bigmasserr, bigmass+bigmasserr,alpha=0.1)
+        massax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        massax.set_xlim(-0.1,2.6)
+        massax.set_ylabel(r'Log($M_{\mathrm{total}}$)')
 
     pp.savefig(ax.figure)
     pp.savefig(AVax.figure)
     pp.savefig(metalax.figure)
-    pp.savefig(psi0ax.figure)
-    pp.savefig(tausfax.figure)
-    pp.savefig(tformax.figure)
-    pp.savefig(massax.figure)
     plt.close(ax.figure)
     plt.close(AVax.figure)
     plt.close(metalax.figure)
-    plt.close(psi0ax.figure)
-    plt.close(tausfax.figure)
-    plt.close(tformax.figure)
-    plt.close(massax.figure)
-
+    
+    if reg:
+        pp.savefig(psi0ax.figure)
+        pp.savefig(tausfax.figure)
+        pp.savefig(tformax.figure)
+        pp.savefig(invtausfax.figure)
+        pp.savefig(massax.figure)
+        plt.close(psi0ax.figure)
+        plt.close(tausfax.figure)
+        plt.close(invtausfax.figure)
+        plt.close(tformax.figure)
+        plt.close(massax.figure)
+    
     pp.close()
     f.close()
  
