@@ -164,6 +164,8 @@ coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
 ; Plot spectrum, best fit, and individual stellar components
 
 defplotcolors
+smoothkern = 5
+
 ymax = max(yfit) * 1.1
 xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
@@ -171,6 +173,16 @@ xmax = max(restwl) * 1.02
 plot, restwl, flux, xtickformat='(A1)', /nodata,$
       ytitle = 'Flux', yrange = [1, ymax], xrange = [xmin,xmax], $
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
+
+for i=0, nmodels - 1 do begin
+   yi = fitcoefs[i+1] * custom_lib[*,i] * $
+         exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
+    oplot, restwl, smooth(yi,smoothkern), color = !lblue, thick=thick, linestyle=0, /t3d
+    xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
+                            mean(yi[lightidx]),$
+                            format='(A2,I02,A3,E10.3)'),$
+           charsize=0.6, /norm, /t3d
+endfor
 
 errsmooth = 5
 oband, restwl[0:*:errsmooth], (flux-err)[0:*:errsmooth], (flux+err)[0:*:errsmooth], color=!gray
@@ -181,10 +193,10 @@ galfit[ok] = flux[ok]
 masked = flux
 masked[ok] = 'NaN'
 thick=1.0
-oplot, restwl, masked, color=!green, thick=thick, /t3d
-oplot, restwl, galfit, thick=thick, color=!black, /t3d
+oplot, restwl, smooth(galfit,smoothkern,/NAN), thick=thick, color=!black, /t3d
+oplot, restwl, smooth(masked,smoothkern,/NAN), color=!green, thick=thick, /t3d
 
-oplot, restwl, yfit, color = !red, thick=thick, /t3d
+oplot, restwl, smooth(yfit,smoothkern), color = !red, thick=thick, /t3d
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
@@ -192,19 +204,8 @@ if status ge 5 then $
 if keyword_set(plotlabel) then $
    xyouts, 0.2, 0.93, plotlabel, color = !black, /norm, /t3d
  
-lidx = where(restwl ge 5450 and restwl le 5550)
-for i=0, nmodels - 1 do begin
-   yi = fitcoefs[i+1] * custom_lib[*,i] * $
-         exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
-   oplot, restwl, yi, color = !blue, thick=thick, linestyle=2, /t3d
-   xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
-                            mean(yi[lidx]),$
-                            format='(A2,I02,A3,E10.3)'),$
-           charsize=0.6, /norm, /t3d
-   
-endfor
-
-plot, restwl, (galfit - yfit)/err, xtitle='Wavelength (Angstroms)', ytitle='Residuals/error', $
+plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
+      ytitle='Residuals/error', $
       position=[0.15,0.15,0.95,0.3], xrange=[xmin,xmax], yrange=[-5,5], $
       yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $
       /xs, /ys, /noerase, /t3d
