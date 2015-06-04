@@ -119,7 +119,7 @@ for i = 0, numfibers - 1 DO BEGIN
       lidx = where(sizeidx eq fiber_radii[i])
       vd = vdisp[lidx]
       plotlabel = string('Aperture',i+1,'r=',rkpc[i],'z=',zkpc[i],$
-                         format='(A8,I4,A3,F5.2,A3,F5.2)')
+                         format='(A8,I4,A3,F6.2,A3,F5.2)')
       print, plotlabel
 
    endif else begin
