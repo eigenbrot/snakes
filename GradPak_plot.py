@@ -379,7 +379,7 @@ def prep_patches(values,
         refpatches = patches
     refcenter = refpatches[reffiber - 1,1].center # in px
     
-    if not sky:
+    if not sky and binheader is None:
         exclude = np.r_[skyidx,np.array(exclude)-1] #-1 needed because fiber
                                                     #numbers start at 1
     else:
