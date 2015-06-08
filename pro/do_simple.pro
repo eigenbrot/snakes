@@ -1,6 +1,6 @@
 
 pro do_simple, datafile, errorfile, output, location=location, $
-               model=model, plot=plot, $
+               model=model, plot=plot, bluefit=bluefit,$
                wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
 
@@ -127,9 +127,9 @@ for i = 0, numfibers - 1 DO BEGIN
       if i eq size_borders[0] then begin
          size_switch += 1
          size_borders = size_borders[1:*]
-         vd = vdisp[size_switch]
-         plotlabel = string('Aperture',i+1,format='(A8,I4)')
       endif
+      vd = vdisp[size_switch]
+      plotlabel = string('Aperture',i+1,format='(A8,I4)')
    endelse
 
    if keyword_set(multimodel) then begin
@@ -147,8 +147,10 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
 ; fit continuum
+   print, vd
    coef = bc_continuum(m, wave, flux, err, vd, $
-                       plotlabel=plotlabel,$
+                       plotlabel=plotlabel, $
+                       bluefit=bluefit, $
                        yfit=continuum, $
                        savestep=savestep, lun=savelun, $
                        lightidx=lightidx, fmt=fmt)

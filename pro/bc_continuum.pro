@@ -50,8 +50,10 @@
 
 
 function bc_continuum, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
-                       yfit = yfit, plotlabel = plotlabel, $
+                       yfit = yfit, plotlabel = plotlabel, bluefit = bluefit, $
                        savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt
+
+print, vdisp
 
 if n_elements(savestep) eq 0 then savestep = 0
 
@@ -129,20 +131,32 @@ endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
 ;-------------------------------------------------------------------------------
+if keyword_set(bluefit) then begin
+   fitidx = where(restwl[ok] lt 5250)
+   fitflux = flux[ok[fitidx]]
+   fiterr = err[ok[fitidx]]
+   fitwave = restwl[ok[fitidx]]
+   fitlib = custom_lib[ok[fitidx],*]
+endif else begin
+   fitflux = flux[ok]
+   fiterr = err[ok]
+   fitwave = restwl[ok]
+   fitlib = custom_lib[ok,*]
+endelse
 
 if savestep eq 1 then $
-   savestep = {flux: flux[ok],$
-               err: err[ok], $
+   savestep = {flux: fitflux,$
+               err: fiterr, $
                agearr: model.age/1e9, $
                norm: model.norm, $
                lightidx: lightidx, $
                lun: lun, $
-               wave: restwl[ok], $
+               wave: fitwave, $
                fmt: fmt}
 
-fitcoefs = mpfitfun('bc_mcombine', restwl[ok], flux[ok], err[ok], $
+fitcoefs = mpfitfun('bc_mcombine', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
-                    functargs = {mlib: custom_lib[ok,*], savestep: savestep}, $
+                    functargs = {mlib: fitlib, savestep: savestep}, $
                     perror=perror, niter=niter, status=status, $
                     maxiter = 500, /NAN)
 
@@ -150,13 +164,13 @@ print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 
 ; fit to full spectrum including masked pixels
-yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
-
 redidx = where(restwl ge 5250)
 blueidx = where(restwl lt 5250)
 hklow = 3920
 hkhigh = 4000
 hkidx = where(restwl gt hklow and restwl lt hkhigh)
+
+yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
 
 chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
