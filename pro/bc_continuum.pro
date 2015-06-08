@@ -192,7 +192,9 @@ coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
 defplotcolors
 smoothkern = 5
 
+blueymax = max(yfit[blueidx]) / 0.8
 ymax = max(yfit) * 1.1
+ymax = max([ymax,blueymax])
 xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
