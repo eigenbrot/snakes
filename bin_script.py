@@ -82,7 +82,7 @@ def step2():
 
     return
 
-def step2b():
+def step2b(mincol=15):
 
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
@@ -103,7 +103,7 @@ def step2b():
         outfile = 'P{}_models.dat'.format(p+1)
         f = open(outfile,'w')
 
-        bdx = np.argmin(tmp[:,:,15],axis=0)
+        bdx = np.argmin(tmp[:,:,mincol],axis=0)
         for i in range(tmp.shape[1]):
             f.write('{:5.3f} {:}\n'.format(fraclist[bdx[i]], modellist[bdx[i]]))
             
