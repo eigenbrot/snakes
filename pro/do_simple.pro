@@ -84,8 +84,8 @@ if n_elements(savefiber) ne 0 then begin
    printf, savelun, '# Error file: ',errorfile
    printf, savelun, '# Model file: ',model,format='(A14,A90)'
    printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-           'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
-           format='(A-11,'+string(numages+2)+'A13,A7,3A12,2A10)'
+           'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
+           format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'   
    printf, savelun, '#'
 endif else begin
    savefiber = -1
@@ -109,7 +109,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1 DO BEGIN
+for i = 5, 5 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor

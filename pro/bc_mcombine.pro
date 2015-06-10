@@ -43,8 +43,20 @@ y = y * e_tau_lam
 if n_elements(savestep) eq 0 then savestep = 0
 
 if tag_exist(savestep, 'flux',/quiet) then begin
-   chisq = total((y - savestep.flux)^2/savestep.err^2)
+   redidx = where(x ge 5250)
+   blueidx = where(x lt 5250)
+   hklow = 3920
+   hkhigh = 4000
+   hkidx = where(x gt hklow and x lt hkhigh)
+   chisq = total((y - savestep.flux)^2/savestep.err^2)/(n_elements(y) + n_elements(a) - 1)
    
+   redchi = total((y[redidx] - savestep.flux[redidx])^2/savestep.err[redidx]^2)/$
+         (n_elements(redidx) + n_elements(a) - 1)
+   bluechi = total((y[blueidx] - savestep.flux[blueidx])^2/savestep.err[blueidx]^2)/$
+             (n_elements(blueidx) + n_elements(a) - 1)
+   hkchi = total((y[hkidx] - savestep.flux[hkidx])^2/savestep.err[hkidx]^2)/$
+           (n_elements(hkidx) + n_elements(a) - 1)
+
    SNR = -99
    MMWA = total(savestep.agearr*a[1:*]*1./savestep.norm) $
           / total(a[1:*]*1./savestep.norm)
@@ -57,7 +69,7 @@ if tag_exist(savestep, 'flux',/quiet) then begin
    MLWA = total(light_weight * savestep.agearr) / total(light_weight)
 
    printf, savestep.lun, 2, a[1:*]/savestep.norm, MMWA, MLWA, a[0],$
-           SNR, chisq, -99, -99, format=savestep.fmt
+           SNR, chisq, redchi, bluechi, hkchi, -99, format=savestep.fmt
 endif
 
 return, y
