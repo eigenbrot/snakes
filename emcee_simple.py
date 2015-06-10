@@ -66,7 +66,7 @@ def do_simple(datafile, errorfile, output,
     flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in range(numfibers):
+    for i in [36]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
         if numfibers == 1:
@@ -365,6 +365,39 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
     tripp.close()
 
     return
+
+def plot_age(sampler, datafile,
+             model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
+             lightmin = 5450., lightmax = 5550., wavemin = 3750., wavemax = 6800.):
+
+    m = pyfits.open(model)[1].data
+    agearr = m['AGE'][0]/1e9
+    
+    dhdu = pyfits.open(datafile)[0]
+    header = dhdu.header
+    data = dhdu.data
+
+    try:
+        numfibers, wavesize = data.shape
+    except ValueError:
+        numfibers = 1
+        wavesize = data.size
+        print 'Found one fiber with length {}'.format(wavesize)
+
+    wave = (np.arange(wavesize) - header['CRPIX1']) * header['CDELT1'] \
+           +  header['CRVAL1']
+    idx = np.where((wave >= wavemin) & (wave <= wavemax))
+    wave = wave[idx]
+    
+    lightidx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
+
+    redd = np.exp(-1*sampler.flatchain[:,0][:,None]*(wave[lightidx]/5500)**(-0.7))
+    light_weight = np.mean(m['FLUX'][0][:,lightidx][:,None,None] * redd, axis=1)*\
+                   sampler.flatchain[:,1:]
+
+    MLWA = np.sum(light_weight * agearr)/np.sum(light_weight)
+
+    return MLWA
 
 def mcombine(theta, wave, mlib):
 
