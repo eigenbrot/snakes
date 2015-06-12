@@ -65,7 +65,7 @@ def step2():
                 tmp = np.zeros((fraclist.size,data.shape[0],data.shape[1]))
                 tmp[z] = data
 
-        bdx = np.argmin(tmp[:,:,16],axis=0)
+        bdx = np.argmin(tmp[:,:,15],axis=0)
         h = open(name,'r')
         head = h.readlines()[4]
         outname = '{}_fit.dat'.format(name.split('_Z')[0])
@@ -73,8 +73,8 @@ def step2():
         f.write('# Generated on {}\n'.format(time.asctime()))
         f.write(head)
         for i in range(tmp.shape[1]):
-            tmp[bdx[i],i,17] = fraclist[bdx[i]]
-            f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+2*'{:12.3e}'+'{:10.3f}{:12.3e}'+2*'{:13.3f}'+'\n').format(*tmp[bdx[i],i,:]))
+            tmp[bdx[i],i,19] = fraclist[bdx[i]]
+            f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+4*'{:12.3e}'+'{:10.3f}'+'\n').format(*tmp[bdx[i],i,:]))
             
         f.close()
         h.close()
