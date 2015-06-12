@@ -315,6 +315,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
                                                   usecols=(11,12,13,14,19),
                                                   unpack=True)
 
+        Z = np.log10(Z)
         ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
                                                           binheader = binhead,
                                                           weights=SNR,
@@ -545,8 +546,8 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
     metalax.fill_between(bigz, bigmetal-bigmetalerr, bigmetal+bigmetalerr,alpha=0.1)
     metalax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     metalax.set_xlim(-0.1,2.6)
-    metalax.set_ylim(-1.5,3.0)
-    metalax.set_ylabel(r'$Z/Z_{\odot}$')
+#    metalax.set_ylim(-1.5,3.0)
+    metalax.set_ylabel(r'Log( $Z/Z_{\odot}$ )')
 
     if reg:
         psi0ax.plot(bigz,bigpsi0)
