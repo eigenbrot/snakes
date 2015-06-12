@@ -66,7 +66,7 @@ def do_simple(datafile, errorfile, output,
     flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in [36]:#range(numfibers):
+    for i in [48]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
         if numfibers == 1:
@@ -327,7 +327,7 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 #        truths = np.mean(sampler.flatchain,axis=0)
         fitcoefs = np.zeros(sampler.flatchain.shape[1])
         for t in range(sampler.flatchain.shape[1]):
-            hist, bins = np.histogram(sampler.flatchain[:,t],bins=100)
+            hist, bins = np.histogram(sampler.flatchain[:,t],bins=50)
             bins = 0.5*(bins[1:] + bins[:-1])
             fitcoefs[t] = bins[np.argmax(hist)]
         truths = fitcoefs
@@ -366,7 +366,7 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 
     return
 
-def plot_age(sampler, datafile,
+def plot_age(sampler, datafile, sift=1,
              model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
              lightmin = 5450., lightmax = 5550., wavemin = 3750., wavemax = 6800.):
 
@@ -391,11 +391,18 @@ def plot_age(sampler, datafile,
     
     lightidx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
 
-    redd = np.exp(-1*sampler.flatchain[:,0][:,None]*(wave[lightidx]/5500)**(-0.7))
-    light_weight = np.mean(m['FLUX'][0][:,lightidx][:,None,None] * redd, axis=1)*\
-                   sampler.flatchain[:,1:]
+    redd = np.exp(-1*sampler.flatchain[::sift,0][:,None]*(wave[lightidx]/5500)**(-0.7))
+    # print redd.shape, redd[:,None].shape
+    # print m['FLUX'][0][:,lightidx][None,:].shape
+    # print (m['FLUX'][0][:,lightidx][None,:] * redd[:,None]).shape
+    # print np.mean(m['FLUX'][0][:,lightidx][None,:] * redd[:,None], axis=2).shape
+    # print sampler.flatchain[:,1:].shape
+    light_weight = np.mean(m['FLUX'][0][:,lightidx][None,:] * redd[:,None], axis=2)*\
+                   sampler.flatchain[::sift,1:]
 
-    MLWA = np.sum(light_weight * agearr)/np.sum(light_weight)
+    # print light_weight.shape
+    # print (light_weight * agearr).shape
+    MLWA = np.sum(light_weight * agearr,axis=1)/np.sum(light_weight,axis=1)
 
     return MLWA
 
