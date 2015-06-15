@@ -87,9 +87,15 @@ if n_elements(savefiber) ne 0 then begin
            'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
            format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'   
    printf, savelun, '#'
+
+   startfiber = savefiber - 1
+   endfiber = savefiber - 1
+
 endif else begin
    savefiber = -1
    savelun = 0
+   startfiber = 0
+   endfiber = numfibers - 1
 endelse
 
 if keyword_set(plot) then begin
@@ -109,7 +115,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 5, 5 DO BEGIN
+for i = startfiber, endfiber DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -140,7 +146,7 @@ for i = 5, 5 DO BEGIN
       print, 'Using mode '+models[i]
    endif
 
-   if i eq savefiber then begin
+   if i eq savefiber - 1 then begin
       savestep = 1
    endif else begin
       savestep = 0
@@ -189,6 +195,7 @@ ENDFOR
 if keyword_set(plot) then dfpsclose
 
 free_lun, lun
+free_lun, savelun
 mwrfits, outputarray, fitsfile, /create
 print, m.norm
 
