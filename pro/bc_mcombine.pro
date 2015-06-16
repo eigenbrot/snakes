@@ -43,18 +43,19 @@ y = y * e_tau_lam
 if n_elements(savestep) eq 0 then savestep = 0
 
 if tag_exist(savestep, 'flux',/quiet) then begin
-   redidx = where(x ge 5250)
-   blueidx = where(x lt 5250)
-   hklow = 3920
-   hkhigh = 4000
-   hkidx = where(x gt hklow and x lt hkhigh)
-   chisq = total((y - savestep.flux)^2/savestep.err^2)/(n_elements(y) + n_elements(a) - 1)
+   yfit = bc_mcombine(savestep.wave, a, mlib=savestep.mlib, savestep=0)
+
+   blueidx = savestep.blueidx
+   redidx = savestep.redidx
+   hkidx = savestep.hkidx
+
+   chisq = total((yfit - savestep.flux)^2/savestep.err^2)/(n_elements(yfit) + n_elements(a) - 1)
    
-   redchi = total((y[redidx] - savestep.flux[redidx])^2/savestep.err[redidx]^2)/$
-         (n_elements(redidx) + n_elements(a) - 1)
-   bluechi = total((y[blueidx] - savestep.flux[blueidx])^2/savestep.err[blueidx]^2)/$
+   redchi = total((yfit[redidx] - savestep.flux[redidx])^2/savestep.err[redidx]^2)/$
+            (n_elements(redidx) + n_elements(a) - 1)
+   bluechi = total((yfit[blueidx] - savestep.flux[blueidx])^2/savestep.err[blueidx]^2)/$
              (n_elements(blueidx) + n_elements(a) - 1)
-   hkchi = total((y[hkidx] - savestep.flux[hkidx])^2/savestep.err[hkidx]^2)/$
+   hkchi = total((yfit[hkidx] - savestep.flux[hkidx])^2/savestep.err[hkidx]^2)/$
            (n_elements(hkidx) + n_elements(a) - 1)
 
    SNR = -99
@@ -62,13 +63,13 @@ if tag_exist(savestep, 'flux',/quiet) then begin
           / total(a[1:*]*1./savestep.norm)
 
    redd = exp(-a[0]*(savestep.wave[savestep.lightidx]/5500)^(-0.7))
-   light_weight = mean(savestep.flux[savestep.lightidx,*] * $
+   light_weight = mean(savestep.mlib[savestep.lightidx,*] * $
                        rebin(redd,n_elements(savestep.lightidx),$
                              n_elements(savestep.agearr)), $
                        dimension=1) * a[1:*]
    MLWA = total(light_weight * savestep.agearr) / total(light_weight)
 
-   printf, savestep.lun, 2, a[1:*]/savestep.norm, MMWA, MLWA, a[0],$
+   printf, savestep.lun, 99, a[1:*]/savestep.norm, MMWA, MLWA, a[0],$
            SNR, chisq, redchi, bluechi, hkchi, -99, format=savestep.fmt
 endif
 

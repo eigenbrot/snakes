@@ -144,14 +144,24 @@ endif else begin
    fitlib = custom_lib[ok,*]
 endelse
 
+redidx = where(restwl ge 5250)
+blueidx = where(restwl lt 5250)
+hklow = 3920
+hkhigh = 4000
+hkidx = where(restwl gt hklow and restwl lt hkhigh)
+
 if savestep eq 1 then $
-   savestep = {flux: fitflux,$
-               err: fiterr, $
+   savestep = {flux: flux,$
+               err: err, $
                agearr: model.age/1e9, $
                norm: model.norm, $
                lightidx: lightidx, $
                lun: lun, $
-               wave: fitwave, $
+               wave: restwl, $
+               blueidx: blueidx, $
+               redidx: redidx, $
+               hkidx: hkidx, $
+               mlib: custom_lib, $
                fmt: fmt}
 
 fitcoefs = mpfitfun('bc_mcombine', fitwave, fitflux, fiterr, $
@@ -164,11 +174,6 @@ print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 
 ; fit to full spectrum including masked pixels
-redidx = where(restwl ge 5250)
-blueidx = where(restwl lt 5250)
-hklow = 3920
-hkhigh = 4000
-hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
 yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
 
@@ -188,7 +193,7 @@ MMWA = total(model.age/1e9*fitcoefs[1:*]*1./model.norm) $
           / total(fitcoefs[1:*]*1./model.norm)
 
 redd = exp(-fitcoefs[0]*(restwl[lightidx]/5500)^(-0.7))
-light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
+light_weight = mean(custom_lib[lightidx,*] * rebin(redd,n_elements(lightidx),$
                                                    n_elements(model.age)), $
                     dimension=1) * fitcoefs[1:*]
 MLWA = total(light_weight * model.age/1e9) / total(light_weight)
