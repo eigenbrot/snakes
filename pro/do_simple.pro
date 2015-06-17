@@ -74,7 +74,6 @@ printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
         format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'
-printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
    savename = (strsplit(output,'.',/extract))[0] + '_steps.dat'
@@ -107,7 +106,7 @@ fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
 outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
                LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
-               MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
+               BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -172,6 +171,7 @@ for i = startfiber, endfiber DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
+   print, coef.bluefree
    outputarray[i] = coef
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
@@ -185,6 +185,11 @@ for i = startfiber, endfiber DO BEGIN
    ;;                                                n_elements(agearr)), $
    ;;                     dimension=1) * coef.light_frac
    ;; MLWA = total(light_weight * agearr) / total(light_weight)
+
+   if i eq startfiber then begin
+      printf, lun, '# Blue_free: ', coef.bluefree
+      printf, lun, '#'
+   endif
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, coef.MLWA, coef.tauv,$
            coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,$

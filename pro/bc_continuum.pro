@@ -177,13 +177,15 @@ print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 
 yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
 
-chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
-         (n_elements(redidx) + n_elements(fitcoefs) - 1)
+         (n_elements(redidx) - n_elements(fitcoefs) - 1)
 bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
-          (n_elements(blueidx) + n_elements(fitcoefs) - 1)
+          (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
-        (n_elements(hkidx) + n_elements(fitcoefs) - 1)
+        (n_elements(hkidx) - n_elements(fitcoefs) - 1)
+
+bluefree = n_elements(blueidx) - n_elements(fitcoefs) - 1
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 
@@ -202,7 +204,7 @@ MLWA = total(light_weight * model.age/1e9) / total(light_weight)
 coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
          light_frac: fitcoefs[1:*], light_frac_err: perror[1:*], $
          model_age: model.age, chisq: chisq, $
-         redchi: redchi, bluechi: bluechi, hkchi: hkchi, $
+         redchi: redchi, bluechi: bluechi, hkchi: hkchi, bluefree: bluefree, $
          MMWA: MMWA, MLWA: MLWA, SNR: SNR}
 
 ;---------------------------------------------------------------------------
