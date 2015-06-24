@@ -238,7 +238,7 @@ def superfit(model, restwl, flux, err, vdisp,
 #    fitcoefs = np.mean(S.flatchain,axis=0)
     fitcoefs = np.zeros(nmodels+1)
     for t in range(nmodels+1):
-        hist, bins = np.histogram(S.flatchain[:,t],bins=100)
+        hist, bins = np.histogram(S.flatchain[:,t],bins=50)
         bins = 0.5*(bins[1:] + bins[:-1])
         fitcoefs[t] = bins[np.argmax(hist)]
 
