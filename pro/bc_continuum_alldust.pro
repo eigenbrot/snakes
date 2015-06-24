@@ -54,7 +54,7 @@ function bc_continuum_alldust, model, restwl, flux, err, vdisp, emmaskw=emmaskw,
                                savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt
 
 print, vdisp
-
+flux_factor = 100.
 if n_elements(savestep) eq 0 then savestep = 0
 
 ; width of emission line masks in km/s
@@ -70,7 +70,7 @@ parinfo = replicate({value:0.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0]}, nmodels * 2)
 
 parinfo[0:nmodels-1].limited = [1,0]
-parinfo[0:nmodels-1].limits = [-5.0,5.0]
+parinfo[0:nmodels-1].limits = [0,20]
 parinfo[nmodels:*].limited = [1,0]
 parinfo[nmodels:*].limits = [0,0]
 
@@ -158,7 +158,7 @@ fitcoefs = mpfitfun('bc_mcombine_alldust', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
                     functargs = {mlib: fitlib, savestep: savestep}, $
                     perror=perror, niter=niter, status=status, $
-                    maxiter = 50000, /NAN)
+                    maxiter = 2000, /NAN)
 
 print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
@@ -172,33 +172,37 @@ hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
 yfit = bc_mcombine_alldust(restwl, fitcoefs, mlib=custom_lib)
 
-chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
-         (n_elements(redidx) + n_elements(fitcoefs) - 1)
+         (n_elements(redidx) - n_elements(fitcoefs) - 1)
 bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
-          (n_elements(blueidx) + n_elements(fitcoefs) - 1)
+          (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
-        (n_elements(hkidx) + n_elements(fitcoefs) - 1)
+        (n_elements(hkidx) - n_elements(fitcoefs) - 1)
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 
 SNR = mean(flux[lightidx]/err[lightidx])
 
-MMWA = total(model.age/1e9*fitcoefs[1:*]*1./model.norm) $
-          / total(fitcoefs[1:*]*1./model.norm)
+MMWA = total(model.age/1e9*fitcoefs[nmodels:*]*flux_factor/model.norm) $
+          / total(fitcoefs[nmodels:*]*flux_factor/model.norm)
 
 redd = exp(-fitcoefs[0]*(restwl[lightidx]/5500)^(-0.7))
 light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
                                                    n_elements(model.age)), $
-                    dimension=1) * fitcoefs[1:*]
+                    dimension=1) * fitcoefs[nmodels:*]*flux_factor
 MLWA = total(light_weight * model.age/1e9) / total(light_weight)
+
+MMWT = total(fitcoefs[0:nmodels-1]*fitcoefs[nmodels:*]*flux_factor/model.norm) $
+          / total(fitcoefs[nmodels:*]*flux_factor/model.norm)
+MLWT = total(light_weight * fitcoefs[0:nmodels-1]) / total(light_weight)
 
 ; structure containing fit coefs
 coefs = {tauv: fitcoefs[0:nmodels-1], tauv_err: perror[0:nmodels-1], $
-         light_frac: fitcoefs[nmodels:*], light_frac_err: perror[nmodels:*], $
+         light_frac: fitcoefs[nmodels:*]*flux_factor, light_frac_err: perror[nmodels:*]*flux_factor, $
          model_age: model.age, chisq: chisq, $
          redchi: redchi, bluechi: bluechi, hkchi: hkchi, $
-         MMWA: MMWA, MLWA: MLWA, SNR: SNR}
+         MMWA: MMWA, MLWA: MLWA, MMWT: MMWT, MLWT: MLWT, SNR: SNR}
 
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
@@ -221,7 +225,7 @@ vline, hklow, color=!gray, linestyle=2
 vline, hkhigh, color=!gray, linestyle=2
 
 for i=0, nmodels - 1 do begin
-   yi = fitcoefs[i+nmodels] * custom_lib[*,i] * $
+   yi = fitcoefs[i+nmodels] * flux_factor * custom_lib[*,i] * $
          exp(-fitcoefs[i]*(restwl/5500.0)^(-0.7))
     oplot, restwl, smooth(yi,smoothkern), color = !lblue, thick=thick, linestyle=0, /t3d
     ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
@@ -244,7 +248,9 @@ oplot, restwl, smooth(masked,smoothkern,/NAN), color=!green, thick=thick, /t3d
 
 oplot, restwl, smooth(yfit,smoothkern), color = !red, thick=thick, /t3d
 
-if status ge 5 then $
+if status eq 5 then $
+    xyouts, 0.20, 0.9, "MAXITER", charsize = 2, color = !red, /norm, /t3d
+if status ge 6 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
  
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
@@ -275,11 +281,16 @@ xyouts, 0.4, 0.86, 'bluChi = ' + string(bluechi, format = '(F8.2)'), $
         /norm, /t3d
 xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
         /norm, /t3d
+xyouts, 0.4, 0.82, 'MMWT = ' + string(MMWT, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.4, 0.80, 'MLWT = ' + string(MLWT, format = '(F8.2)'), $
+        /norm, /t3d
 
 print, MLWA
 
+xyouts, 0.85, 0.56, '*', /norm, /t3d
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
-   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i], ', ', coefs.tauv[i],$
+   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', light_weight[i], ', ', coefs.tauv[i],$
                                       format='(F6.3,A2,F10.3,A2,F10.3)'), $
            charsize=0.6, alignment=0.0, /norm, /t3d
 endfor

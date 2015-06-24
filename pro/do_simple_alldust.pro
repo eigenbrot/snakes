@@ -66,15 +66,15 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages*2 + 2)+'E13.3,F12.3,4F12.3,F10.3)'
+fmt = '(I11,'+string(numages*2 + 4)+'E13.3,F12.3,4F12.3,F10.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,tauarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-        format='(A-11,'+string(numages*2 + 2)+'A13,5A12,A10)'
+        'MMWT','MLWT','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
+        format='(A-11,'+string(numages*2 + 4)+'A13,5A12,A10)'
 printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
@@ -102,7 +102,7 @@ fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
 outputarray = {TAUV: dblarr(10), TAUV_ERR: dblarr(10), LIGHT_FRAC: dblarr(10),$
                LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
-               MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
+               MMWA: 0.0D, MLWA: 0.0D, MMWT: 0.0D, MLWT: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -110,7 +110,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1 DO BEGIN
+for i = 0, 0 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -182,8 +182,8 @@ for i = 0, numfibers - 1 DO BEGIN
    ;; MLWA = total(light_weight * agearr) / total(light_weight)
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.tauv, coef.MMWA, coef.MLWA,$
-           coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,$
-           format=fmt
+           coef.MMWT, coef.MLWT, coef.SNR, coef.chisq, coef.redchi, $
+           coef.bluechi, coef.hkchi, metal, format=fmt
 
 ENDFOR
 

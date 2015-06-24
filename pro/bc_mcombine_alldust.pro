@@ -37,7 +37,7 @@ e_tau_lam = exp(klam # (-1*a[0:9]))
 
 ; Create a linear combination of the templates
 
-y = (mlib * e_tau_lam) # a[10:*]
+y = (mlib * e_tau_lam) # (a[10:*] * 100.)
 
 
 if n_elements(savestep) eq 0 then savestep = 0
