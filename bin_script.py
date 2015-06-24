@@ -106,7 +106,7 @@ def step2b(mincol=15):
         bdx = np.argmin(tmp[:,:,mincol],axis=0)
         for i in range(tmp.shape[1]):
             f.write('{:5.3f} {:}\n'.format(fraclist[bdx[i]], modellist[bdx[i]]))
-            
+        f.close()
         del tmp
 
     return
