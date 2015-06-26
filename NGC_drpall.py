@@ -17,19 +17,21 @@ def create_yanny(pointing, output):
                              ('r','f4'),
                              ('z','f4'),
                              ('SN','f4'),
-                             ('gbu','i'),
+                             ('ur_gbu','i'),
                              ('ur_age','f4'),
                              ('ur_Av','f4'),
                              ('ur_Z','f4'),
                              ('ur_chisq','f4'),
                              ('ur_redchi','f4'),
                              ('ur_bluechi','f4'),
+                             ('at_gbu','i'),
                              ('at_age','f4'),
                              ('at_Av','f4'),
                              ('at_Z','f4'),
                              ('at_chisq','f4'),
                              ('at_redchi','f4'),
                              ('at_bluechi','f4'),
+                             ('az_gbu','i'),
                              ('az_age','f4'),
                              ('az_Av','f4'),
                              ('az_Z','f4'),
@@ -94,25 +96,27 @@ def create_yanny(pointing, output):
 #  4) r: Radius (in kpc) of aperture from the center of the galaxy
 #  5) z: Height (in kpc) of aperture above the midplane of the galaxy
 #  6) SN: Final signal to noise ratio of the binned aperture
-#  7) gbu: Quality flag. 0=good, 1=bad fit, 2=ugly for some other reason
+#  7) ur_gbu: Unreg quality flag. 0=good, 1=bad fit, 2=ugly for other reason
 #  8) ur_age: MLWA from unreg fit, in Gyr
 #  9) ur_Av: Av from unreg fit
 # 10) ur_Z: Best metallicity (in chisq sense) of unreg fit
 # 11) ur_chisq: Full, reduced chisq value from best unreg fit
 # 12) ur_redchi: Reduced chisq for 5250 <= lambda <= 6800 from unreg
 # 13) ur_bluechi: Reduced chisq for 3750 <= lambda < 5250 from unreg
-# 14) at_age: MLWA from all_tau fit, in Gyr
-# 15) at_Av: MLWAv all_tau from  fit
-# 16) at_Z: Best metallicity (in chisq sense) of all_tau fit
-# 17) at_chisq: Full, reduced chisq value from best all_tau fit
-# 18) at_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_tau fit
-# 19) at_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_tau fit
-# 20) az_age: MLWA from all_Z2 fit, in Gyr
-# 21) az_Av: Av from all_Z2 fit
-# 22) az_Z: MLWZ from all_Z2 fit
-# 23) az_chisq: Full, reduced chisq value from best all_Z2 fit
-# 24) az_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_Z2 fit
-# 25) az_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_Z2 fit
+# 14) at_gbu: all_tau quality flag. 0=good, 1=bad fit, 2=ugly for other reason
+# 15) at_age: MLWA from all_tau fit, in Gyr
+# 16) at_Av: MLWAv all_tau from  fit
+# 17) at_Z: Best metallicity (in chisq sense) of all_tau fit
+# 18) at_chisq: Full, reduced chisq value from best all_tau fit
+# 19) at_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_tau fit
+# 20) at_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_tau fit
+# 21) az_gbu: all_Z2 quality flag. 0=good, 1=bad fit, 2=ugly for other reason
+# 22) az_age: MLWA from all_Z2 fit, in Gyr
+# 23) az_Av: Av from all_Z2 fit
+# 24) az_Z: MLWZ from all_Z2 fit
+# 25) az_chisq: Full, reduced chisq value from best all_Z2 fit
+# 26) az_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_Z2 fit
+# 27) az_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_Z2 fit
 #
 """.format(pointing, time.asctime()))
         
