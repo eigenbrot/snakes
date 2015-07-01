@@ -274,3 +274,26 @@ def get_allz(pointing, data):
         data['az_bluechi'][i] = bluechi[i]
     
     return data
+
+def update_gbu(parfile, method, ap, gbu):
+
+    if method not in ['ur','at','az']:
+        print 'WARNING: Method not recognized.\nValid methods are ur, az, at'
+        return
+
+    par = yanny(parfile, np=True)
+    with open(parfile,'r') as f:
+        lines = f.readlines()
+        header = [l for l in lines if l[0] == '#']
+        
+    try:
+        par['APINFO']['{}_gbu'.format(method)][ap-1] = gbu
+    except IndexError:
+        print 'WARNING: Could not find ap {} in {}'.format(ap,parfile)
+        return
+
+    with open(parfile,'w') as p:
+        p.writelines(header)
+        par.write(p)
+
+    return
