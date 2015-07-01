@@ -520,10 +520,19 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
         bigmasserr = np.sqrt(
             np.nansum(masserr*(mass - bigmass)**2,axis=0)/
             ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.nansum(masserr,axis=0)))
-    with open('means.dat','w') as fm:
+
+    with open('{}_means.dat'.format(datname.split('.dat')[0]),'w') as fm:
+        fm.write(str('#{:>9}'+'{:>10}'*6+'\n').format('height',
+                                                      'MLWA',
+                                                      'MLWA err',
+                                                      'Av',
+                                                      'Av err',
+                                                      'Z',
+                                                      'Z err'))
+
         for i in range(bigz.size):
-            fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
-                    format(bigz[i],bigage[i],bigerr[i],bigAV[i],bigAVerr[i],bigmetal[i],bigmetalerr[i]))
+              fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
+                       format(bigz[i],bigage[i],bigerr[i],bigAV[i],bigAVerr[i],bigmetal[i],bigmetalerr[i]))
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
