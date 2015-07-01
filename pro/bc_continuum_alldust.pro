@@ -158,7 +158,7 @@ fitcoefs = mpfitfun('bc_mcombine_alldust', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
                     functargs = {mlib: fitlib, savestep: savestep}, $
                     perror=perror, niter=niter, status=status, $
-                    maxiter = 2000, /NAN)
+                    maxiter = 50000, /NAN)
 
 print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
