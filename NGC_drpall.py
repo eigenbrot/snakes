@@ -17,6 +17,8 @@ def create_yanny(pointing, output):
                              ('r','f4'),
                              ('z','f4'),
                              ('SN','f4'),
+                             ('ID_age','f4'),
+                             ('ID_Z','f4'),
                              ('ur_gbu','i'),
                              ('ur_age','f4'),
                              ('ur_Av','f4'),
@@ -40,6 +42,7 @@ def create_yanny(pointing, output):
                              ('az_bluechi','f4')])
 
     data = get_basics(pointing, data)
+    data = get_index(pointing, data)
     data = get_unreg(pointing, data)
     data = get_alltau(pointing, data)
     data = get_allz(pointing, data)
@@ -96,27 +99,29 @@ def create_yanny(pointing, output):
 #  4) r: Radius (in kpc) of aperture from the center of the galaxy
 #  5) z: Height (in kpc) of aperture above the midplane of the galaxy
 #  6) SN: Final signal to noise ratio of the binned aperture
-#  7) ur_gbu: Unreg quality flag. 0=good, 1=bad fit, 2=ugly for other reason
-#  8) ur_age: MLWA from unreg fit, in Gyr
-#  9) ur_Av: Av from unreg fit
-# 10) ur_Z: Best metallicity (in chisq sense) of unreg fit
-# 11) ur_chisq: Full, reduced chisq value from best unreg fit
-# 12) ur_redchi: Reduced chisq for 5250 <= lambda <= 6800 from unreg
-# 13) ur_bluechi: Reduced chisq for 3750 <= lambda < 5250 from unreg
-# 14) at_gbu: all_tau quality flag. 0=good, 1=bad fit, 2=ugly for other reason
-# 15) at_age: MLWA from all_tau fit, in Gyr
-# 16) at_Av: MLWAv all_tau from  fit
-# 17) at_Z: Best metallicity (in chisq sense) of all_tau fit
-# 18) at_chisq: Full, reduced chisq value from best all_tau fit
-# 19) at_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_tau fit
-# 20) at_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_tau fit
-# 21) az_gbu: all_Z2 quality flag. 0=good, 1=bad fit, 2=ugly for other reason
-# 22) az_age: MLWA from all_Z2 fit, in Gyr
-# 23) az_Av: Av from all_Z2 fit
-# 24) az_Z: MLWZ from all_Z2 fit
-# 25) az_chisq: Full, reduced chisq value from best all_Z2 fit
-# 26) az_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_Z2 fit
-# 27) az_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_Z2 fit
+#  7) ID_age: Age from LICK index matching with BC03 models
+#  8) ID_Z: Metallicity from LICK index matching with BC03 models
+#  9) ur_gbu: Unreg quality flag. 0=good, 1=bad fit, 2=ugly for other reason
+#  10) ur_age: MLWA from unreg fit, in Gyr
+# 11) ur_Av: Av from unreg fit
+# 12) ur_Z: Best metallicity (in chisq sense) of unreg fit
+# 13) ur_chisq: Full, reduced chisq value from best unreg fit
+# 14) ur_redchi: Reduced chisq for 5250 <= lambda <= 6800 from unreg
+# 15) ur_bluechi: Reduced chisq for 3750 <= lambda < 5250 from unreg
+# 16) at_gbu: all_tau quality flag. 0=good, 1=bad fit, 2=ugly for other reason
+# 17) at_age: MLWA from all_tau fit, in Gyr
+# 18) at_Av: MLWAv all_tau from  fit
+# 19) at_Z: Best metallicity (in chisq sense) of all_tau fit
+# 20) at_chisq: Full, reduced chisq value from best all_tau fit
+# 21) at_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_tau fit
+# 22) at_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_tau fit
+# 23) az_gbu: all_Z2 quality flag. 0=good, 1=bad fit, 2=ugly for other reason
+# 24) az_age: MLWA from all_Z2 fit, in Gyr
+# 25) az_Av: Av from all_Z2 fit
+# 26) az_Z: MLWZ from all_Z2 fit
+# 27) az_chisq: Full, reduced chisq value from best all_Z2 fit
+# 28) az_redchi: Reduced chisq for 5250 <= lambda <= 6800 from all_Z2 fit
+# 29) az_bluechi: Reduced chisq for 3750 <= lambda < 5250 from all_Z2 fit
 #
 """.format(pointing, time.asctime()))
         
@@ -164,6 +169,24 @@ def get_basics(pointing, data):
         data['z'][i] = z[i]
         data['SN'][i] = SN[i]
         data['vdisp'][i] = vdispd[size[i]]
+
+    return data
+
+def get_index(pointing, data):
+
+    datfile = glob('{}/anal/bc03_index/NGC*P{}*bands_fit.dat'.\
+                   format(basepath, pointing))[0]
+    
+    ap, age, Z = np.loadtxt(datfile,unpack=True)
+
+    for i in range(ap.size):
+        if ap[i] != data['ap'][i]:
+            print 'WARNING: index ap {} does not match data ap {}'.\
+                format(ap[i], data['ap'][i])
+            raw_input('')
+
+        data['ID_age'][i] = age[i]
+        data['ID_Z'][i] = Z[i]
 
     return data
 
