@@ -1,4 +1,5 @@
 import numpy as np
+import bc03_comp as bcc
 import glob
 import time
 from yanny import yanny
@@ -17,8 +18,13 @@ def create_yanny(pointing, output):
                              ('r','f4'),
                              ('z','f4'),
                              ('SN','f4'),
-                             ('ID_age','f4'),
-                             ('ID_Z','f4'),
+                             ('Hb','f4'),
+                             ('HdA','f4'),
+                             ('HgA','f4'),
+                             ('HdF','f4'),
+                             ('HgF','f4'),
+                             ('Fe','f4'),
+                             ('MgFe','f4'),
                              ('ur_gbu','i'),
                              ('ur_age','f4'),
                              ('ur_Av','f4'),
@@ -174,19 +180,36 @@ def get_basics(pointing, data):
 
 def get_index(pointing, data):
 
-    datfile = glob('{}/anal/bc03_index/NGC*P{}*bands_fit.dat'.\
+    datfile = glob('{}/anal/bc03_index/NGC*P{}*bands.dat'.\
                    format(basepath, pointing))[0]
-    
-    ap, age, Z = np.loadtxt(datfile,unpack=True)
+    print 'Getting index info from {}'.format(datfile)
 
-    for i in range(ap.size):
-        if ap[i] != data['ap'][i]:
+    galdata = np.loadtxt(datfile,usecols=(0,1,5,6),
+                         dtype={'names':('aps','bands','index','eqwidth'),
+                         'formats':('S35','S11','f4','f4')})
+
+    aps = np.unique(galdata['aps'])
+    sar = [int(s.split('(')[-1].split(')')[0]) for s in aps]
+    sidx = np.argsort(sar)
+    aps = aps[sidx]
+    sar = np.array(sar)[sidx]
+
+    for i in range(aps.size):
+        if sar[i] != data['ap'][i]:
             print 'WARNING: index ap {} does not match data ap {}'.\
-                format(ap[i], data['ap'][i])
+                format(sar[i], data['ap'][i])
             raw_input('')
 
-        data['ID_age'][i] = age[i]
-        data['ID_Z'][i] = Z[i]
+        idx = np.where(galdata['aps'] == aps[i])
+        bands = bcc.eat_index(galdata['index'][idx])
+
+        data['Hb'][i] = bands[0]
+        data['HdA'][i] = bands[1]
+        data['HgA'][i] = bands[2]
+        data['HdF'][i] = bands[3]
+        data['HgF'][i] = bands[4]
+        data['Fe'][i] = bands[5]
+        data['MgFe'][i] = bands[6]
 
     return data
 

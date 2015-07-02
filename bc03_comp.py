@@ -1,6 +1,8 @@
 from glob import glob
 import numpy as np
 import pyfits
+from yanny import yanny
+import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -168,32 +170,73 @@ def plot_bc03_grid(bc03_data_file, ax, band1, band2):
     bc03data = pyfits.open(bc03_data_file)[0].data
     numages, numZ, numindex = bc03data.shape
 
-    for a in range(numages):
-        ax.plot(bc03data[a,:,band1],bc03data[a,:,band2],'-k')
-        ax.text(bc03data[a,-1,band1],bc03data[a,-1,band2],'{:4.1f} Gyr'.format(agelist[a]),fontsize=6,ha='right')
+    idx = np.where(agelist >= 0.3)[0]
+
+    for a in range(numages - 3):
+        # ax.plot(np.log10(bc03data[a+3,:,band1]),
+        #         np.log10(bc03data[a+3,:,band2]),
+        #         '-k')
+        # ax.text(np.log10(bc03data[a+3,-1,band1]),
+        #         np.log10(bc03data[a+3,-1,band2]),
+        #         '{:4.1f} Gyr'.format(agelist[a+3]),fontsize=6,ha='right')
+        ax.plot(bc03data[a+3,:,band1],
+                bc03data[a+3,:,band2],
+                '-k')
+        ax.text(bc03data[a+3,-1,band1],
+                bc03data[a+3,-1,band2],
+                '{:4.1f} Gyr'.format(agelist[a+3]),fontsize=8,ha='right')
     
     for z in range(numZ):
-        ax.plot(bc03data[:,z,band1],bc03data[:,z,band2],':k')
-        ax.text(bc03data[-1,z,band1],bc03data[-1,z,band2],'{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6)
+        # ax.plot(np.log10(bc03data[idx,z,band1]),
+        #         np.log10(bc03data[idx,z,band2]),
+        #         ':k')
+        # ax.text(np.log10(bc03data[idx[-1],z,band1]),
+        #         np.log10(bc03data[idx[-1],z,band2]),
+        #         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6)
+        ax.plot(bc03data[idx,z,band1],
+                bc03data[idx,z,band2],
+                ':k')
+        ax.text(bc03data[idx[-1],z,band1],
+                bc03data[idx[-1],z,band2],
+                '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8)
 
     return
 
-def plot_index_grid(bc03_data_file,data_file):
+def plot_yanny_on_grid(parfile, ax, band1, band2):
 
-    fig = plt.figure()
+    par = yanny(parfile,np=True)
     
+    scat = ax.scatter(par['APINFO'][band1], par['APINFO'][band2],
+                      c=par['APINFO']['z'], linewidths=0,
+                      cmap=plt.cm.gnuplot2)
+    
+    return scat
+
+def plot_index_grid(bc03_data_file,data_file,output):
+    
+    fig = plt.figure(figsize=(12,11))
+    
+    bandlist = ['Hb','HdA','HgA','HdF','HgF','Fe','MgFe']
+
     ab = ['<Fe>','<MgFe>']
     o = [r'$H\beta$',r'$H_{\delta,A}$','$H_{\gamma,A}$']
 
+    axes = []
     for p in range(6):
         ax = fig.add_subplot(3,2,p+1)
+        axes.append(ax)
         plot_bc03_grid(bc03_data_file,ax,
                        5 + (p % 2),
                        p/2)
+        scat = plot_yanny_on_grid(data_file,ax,
+                                  bandlist[5 + (p % 2)],
+                                  bandlist[p/2])
         ax.set_xlabel(ab[p%2])
         ax.set_ylabel(o[p/2])
         ax.set_xlim(0.87,1.05)
-        ax.set_ylim(0.748,1.197)
+        ax.set_ylim(0.728,1.197)
+        # ax.set_xlim(-0.060,0.021)
+        # ax.set_ylim(-0.138,0.078)
         if p < 4:
             ax.set_xticklabels([])
             ax.set_xlabel('')
@@ -202,4 +245,13 @@ def plot_index_grid(bc03_data_file,data_file):
             ax.set_ylabel('')
 
     fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
-    return fig
+    
+    cb = fig.colorbar(scat,ax=axes)
+    cb.set_label('z [kpc]')
+    fig.suptitle('{}\nGenerated on {}'.format(data_file,time.asctime()))
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+    return 
