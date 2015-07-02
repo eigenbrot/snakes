@@ -240,6 +240,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
         ax = GPP.plot(data,
                       ax=ax,
                       binheader=binhead,
+                      plotbins=False,
                       figsize=(8,4),
                       fitsfile=\
                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',

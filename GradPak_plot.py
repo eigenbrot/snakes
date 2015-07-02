@@ -176,6 +176,21 @@ def get_binned_patches(header):
 
     return np.array(patch_list)
 
+def fill_fibers_with_bins(header, values):
+
+    newvalues = np.zeros(109)
+    for i in range(109):
+        
+        try:
+            fibers = header['BIN{:03}F'.format(i+1)]
+        except KeyError:
+            break
+
+        for f in fibers.split():
+            newvalues[int(f)-1] = values[i]
+
+    return newvalues
+
 def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.,
                       refpatches=None):
     '''
@@ -323,7 +338,7 @@ def prep_axis(fitsfile = None, invert = True, sky = False, imrot = False,
     return ax, hdu
 
 def prep_patches(values,
-                 binheader = None,
+                 binheader = None, plotbins = False,
                  hdu = None, pa = 0, center = [0,0], reffiber = 105,
                  sky = False, exclude = []):
     '''
@@ -352,12 +367,13 @@ def prep_patches(values,
 
         refcenter - The pixel center of the reference fiber
     '''
-    if binheader is not None:
-        patches = get_binned_patches(binheader)
-        refpatches = GradPak_patches()
-    else:
+    if binheader is None or plotbins is False:
         patches = GradPak_patches()
         refpatches = None
+    else:
+        patches = get_binned_patches(binheader)
+        refpatches = GradPak_patches()
+
     skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108] 
     if hdu:
         scale = 2./((np.abs(hdu.header['CDELT1']) + \
@@ -375,15 +391,18 @@ def prep_patches(values,
         else:
             refpatches = wcs2pix(refpatches, hdu.header)
 
-    if binheader is None:
+    if binheader is None or plotbins is False:
         refpatches = patches
     refcenter = refpatches[reffiber - 1,1].center # in px
     
-    if not sky and binheader is None:
+    if not sky and (binheader is None or plotbins is False):
         exclude = np.r_[skyidx,np.array(exclude)-1] #-1 needed because fiber
                                                     #numbers start at 1
     else:
         exclude = np.array(exclude) - 1
+
+    if binheader is not None and plotbins is False:
+        values = fill_fibers_with_bins(binheader, values)
 
     exclude = np.array(exclude)
     exclude = np.unique(exclude) #in case the user specified some sky fibers
@@ -394,7 +413,7 @@ def prep_patches(values,
 
     return patches, pval, refcenter
 
-def plot(values, binheader = None,
+def plot(values, binheader = None, plotbins = False,
          ax = None, figsize = (8,8),
          fitsfile = None, imrot = False, wcsax = True, invert=True,
          pa = 0, center = [0,0], reffiber = 105, 
@@ -486,6 +505,7 @@ def plot(values, binheader = None,
         ax = tmpax
   
     patches, pval, refcenter = prep_patches(values, binheader=binheader,
+                                            plotbins = plotbins,
                                             hdu = hdu, pa = pa, 
                                             center = center,
                                             reffiber = reffiber,
