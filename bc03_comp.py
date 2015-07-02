@@ -138,10 +138,68 @@ def eat_index(index):
     #5 Fe5270
     #6 Fe5335
     #7 HB
-    
+    #
+    # Output is:
+    # 0 HB
+    # 1 HdA
+    # 2 HgA
+    # 3 HdF
+    # 4 HgF
+    # 5 <Fe>
+    # 6 <MgFe>
+
     FeAvg = 0.5*(index[5] + index[6])
     MgFe = np.sqrt(index[4]*(0.72*index[5] + 0.28*index[6]))
     
     return np.array([index[7], index[0], index[1], 
                      index[2], index[3], 
                      FeAvg, MgFe])
+
+def plot_bc03_grid(bc03_data_file, ax, band1, band2):
+
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    fraclist = np.sort(fraclist)
+    
+    agelist = np.array([  5.01186000e+06,   2.51188000e+07,   1.01518000e+08,
+                          2.86119008e+08,   6.40542976e+08,   9.04792000e+08,
+                          1.43400000e+09,   2.50000000e+09,   5.00000000e+09,
+                          1.00000000e+10])/1e9
+
+    bc03data = pyfits.open(bc03_data_file)[0].data
+    numages, numZ, numindex = bc03data.shape
+
+    for a in range(numages):
+        ax.plot(bc03data[a,:,band1],bc03data[a,:,band2],'-k')
+        ax.text(bc03data[a,-1,band1],bc03data[a,-1,band2],'{:4.1f} Gyr'.format(agelist[a]),fontsize=6,ha='right')
+    
+    for z in range(numZ):
+        ax.plot(bc03data[:,z,band1],bc03data[:,z,band2],':k')
+        ax.text(bc03data[-1,z,band1],bc03data[-1,z,band2],'{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6)
+
+    return
+
+def plot_index_grid(bc03_data_file,data_file):
+
+    fig = plt.figure()
+    
+    ab = ['<Fe>','<MgFe>']
+    o = [r'$H\beta$',r'$H_{\delta,A}$','$H_{\gamma,A}$']
+
+    for p in range(6):
+        ax = fig.add_subplot(3,2,p+1)
+        plot_bc03_grid(bc03_data_file,ax,
+                       5 + (p % 2),
+                       p/2)
+        ax.set_xlabel(ab[p%2])
+        ax.set_ylabel(o[p/2])
+        ax.set_xlim(0.87,1.05)
+        ax.set_ylim(0.748,1.197)
+        if p < 4:
+            ax.set_xticklabels([])
+            ax.set_xlabel('')
+        if p % 2 == 1:
+            ax.set_yticklabels([])
+            ax.set_ylabel('')
+
+    fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
+    return fig
