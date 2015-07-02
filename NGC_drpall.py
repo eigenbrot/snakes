@@ -93,16 +93,16 @@ def create_yanny(pointing, output):
 # Data table entries:
 #  1) ap: The aperture number.
 #  2) apsize: The size of the fibers combined into the aperture, in arcsec.
-              Note that this is NOT the size of the final aperture.
+#             Note that this is NOT the size of the final aperture.
 #  3) vdisp: The resolution (in km/s) of the aperture. Different fiber sizes
-             produce different resolutions.
+#            produce different resolutions.
 #  4) r: Radius (in kpc) of aperture from the center of the galaxy
 #  5) z: Height (in kpc) of aperture above the midplane of the galaxy
 #  6) SN: Final signal to noise ratio of the binned aperture
 #  7) ID_age: Age from LICK index matching with BC03 models
 #  8) ID_Z: Metallicity from LICK index matching with BC03 models
 #  9) ur_gbu: Unreg quality flag. 0=good, 1=bad fit, 2=ugly for other reason
-#  10) ur_age: MLWA from unreg fit, in Gyr
+# 10) ur_age: MLWA from unreg fit, in Gyr
 # 11) ur_Av: Av from unreg fit
 # 12) ur_Z: Best metallicity (in chisq sense) of unreg fit
 # 13) ur_chisq: Full, reduced chisq value from best unreg fit
@@ -142,7 +142,7 @@ def get_numaps(pointing):
 
 def get_basics(pointing, data):
 
-    datfile = glob('{}/anal/unreg/good/multi_Z/NGC*P{}*_fit.dat'.\
+    datfile = glob('{}/anal/unreg/blue_chi/multi_Z/NGC*P{}*_fit.dat'.\
                    format(basepath, pointing))[0]
     locfile = glob('{}/bin/NGC*P{}*_locations.dat'.\
                    format(basepath, pointing))[0]
@@ -192,7 +192,7 @@ def get_index(pointing, data):
 
 def get_unreg(pointing, data):
 
-    datfile = glob('{}/anal/unreg/good/multi_Z/NGC*P{}*_fit.dat'.\
+    datfile = glob('{}/anal/unreg/blue_chi/multi_Z/NGC*P{}*_fit.dat'.\
                    format(basepath, pointing))[0]
     
     print 'Getting unreg info from {}'.format(datfile)
@@ -220,7 +220,7 @@ def get_unreg(pointing, data):
 
 def get_alltau(pointing, data):
 
-    datfile = glob('{}/anal/all_tau/multi_Z/NGC*P{}*_fit.dat'.\
+    datfile = glob('{}/anal/all_tau/longblue/multi_Z/NGC*P{}*_bluefit.dat'.\
                    format(basepath, pointing))[0]
     
     print 'Getting all_tau info from {}'.format(datfile)
@@ -248,7 +248,7 @@ def get_alltau(pointing, data):
 
 def get_allz(pointing, data):
 
-    datfile = glob('{}/anal/all_Z2/NGC*P{}*_allz2.dat'.\
+    datfile = glob('{}/anal/all_Z2/bluefit/NGC*P{}*_blue.dat'.\
                    format(basepath, pointing))[0]
     
     print 'Getting all_Z info from {}'.format(datfile)
@@ -297,3 +297,4 @@ def update_gbu(parfile, method, ap, gbu):
         par.write(p)
 
     return
+
