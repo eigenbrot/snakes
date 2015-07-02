@@ -180,7 +180,7 @@ def plot_heights(inputfile, outputfile, title=''):
 
     return
 
-def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
+def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibers=False,
              label='Mean Light Weighted Age [Gyr]', log=False,
              minval = None, maxval = None, exclude = None, binned=False):
 
@@ -198,7 +198,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
         exclude = [[],[],[],[],[],[]]
     for i in range(6):
         print i
-        inputfile = glob('{}*P{}*fit.dat'.format(inputprefix,i+1))[0]
+        inputfile = glob('{}*P{}*{}.dat'.format(inputprefix,i+1,inputsuffix))[0]
         print inputfile
 
         if binned:
@@ -217,6 +217,11 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
             label = 'Mean Mass Weighted Age [Gyr]'
             minval = 0#np.nanmin(data)#7
             maxval = 10#np.nanmax(data)#10
+        elif col == 13:
+            label = '$A_V$'
+            data *= 1.086
+            minval = 0
+            maxval = 6
         elif col==19:
             data = np.log10(data)
             label = r'Log( Metallicity [$Z_{\odot}$] )'
@@ -224,10 +229,13 @@ def all_maps(output,col=12,inputprefix='NGC_891',labelfibers=False,
             # norm = mplcolors.BoundaryNorm([0,0.005,0.02,0.2,0.4,1,2.5], cmap.N)
             minval = -4
             maxval = 1
+        elif col==65:
+            data *= 1.086
         
         if log:
             data = np.log10(data)
-            label = 'Log( {} )'.format(label)
+            if i == 0:
+                label = 'Log( {} )'.format(label)
         print 'excluding', exclude[i]
         ax = GPP.plot(data,
                       ax=ax,
