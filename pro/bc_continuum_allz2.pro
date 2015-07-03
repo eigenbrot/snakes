@@ -147,19 +147,23 @@ endif else begin
    fitlib = custom_lib[ok,*]
 endelse
 
-if savestep eq 1 then $
-   savestep = {flux: fitflux,$
+if savestep eq 1 then begin
+   savedata = {flux: fitflux,$
                err: fiterr, $
                agearr: model.age/1e9, $
+               Z: model.Z, $
                norm: model.norm, $
                lightidx: lightidx, $
                lun: lun, $
                wave: fitwave, $
                fmt: fmt}
+endif else begin
+   savedata = 0
+endelse
 
 fitcoefs = mpfitfun('bc_mcombine_allZ2', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
-                    functargs = {mlib: fitlib, savestep: savestep}, $
+                    functargs = {mlib: fitlib, savedata: savedata}, $
                     perror=perror, niter=niter, status=status, $
                     errmsg=errmsg, maxiter = 50000, xtol=1d-10, ftol=1d-10, /NAN)
 
@@ -176,13 +180,15 @@ hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
 yfit = bc_mcombine_allZ2(restwl, fitcoefs, mlib=custom_lib)
 
-chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
+bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
+
+chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
-         (n_elements(redidx) + n_elements(fitcoefs) - 1)
+         (n_elements(redidx) - n_elements(fitcoefs) - 1)
 bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
-          (n_elements(blueidx) + n_elements(fitcoefs) - 1)
+          (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
-        (n_elements(hkidx) + n_elements(fitcoefs) - 1)
+        (n_elements(hkidx) - n_elements(fitcoefs) - 1)
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 
@@ -206,7 +212,7 @@ coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
          light_frac: fitcoefs[1:*]*light_factor, light_frac_err: perror[1:*]*light_factor, $
          model_age: model.age, chisq: chisq, $
          redchi: redchi, bluechi: bluechi, hkchi: hkchi, $
-         MMWA: MMWA, MLWA: MLWA, MMWZ: MMWZ, MLWZ: MLWZ, SNR: SNR}
+         bluefree: bluefree, MMWA: MMWA, MLWA: MLWA, MMWZ: MMWZ, MLWZ: MLWZ, SNR: SNR}
 
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
