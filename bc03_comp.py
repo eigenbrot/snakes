@@ -207,8 +207,8 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     par = yanny(parfile,np=True)
     
     scat = ax.scatter(par['APINFO'][band1], par['APINFO'][band2],
-                      c=par['APINFO']['z'], linewidths=0,
-                      cmap=plt.cm.gnuplot2)
+                      c=np.abs(par['APINFO']['z']), s=40, linewidths=0,
+                      alpha=0.7, cmap=plt.cm.gnuplot2)
     
     return scat
 
