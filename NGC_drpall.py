@@ -321,3 +321,24 @@ def update_gbu(parfile, method, ap, gbu):
 
     return
 
+def multi_update(parfile, method, numaps, start=1):
+
+    print parfile
+    for i in range(start-1, numaps):
+        
+        scratch = raw_input('gbu for {} in aperture {}: '.format(method, i+1))
+
+        try:
+            gbu = int(scratch)
+        except Exception as e:
+            print 'Error:', e
+            return
+            
+        if gbu not in [0,1,2]:
+            print 'gbu must be 0, 1, or 2'
+            return
+            
+        update_gbu(parfile, method, i + 1, gbu)
+
+    print 'All done'
+    return
