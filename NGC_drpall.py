@@ -2,6 +2,7 @@ import numpy as np
 import bc03_comp as bcc
 import glob
 import time
+import re
 from yanny import yanny
 glob = glob.glob
 
@@ -342,3 +343,17 @@ def multi_update(parfile, method, numaps, start=1):
 
     print 'All done'
     return
+
+def write_gbu(parfile):
+
+    backupfile = re.sub(r'\.drp\.par',r'.gbu_backup',parfile)
+    par = yanny(parfile,np=True)
+
+    with open(backupfile, 'w') as f:
+        f.write('#{:2}{:>4}{:>4}\n'.format('ap','ur','az'))
+        for ap in par['APINFO']:
+            f.write('{:3n}{:4n}{:4n}\n'.format(ap['ap'],
+                                               ap['ur_gbu'],
+                                               ap['az_gbu']))
+
+    
