@@ -3,7 +3,7 @@ pro do_simple_allZ2, datafile, errorfile, output, location=location, $
                     model=model, plot=plot, bluefit=bluefit,$
                     wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                     lightmax=lightmax, multimodel=multimodel, savestep=savestep
-
+defplotcolors
 ; read in models
 if keyword_set(multimodel) then begin
    readcol, model, metals, models, format='F,A'
@@ -64,7 +64,7 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages + 4)+'F13.3,2F11.3,4E14.3)'
+fmt = '(I11,'+string(numages + 4)+'F13.3,2F11.3,4E25.17)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
@@ -73,7 +73,7 @@ printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
         'redChi','blueChi','HKChi',$
-        format='(A-11,'+string(numages + 4)+'A13,2A11,4A14)'
+        format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -125,7 +125,7 @@ for i = 0, numfibers - 1 DO BEGIN
       print, 'Using mode '+models[i]
    endif
 
-   if savestep eq 1 then begin
+   if keyword_set(savestep) then begin
       savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i,format='(I02)') + '_steps.dat'
       openw, savelun, savename, /get_lun
       printf, savelun, '# Generated on ',systime()
@@ -135,9 +135,10 @@ for i = 0, numfibers - 1 DO BEGIN
       printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
               'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
               'redChi','blueChi','HKChi',$
-              format='(A-11,'+string(numages + 4)+'A13,2A11,4A14)'
+              format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
       printf, lun, '#'
    endif else begin
+      savestep = 0
       savelun = 0
    endelse
 
@@ -150,7 +151,7 @@ for i = 0, numfibers - 1 DO BEGIN
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt)
    
-   close, savelun
+   if savestep then close, savelun
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
 ;;    mcoef = absline_index(wave, continuum, tag='_model') ; measure off model
@@ -172,6 +173,7 @@ for i = 0, numfibers - 1 DO BEGIN
    ;; print, size(outputarray[i].redchi, /type), size(coef.redchi, /type)
    ;; print, size(outputarray[i].bluechi, /type), size(coef.bluechi, /type)
 
+   print, coef.bluefree
    outputarray[i] = coef
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
@@ -186,10 +188,10 @@ for i = 0, numfibers - 1 DO BEGIN
    ;;                     dimension=1) * coef.light_frac
    ;; MLWA = total(light_weight * agearr) / total(light_weight)
 
-   ;; if i eq 0 then begin
-   ;;    printf, lun, '# Blue_free: ', coef.bluefree
-   ;;    printf, lun, '#'
-   ;; endif
+   if i eq 0 then begin
+      printf, lun, '# Blue_free: ', coef.bluefree
+      printf, lun, '#'
+   endif
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, $
            coef.MLWA, coef.MMWZ, coef.MLWZ, coef.tauv, coef.SNR, $

@@ -217,7 +217,7 @@ coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
 
-defplotcolors
+;defplotcolors
 smoothkern = 5
 
 blueymax = max(yfit[blueidx]) / 0.8
