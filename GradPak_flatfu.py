@@ -67,7 +67,7 @@ def scale_images(hdulist):
     '''
     exptimes = [h.header['EXPTIME'] for h in hdulist]
     scales = exptimes[0]/np.array(exptimes)
-
+    
     print 'Scaling flats...'
     for h, scale in zip(hdulist, scales):
         print '\t{} {}'.format(h.header['OBJECT'],scale)
@@ -75,6 +75,25 @@ def scale_images(hdulist):
         h.header['EXPTIME'] *= scale
 
     return hdulist
+
+def scale_spectra(imagelist):
+
+    fiber1 = 44
+    fiber2 = 62
+
+    hdulist = [pyfits.open(image)[0] for image in imagelist]
+    means = [np.mean(h.data[fiber1 - 1:fiber2 - 1,:]) for h in hdulist]
+    print means
+    scales = means[0]/np.array(means)
+
+    print 'Scaling extracted flats...'
+    outputnames = ['{}_scale.ms.fits'.format(image.split('.ms.fits')[0]) for image in imagelist]
+    for h, scale, name in zip(hdulist, scales, outputnames):
+        print '\t{} {}'.format(name, scale)
+        h.data *= scale
+        h.writeto(name,clobber=True)
+
+    return outputnames
 
 def setup_files(flatlist):
     '''
@@ -89,7 +108,7 @@ def setup_files(flatlist):
     print 'Writing flats...'
     for h, flat in zip(hdulist, flatlist):
         newname = '{}_scale.fits'.format(flat.split('.fits')[0])
-        print '\t{}'.format(newname)
+        print '\t{}'.format(newname), np.mean(h.data[:,3:70]/hdulist[0].data[:,3:70])
         h.writeto(newname,clobber=True)
         scalednames.append(newname)
         
@@ -363,13 +382,15 @@ def main():
         return 1
 
     '''Run the script'''
-    sl = setup_files(flat_list)
-    msl, scales = initial_run(sl, traceflat, throughput, fitflat)
+    # sl = setup_files(flat_list)
+    make_tmp(pyfits.open(flat_list[0])[0])
+    msl, scales = initial_run(flat_list, traceflat, throughput, fitflat)
     if not msl:
         '''Here is where we catch IRAF being bad'''
         msl, scales = initial_run(sl, traceflat, throughput, fitflat)
-    outstring = get_scrunch(sl[0],msl[0])
+    outstring = get_scrunch(flat_list[0],msl[0])
     mean_scale(msl,scales)
+    msl = scale_spectra(msl)
     master = stitch_flats(msl,pivot_list,outstring)
     normalize(master)
 
@@ -390,8 +411,9 @@ if __name__ == '__main__':
         sys.exit(1)
     elif sys.argv[1] == '-h':
         sys.exit(print_help())
-    try:
-        sys.exit(main())
-    except Exception as e:
-        print "The request was made but it was not good"
-        sys.exit(1)
+    # try:
+    #     sys.exit(main())
+    # except Exception as e:
+    #     print "The request was made but it was not good"
+    #     sys.exit(1)
+    sys.exit(main())
