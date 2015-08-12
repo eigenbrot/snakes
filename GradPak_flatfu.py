@@ -130,7 +130,7 @@ def make_tmp(hdu):
 
     return
 
-def initial_run(scalednames,traceflat,throughput='',fitflat=True):
+def initial_run(scalednames,traceflat,throughput=''):
     '''
     Use dohydra to extract .ms multispec files from the input flat
     fields. This is done so that we can stitch them back together in
@@ -160,7 +160,7 @@ def initial_run(scalednames,traceflat,throughput='',fitflat=True):
                          maxsep=10,
                          apidtable=APIDTABLE,
                          scatter=False,
-                         fitflat=fitflat,
+                         fitflat=False,
                          clean=False,
                          dispcor=False,
                          savearc=False,
@@ -285,6 +285,15 @@ def mean_scale(mslist,scalelist):
 
     return
 
+def fit_flat(mastername):
+
+    print 'Dividing out average spectrum'
+    h = pyfits.open(mastername)[0]
+    h.data /= np.mean(h.data,axis=0)
+    h.writeto(mastername,clobber=True)
+
+    return
+
 def normalize(mastername):
     '''
     Take the name of a fits file and normalize it so the mean over all pixels is 1. The input file is overwritten.
@@ -384,14 +393,16 @@ def main():
     '''Run the script'''
     # sl = setup_files(flat_list)
     make_tmp(pyfits.open(flat_list[0])[0])
-    msl, scales = initial_run(flat_list, traceflat, throughput, fitflat)
+    msl, scales = initial_run(flat_list, traceflat, throughput)
     if not msl:
         '''Here is where we catch IRAF being bad'''
-        msl, scales = initial_run(sl, traceflat, throughput, fitflat)
+        msl, scales = initial_run(sl, traceflat, throughput)
     outstring = get_scrunch(flat_list[0],msl[0])
     mean_scale(msl,scales)
     msl = scale_spectra(msl)
     master = stitch_flats(msl,pivot_list,outstring)
+    if fitflat:
+        fit_flat(master)
     normalize(master)
 
     '''Finally, set some IRAF parameters to make it easier to run dohydra with
