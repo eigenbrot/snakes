@@ -361,7 +361,7 @@ def main():
     if comb:
         return combine_err(*opt)
     else:
-        return propagate(*opt)
+        return propagate(opt)
 
 if __name__ == '__main__':
     
