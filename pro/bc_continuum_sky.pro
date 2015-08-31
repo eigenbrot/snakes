@@ -73,7 +73,7 @@ parinfo[0].limited = [1,1]
 parinfo[0].limits = [0,20.0]
 parinfo[1:*].limited = [1,0]
 parinfo[1:*].limits = [0,0]
-parinfo[1].value = 1.0
+;parinfo[1].value = 1.0
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 
@@ -179,7 +179,9 @@ print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 
 ; fit to full spectrum including masked pixels
 
-yfit = bc_mcombine(restwl, fitcoefs, mlib=custom_lib)
+yfit = bc_mcombine_sky(restwl, fitcoefs, mlib=custom_lib)
+
+skyfit = custom_lib[*,0] * fitcoefs[1] * 1000
 
 chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
@@ -231,9 +233,8 @@ vline, 5250., color=!gray, linestyle=2
 vline, hklow, color=!gray, linestyle=2
 vline, hkhigh, color=!gray, linestyle=2
 
-ysky = fitcoefs[1] * custom_lib[*,0] * $
-         exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
-oplot, restwl, smooth(ysky, smoothkern), color = !green, thick=thick, linestyle=0
+ysky = fitcoefs[1] * custom_lib[*,0]
+;oplot, restwl, smooth(ysky, smoothkern), color = !green, thick=thick, linestyle=0
 
 for i=1, nmodels - 1 do begin
    yi = fitcoefs[i+1] * custom_lib[*,i] * $
@@ -246,7 +247,7 @@ for i=1, nmodels - 1 do begin
 endfor
 
 errsmooth = 5
-oband, restwl[0:*:errsmooth], (flux-err)[0:*:errsmooth], (flux+err)[0:*:errsmooth], color=!gray
+oband, restwl[0:*:errsmooth], (flux-skyfit-err)[0:*:errsmooth], (flux-skyfit+err)[0:*:errsmooth], color=!gray
 
 ; Show masked regions in green
 galfit = flux  + 'NaN'
@@ -254,8 +255,8 @@ galfit[ok] = flux[ok]
 masked = flux
 masked[ok] = 'NaN'
 thick=1.0
-oplot, restwl, smooth(galfit,smoothkern,/NAN), thick=thick, color=!black, /t3d
-oplot, restwl, smooth(masked,smoothkern,/NAN), color=!green, thick=thick, /t3d
+oplot, restwl, smooth(flux,smoothkern,/NAN), thick=thick, color=!black, /t3d
+;oplot, restwl, smooth(masked,smoothkern,/NAN), color=!green, thick=thick, /t3d
 
 oplot, restwl, smooth(yfit,smoothkern), color = !red, thick=thick, /t3d
 
@@ -294,7 +295,7 @@ xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
 print, MLWA
 
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
-   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i], $
+   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000., $
                                       format='(F6.3,A2,F10.3)'), $
            charsize=0.6, alignment=0.0, /norm, /t3d
 endfor

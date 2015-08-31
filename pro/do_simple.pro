@@ -93,8 +93,8 @@ if n_elements(savefiber) ne 0 then begin
 endif else begin
    savefiber = -1
    savelun = 0
-   startfiber = 0
-   endfiber = numfibers - 1
+   startfiber = 43
+   endfiber = 61;numfibers - 1
 endelse
 
 if keyword_set(plot) then begin
@@ -200,7 +200,7 @@ ENDFOR
 if keyword_set(plot) then dfpsclose
 
 free_lun, lun
-free_lun, savelun
+if savefiber ne -1 then free_lun, savelun
 mwrfits, outputarray, fitsfile, /create
 print, m.norm
 

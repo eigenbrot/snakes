@@ -31,7 +31,7 @@ function bc_mcombine, x, a, mlib=mlib, savestep=savestep
 
 ; Create a linear combination of the templates
 
-y = mlib # a[1:*]
+y = mlib # (a[1:*]*1000.)
 
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)

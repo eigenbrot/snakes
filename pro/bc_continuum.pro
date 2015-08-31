@@ -286,7 +286,7 @@ xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
 print, MLWA
 
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
-   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i], $
+   xyouts, 0.8, 0.55 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000., $
                                       format='(F6.3,A2,F10.3)'), $
            charsize=0.6, alignment=0.0, /norm, /t3d
 endfor

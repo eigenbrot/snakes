@@ -31,7 +31,7 @@ function bc_mcombine_sky, x, a, mlib=mlib, savestep=savestep
 
 ; Create a linear combination of the templates
 
-y = mlib # a[1:*]
+y = mlib[*,1:*] # (a[2:*] * 1000.)
 
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)
@@ -39,6 +39,9 @@ y = mlib # a[1:*]
 klam = (x / 5500.0)^(-0.7)
 e_tau_lam = exp(-a[0] * klam)
 y = y * e_tau_lam
+
+y = y + (mlib[*,0] * a[1] * 1000.)
+
 
 if n_elements(savestep) eq 0 then savestep = 0
 
