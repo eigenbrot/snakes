@@ -95,10 +95,13 @@ em= [3726.03, 3728.82, 3889.05, 3869.06, 4101.73, 4340.46, 4861.33, 4959.91, $
 ;    OIII     He I     OI        NII      Ha       NII      SII      SII 
     5006.84, 5875.67, 6300.30, 6548.04, 6562.82, 6583.41, 6716.44, 6730.81]
 ; bad sky lines
-sk = [5569., 5882.6]
+sk = [6300., 5683.8, 5577., 5461., 5199., 4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047]
+;sk = [5569., 5882.6]
+HPS = 5914.
+HPS_wid = 230.
 
 dz = emmaskw / 3e5 ; clipping interval
-dzsk = 1000. / 3e5
+dzsk = 1500. / 3e5
 
 for ii = 0, n_elements(em) - 1 do begin 
   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
@@ -109,6 +112,9 @@ for ii = 0, n_elements(sk) - 1 do begin
   maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
   if maskout[0] ne -1 then quality[maskout] = 0
 endfor
+
+maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
+if maskout[0] ne -1 then quality[maskout] = 0
 
 ok = where(quality eq 1)
 
