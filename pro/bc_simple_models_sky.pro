@@ -31,7 +31,7 @@ logwl = findgen(npix) * 1e-4 + alog10(3400)
 ; Define output structure
 m = {wave: 10.0^logwl, flux: fltarr(npix, n_elements(age)+1), age: bc03.age, $
      id: string('Z = ',metallicity,', Chabrier IMF',format='(A4,I1,A14)'), $
-     norm: fltarr(n_elements(age)), m_remaining: fltarr(n_elements(age))}
+     skynorm: 0.0D, norm: fltarr(n_elements(age)), m_remaining: fltarr(n_elements(age))}
 
 ; normalization wavelengths
 nwl = where(m.wave gt 5450 and m.wave lt 5550)
@@ -59,7 +59,8 @@ xyouts, 0.5, 0.98, 'SKY', /norm
 hline, median(sspec[nwl])
 vline, m.wave[nwl[0]]
 vline, m.wave[nwl[-1]]
-sspec = sspec / median(sspec[nwl])
+m.skynorm = median(sspec[nwl])
+sspec = sspec / m.skynorm
 m.flux[*,0] = sspec
 
 
