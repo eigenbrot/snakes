@@ -67,10 +67,12 @@ nmodels = n_elements(model.age)
 ; (fitcoefs = [TauV, model_coefs[*]])
 
 parinfo = replicate({value:0.D, fixed:0, limited:[0,0], tied:'', $
-                    limits:[0.0,0]}, nmodels + 2)
+                    limits:[0.0,0]}, nmodels + 3)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [0,20.0]
+parinfo[0].limits = [-300.,300.]
+parinfo[1].limited = [1,1]
+parinfo[1].limits = [0,20.0]
 parinfo[1:*].limited = [1,0]
 parinfo[1:*].limits = [0,0]
 ;parinfo[1].value = 1.0
@@ -187,7 +189,7 @@ print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 
 yfit = bc_mcombine_sky(restwl, fitcoefs, mlib=custom_lib)
 
-skyfit = custom_lib[*,0] * fitcoefs[1] * 1000
+skyfit = custom_lib[*,0] * fitcoefs[2] * 1000
 
 chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
 redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
@@ -203,18 +205,18 @@ bluefree = n_elements(blueidx) - n_elements(fitcoefs) - 1
 
 SNR = mean(flux[lightidx]/err[lightidx])
 
-MMWA = total(model.age/1e9*fitcoefs[2:*]*1./model.norm) $
-          / total(fitcoefs[2:*]*1./model.norm)
+MMWA = total(model.age/1e9*fitcoefs[3:*]*1./model.norm) $
+          / total(fitcoefs[3:*]*1./model.norm)
 
-redd = exp(-fitcoefs[0]*(restwl[lightidx]/5500)^(-0.7))
+redd = exp(-fitcoefs[1]*(restwl[lightidx]/5500)^(-0.7))
 light_weight = mean(custom_lib[lightidx,*] * rebin(redd,n_elements(lightidx),$
                                                    n_elements(model.age)), $
-                    dimension=1) * fitcoefs[2:*]
+                    dimension=1) * fitcoefs[3:*]
 MLWA = total(light_weight * model.age/1e9) / total(light_weight)
 
 ; structure containing fit coefs
-coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
-         light_frac: fitcoefs[2:*], light_frac_err: perror[2:*], $
+coefs = {tauv: fitcoefs[1], tauv_err: perror[1], $
+         light_frac: fitcoefs[3:*], light_frac_err: perror[3:*], $
          skyfrac: 0.0D, model_age: model.age, chisq: chisq, $
          redchi: redchi, bluechi: bluechi, hkchi: hkchi, bluefree: bluefree, $
          MMWA: MMWA, MLWA: MLWA, SNR: SNR}
@@ -242,8 +244,8 @@ vline, hkhigh, color=!gray, linestyle=2
 oplot, restwl, smooth(skyfit, smoothkern), color = !green, thick=thick, linestyle=0
 
 for i=1, nmodels - 1 do begin
-   yi = fitcoefs[i+1] * custom_lib[*,i] * 1000. *$
-         exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
+   yi = fitcoefs[i+2] * custom_lib[*,i] * 1000. *$
+         exp(-fitcoefs[1]*(restwl/5500.0)^(-0.7))
    oplot, restwl, smooth(yi,smoothkern), color = !lblue, thick=thick, linestyle=0, /t3d
     ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
     ;;                         mean(yi[lightidx]),$
@@ -279,7 +281,7 @@ plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (A
 if keyword_set(plotlabel) then $
    xyouts, 0.2, 0.955, plotlabel, color = !black, /norm, /t3d
 
-xyouts, 0.2, 0.90, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
+xyouts, 0.2, 0.90, 'Tau V = ' + string(fitcoefs[1], format = '(F5.2)'), $
         /norm, /t3d
 xyouts, 0.2, 0.88, 'V_disp = ' + string(vdisp, format = '(F8.2)'), $
         /norm, /t3d
@@ -298,13 +300,14 @@ xyouts, 0.4, 0.86, 'bluChi = ' + string(bluechi, format = '(F8.2)'), $
         /norm, /t3d
 xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
         /norm, /t3d
+xyouts, 0.4, 0.82, 'V (km/s) = ' + string(fitcoefs[0], format = '(F8.2)'), /norm, /t3d
 
 print, MLWA
 
 ;sky info
-skyfrac = fitcoefs[1]*1000./model.skynorm/1d17
+skyfrac = fitcoefs[2]*1000./model.skynorm/1d17
 coefs.skyfrac = skyfrac
-xyouts, 0.8, 0.52, string('sky: ',fitcoefs[1]*1000.,fitcoefs[1]*1000./model.skynorm/1d17,$
+xyouts, 0.8, 0.52, string('sky: ',fitcoefs[2]*1000.,fitcoefs[2]*1000./model.skynorm/1d17,$
                           format='(A8,F10.3,F6.2)'),charsize=0.6,alignment=0.0,/norm,/t3d
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
    xyouts, 0.8, 0.50 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000., $
