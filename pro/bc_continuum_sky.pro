@@ -116,7 +116,7 @@ endfor
 maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
 if maskout[0] ne -1 then quality[maskout] = 0
 
-ok = where(quality eq 1)
+ok = where(quality eq quality)
 
 ;-----------------------------------------------------------------------------
 ; Convolve models to velocity dispersion of data and interpolate to
@@ -215,7 +215,7 @@ MLWA = total(light_weight * model.age/1e9) / total(light_weight)
 ; structure containing fit coefs
 coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
          light_frac: fitcoefs[2:*], light_frac_err: perror[2:*], $
-         model_age: model.age, chisq: chisq, $
+         skyfrac: 0.0D, model_age: model.age, chisq: chisq, $
          redchi: redchi, bluechi: bluechi, hkchi: hkchi, bluefree: bluefree, $
          MMWA: MMWA, MLWA: MLWA, SNR: SNR}
 
@@ -227,7 +227,7 @@ smoothkern = 5
 
 blueymax = max(yfit[blueidx]) / 0.8
 ymax = max(yfit) * 1.1
-ymax = max([ymax,blueymax])
+ymax = max([ymax,blueymax,max(flux)*1.1])
 xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
@@ -239,7 +239,7 @@ vline, 5250., color=!gray, linestyle=2
 vline, hklow, color=!gray, linestyle=2
 vline, hkhigh, color=!gray, linestyle=2
 
-oplot, restwl, smooth(skyfit, smoothkern), color = !green, thick=thick, linestyle=2
+oplot, restwl, smooth(skyfit, smoothkern), color = !green, thick=thick, linestyle=0
 
 for i=1, nmodels - 1 do begin
    yi = fitcoefs[i+1] * custom_lib[*,i] * 1000. *$
@@ -265,6 +265,7 @@ oplot, restwl, smooth(masked,smoothkern,/NAN), color=!cyan, thick=thick*4, /t3d
 
 oplot, restwl, smooth(yfit-skyfit,smoothkern), color = !dpink, thick=thick, /t3d
 oplot, restwl, smooth(yfit,smoothkern), color = !red
+oplot, restwl, smooth(flux - skyfit, smoothkern), color = !black, linestyle=2
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
@@ -301,7 +302,9 @@ xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
 print, MLWA
 
 ;sky info
-xyouts, 0.8, 0.52, string('sky: ',fitcoefs[1]*1000.,fitcoefs[1]*1000./model.skynorm/1d17,$$
+skyfrac = fitcoefs[1]*1000./model.skynorm/1d17
+coefs.skyfrac = skyfrac
+xyouts, 0.8, 0.52, string('sky: ',fitcoefs[1]*1000.,fitcoefs[1]*1000./model.skynorm/1d17,$
                           format='(A8,F10.3,F6.2)'),charsize=0.6,alignment=0.0,/norm,/t3d
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
    xyouts, 0.8, 0.50 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000., $
@@ -310,7 +313,6 @@ for i = 0, n_elements(coefs.light_frac) - 1 do begin
 endfor
 
 print, fitcoefs, format = '(15F6.1)'
-
 return, coefs
 
 end

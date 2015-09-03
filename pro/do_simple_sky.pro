@@ -1,6 +1,6 @@
 
 pro do_simple_sky, datafile, errorfile, output, location=location, $
-                   model=model, plot=plot, bluefit=bluefit,$
+                   model=model, plot=plot, bluefit=bluefit, skysub=skysub,$
                    wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                    lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
   
@@ -28,7 +28,7 @@ crpix = float(sxpar(header,'CRPIX1'))
 print, 'CDELT1 = ',cdelt
 print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
-wave = (FINDGEN(wavesize) - crpix) * cdelt + crval
+OGwave = (FINDGEN(wavesize) - crpix) * cdelt + crval
 ;vdisp = 377. ; measured velocity dispersion
 
 if keyword_set(location) then begin
@@ -41,12 +41,12 @@ size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexin
 size_switch = 0
 
 if n_elements(wavemin) eq 0 then $
-   wavemin = min(wave)
+   wavemin = min(OGwave)
 if n_elements(wavemax) eq 0 then $
-   wavemax = max(wave)
+   wavemax = max(OGwave)
 
-idx = where(wave ge wavemin and wave le wavemax)
-wave = wave[idx]
+idx = where(OGwave ge wavemin and OGwave le wavemax)
+wave = OGwave[idx]
 
 if n_elements(lightmin) eq 0 then $
    lightmin = 5450
@@ -104,7 +104,7 @@ endif
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
 outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
-               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
+               LIGHT_FRAC_ERR: dblarr(10), SKYFRAC: 0.0D, MODEL_AGE: dblarr(10),$
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
                BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
@@ -160,6 +160,13 @@ for i = startfiber, endfiber DO BEGIN
                            savestep=savestep, lun=savelun, $
                            lightidx=lightidx, fmt=fmt)
 
+   if keyword_set(skysub) then begin
+      sky = interpol(m.flux[*,0]*m.skynorm, m.wave, OGwave)
+      sky *= coef.skyfrac
+      print, '%%%%%%%%%',mean(data[*,i]), mean(sky)
+      data[*,i] -= sky
+   endif
+
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
 ;;    mcoef = absline_index(wave, continuum, tag='_model') ; measure off model
@@ -198,6 +205,7 @@ for i = startfiber, endfiber DO BEGIN
 ENDFOR
 
 if keyword_set(plot) then dfpsclose
+if keyword_set(skysub) then writefits, skysub, data, header
 
 free_lun, lun
 if savefiber ne -1 then free_lun, savelun
