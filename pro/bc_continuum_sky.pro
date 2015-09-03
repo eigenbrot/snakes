@@ -70,7 +70,7 @@ parinfo = replicate({value:0.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0]}, nmodels + 3)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [-300.,300.]
+parinfo[0].limits = [-10.,10.]
 parinfo[1].limited = [1,1]
 parinfo[1].limits = [0,20.0]
 parinfo[1:*].limited = [1,0]
@@ -97,7 +97,7 @@ em= [3726.03, 3728.82, 3889.05, 3869.06, 4101.73, 4340.46, 4861.33, 4959.91, $
 ;    OIII     He I     OI        NII      Ha       NII      SII      SII 
     5006.84, 5875.67, 6300.30, 6548.04, 6562.82, 6583.41, 6716.44, 6730.81]
 ; bad sky lines
-sk = [6300., 5683.8, 5577., 5461., 5199., 4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047]
+sk = [6300., 5683.8, 5577., 5461., 5199., 4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
 ;sk = [5569., 5882.6]
 HPS = 5914.
 HPS_wid = 230.
@@ -118,7 +118,7 @@ endfor
 maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
 if maskout[0] ne -1 then quality[maskout] = 0
 
-ok = where(quality eq quality)
+ok = where(quality eq 1)
 
 ;-----------------------------------------------------------------------------
 ; Convolve models to velocity dispersion of data and interpolate to
@@ -145,7 +145,7 @@ if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
 ;-------------------------------------------------------------------------------
 if keyword_set(bluefit) then begin
-   fitidx = where(restwl[ok] lt 5250)
+   fitidx = where(restwl[ok] lt 5350 and restwl[ok] gt 4000)
    fitflux = flux[ok[fitidx]]
    fiterr = err[ok[fitidx]]
    fitwave = restwl[ok[fitidx]]
@@ -237,7 +237,7 @@ plot, restwl, flux, xtickformat='(A1)', /nodata,$
       ytitle = 'Flux', yrange = [1, ymax], xrange = [xmin,xmax], /ylog,$
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
 
-vline, 5250., color=!gray, linestyle=2
+vline, 5350., color=!gray, linestyle=2
 vline, hklow, color=!gray, linestyle=2
 vline, hkhigh, color=!gray, linestyle=2
 
@@ -254,7 +254,7 @@ for i=1, nmodels - 1 do begin
 endfor
 
 errsmooth = 5
-oband, restwl[0:*:errsmooth], (flux-err)[0:*:errsmooth], (flux+err)[0:*:errsmooth], color=!gray
+oband, restwl[0:*:errsmooth], (flux-err)[0:*:errsmooth], (flux+err)[0:*:errsmooth], color=!gray, /t3d, /noclip
 
 ; Show masked regions in green
 galfit = flux  + 'NaN'
@@ -267,7 +267,7 @@ oplot, restwl, smooth(masked,smoothkern,/NAN), color=!cyan, thick=thick*4, /t3d
 
 oplot, restwl, smooth(yfit-skyfit,smoothkern), color = !dpink, thick=thick, /t3d
 oplot, restwl, smooth(yfit,smoothkern), color = !red
-oplot, restwl, smooth(flux - skyfit, smoothkern), color = !black, linestyle=2
+oplot, restwl, smooth(flux - skyfit, smoothkern), color = !dgray, linestyle=0
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
@@ -300,7 +300,7 @@ xyouts, 0.4, 0.86, 'bluChi = ' + string(bluechi, format = '(F8.2)'), $
         /norm, /t3d
 xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.4, 0.82, 'V (km/s) = ' + string(fitcoefs[0], format = '(F8.2)'), /norm, /t3d
+xyouts, 0.4, 0.82, 'V (km/s) = ' + string(fitcoefs[0]*100., format = '(F8.2)'), /norm, /t3d
 
 print, MLWA
 

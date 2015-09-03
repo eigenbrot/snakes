@@ -36,15 +36,14 @@ y = mlib[*,1:*] # (a[3:*] * 1000.)
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)
 
-xred = x*(a[0]/3e5 + 1)
+xred = x*(a[0]*100./3e5 + 1)
 
 klam = (xred / 5500.0)^(-0.7)
 e_tau_lam = exp(-a[1] * klam)
 y = y * e_tau_lam
 
-y = y + (mlib[*,0] * a[2] * 1000.)
-
 y = interpol(y,xred,x)
+y = y + (mlib[*,0] * a[2] * 1000.)
 
 if n_elements(savestep) eq 0 then savestep = 0
 
