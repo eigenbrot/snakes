@@ -241,7 +241,7 @@ xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
 plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
-      ytitle = 'Log Flux + 17', yrange = [-1, alog10(ymax)], xrange = [xmin,xmax],$
+      ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax)], xrange = [xmin,xmax],$
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
 
 vline, 5350., color=!gray, linestyle=2
@@ -300,7 +300,7 @@ endfor
 ;Massey sky
 readcol, 'Sky1.txt', ml, mab
 mf = 3d10/(ml*ml*1d-8) * 10^(-1*(mab + 48.6)/2.5)
-oplot, ml, alog10(smooth(mf*1d17,smoothkern)), color=!dorange
+oplot, ml, alog10(smooth(mf*4*!DPI*1d17,smoothkern)), color=!dorange
 
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $
