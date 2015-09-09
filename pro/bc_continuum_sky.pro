@@ -253,7 +253,7 @@ oplot, restwl, alog10(smooth(skyfit, smoothkern)), color = !green, thick=thick, 
 for i=1, nmodels - 1 do begin
    xred = restwl*(fitcoefs[0]*100./3e5 + 1)
    yi = fitcoefs[i+2] * custom_lib[*,i] * 1000. *$
-         exp(-fitcoefs[1]*(restwl/5500.0)^(-0.7))
+         exp(-fitcoefs[1]*(xred/5500.0)^(-0.7))
    yi = interpol(yi, xred, restwl)
    oplot, restwl, alog10(smooth(yi,smoothkern)), color = !lblue, thick=thick, linestyle=0, /t3d
     ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
@@ -300,7 +300,10 @@ endfor
 ;Massey sky
 readcol, 'Sky1.txt', ml, mab
 mf = 3d10/(ml*ml*1d-8) * 10^(-1*(mab + 48.6)/2.5)
-oplot, ml, alog10(smooth(mf*4*!DPI*1d17,smoothkern)), color=!dorange
+mf *= 4*!DPI*1d17
+oplot, ml, alog10(smooth(mf,smoothkern)), color=!dorange
+sratio = skyfit/interpol(mf,ml,restwl)
+oplot, restwl, alog10(smooth(sratio,smoothkern)), color=!brown
 
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $
@@ -340,12 +343,12 @@ coefs.skyfrac = skyfrac
 xyouts, 0.8, 0.52, string('sky: ',fitcoefs[2]*1000.,fitcoefs[2]*1000./model.skynorm/1d17,$
                           format='(A8,F10.3,F6.2)'),charsize=0.6,alignment=0.0,/norm,/t3d
 for i = 0, n_elements(coefs.light_frac) - 1 do begin
-   xyouts, 0.8, 0.50 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000., $
+   xyouts, 0.8, 0.50 - i*0.02, string(model.age[i]/1e9, ': ', coefs.light_frac[i]*1000.*exp(-fitcoefs[1]*(1)^(-0.7)), $
                                       format='(F6.3,A2,F10.3)'), $
            charsize=0.6, alignment=0.0, /norm, /t3d
 endfor
 
-print, fitcoefs, format = '(15F6.1)'
+print, fitcoefs, format = '(15F8.5)'
 return, coefs
 
 end
