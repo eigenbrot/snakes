@@ -65,15 +65,15 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,4F12.3,2F10.3)'
+fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,4F12.3,3F10.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-        format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'
+        'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol','Skyfrac',$
+        format='(A-11,'+string(numages+2)+'A13,A7,5A12,3A10)'
 
 if n_elements(savefiber) ne 0 then begin
    savename = (strsplit(output,'.',/extract))[0] + '_steps.dat'
@@ -199,7 +199,7 @@ for i = startfiber, endfiber DO BEGIN
    endif
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, coef.MLWA, coef.tauv,$
-           coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,$
+           coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,coef.skyfrac,$
            format=fmt
 
 ENDFOR
