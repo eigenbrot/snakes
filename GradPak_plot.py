@@ -20,8 +20,8 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pywcs
-import pywcsgrid2 as wcsgrid
+#import pywcs
+#import pywcsgrid2 as wcsgrid
 import pyfits
 import scipy.interpolate as spi
 import scipy.ndimage.interpolation as spndi
@@ -772,7 +772,7 @@ def plot_rows(values, binheader = None,
         xlabel = 'Height [arcsec]'
 
     if ax is None:
-        ax = plt.figure(figsize=(8,8)).add_subplot(111)
+        ax = plt.figure(figsize=(10,6)).add_subplot(111)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
 

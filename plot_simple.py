@@ -14,13 +14,13 @@ glob = glob.glob
 
 rc('text', usetex=False)
 rc('font', family='serif')
-rc('font', size=10.0)
+rc('font', size=18.0)
 rc('axes', linewidth=1.0)
 rc('lines', linewidth=0.4)
 rc('patch', linewidth=0.1)
 rc('ps', usedistiller='Xpdf')
-rc('xtick', labelsize=10.0)
-rc('ytick', labelsize=10.0)
+rc('xtick', labelsize=18.0)
+rc('ytick', labelsize=18.0)
 
 AGES = np.array([0.0050119, 0.0251188, 0.101518, 0.28611901, 0.64054298,
                  0.9047920, 1.434, 2.5, 5.0, 10.0])
@@ -545,7 +545,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
-    ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    #ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     ax.set_xlim(-0.1,2.6)
     ax.set_ylim(-2,10)
     ax.set_ylabel('Light-weighted age [Gyr]')
@@ -553,7 +553,7 @@ def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
 
     AVax.plot(bigz,bigAV)
     AVax.fill_between(bigz,bigAV-bigAVerr,bigAV+bigAVerr,alpha=0.1)
-    AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    #AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     AVax.set_xlim(-0.1,2.6)
     AVax.set_ylim(0,6)
     AVax.set_ylabel(r'$A_V$')
