@@ -2,7 +2,7 @@ import numpy as np
 import GradPak_plot as GPP
 import matplotlib.pyplot as plt
 import pyfits
-import pywcs
+#import pywcs
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 from matplotlib import colors as mplcolors
@@ -10,12 +10,12 @@ from matplotlib.ticker import ScalarFormatter
 
 rc('text', usetex=False)
 rc('font', family='serif')
-rc('font', size=10.0)
+rc('font', size=18.0)
 rc('axes', linewidth=1.0)
 rc('lines', linewidth=0.4)
 rc('ps', usedistiller='Xpdf')
-rc('xtick', labelsize=10.0)
-rc('ytick', labelsize=10.0)
+rc('xtick', labelsize=18.0)
+rc('ytick', labelsize=18.0)
 
 AGES = np.array([0.0050119, 0.0251188, 0.101518, 0.28611901, 0.64054298,
                  0.9047920, 1.434, 2.5, 5.0, 10.0])
@@ -353,13 +353,13 @@ def all_heights(output,err=True):
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
-    ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    #ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     ax.set_xlim(-0.1,2.6)
     ax.set_ylabel('Light-weighted age [Gyr]')
 
     AVax.plot(bigz,bigAV)
     AVax.fill_between(bigz,bigAV-bigAVerr,bigAV+bigAVerr,alpha=0.1)
-    AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+    #AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     AVax.set_xlim(-0.1,2.6)
     AVax.set_ylabel(r'$A_V$')
 
