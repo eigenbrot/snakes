@@ -29,7 +29,12 @@ def do_simple(datafile, errorfile, output,
     data = dhdu.data
     error = pyfits.open(errorfile)[0].data
 
-    numfibers, wavesize = data.shape
+    try:
+        numfibers, wavesize = data.shape
+    except ValueError:
+        numfibers = 1
+        wavesize = data.size
+        print 'Found one fiber with length {}'.format(wavesize)
 
     wave = (np.arange(wavesize) - header['CRPIX1']) * header['CDELT1'] \
            +  header['CRVAL1']
@@ -61,11 +66,15 @@ def do_simple(datafile, errorfile, output,
     flux_factor = 1e17
     tau = 2*np.pi
 
-    for i in [2]:#range(numfibers):
+    for i in [48]:#range(numfibers):
 
         print 'Doing fiber {}'.format(i+1)
-        flux = data[i,idx][0]*flux_factor
-        err = error[i,idx][0]*flux_factor
+        if numfibers == 1:
+            flux = data[idx]*flux_factor
+            err = error[idx]*flux_factor
+        else:
+            flux = data[i,idx][0]*flux_factor
+            err = error[i,idx][0]*flux_factor
 
         if i == size_borders[0]:
             size_switch += 1
@@ -94,7 +103,7 @@ def do_simple(datafile, errorfile, output,
 
         f.write('{:11}'.format(i+1))
         f.write((numages*'{:13.3e}').format(*coef['light_frac']))#/m['NORM'][0]))
-        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3f}\n'.\
+        f.write('{:13.7f}{:13.7f}{:13.3f}{:13.3f}{:13.3e}\n'.\
                 format(MMWA,MLWA,coef['tauv'],SNR,coef['chisq']))
 
     pp.close()
@@ -171,18 +180,22 @@ def superfit(model, restwl, flux, err, vdisp,
     # Find best fit
     nll = lambda *args: -lnprob(*args)
     x0 = np.zeros(nmodels+1)
-    result = spo.minimize(nll, x0, method='Nelder-Mead', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    x0[1:] += 1e5
+    result = spo.minimize(nll, x0, method='Powell', args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    #result = spo.fmin(nll, x0, xtol=1e-5, ftol=1e-5, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
+    #xf = result
+    xf = result['x']
 
-    # lmy = mcombine(result['x'], restwl, custom_lib)
-    # ax = plt.figure().add_subplot(111)
-    # ax.plot(restwl,flux,'k')
-    # ax.plot(restwl,lmy,'r')
-    # ax.figure.show()
-    # print result['x']
-    # raw_input('minimized fit')
+    lmy = mcombine(xf, restwl, custom_lib)
+    ax = plt.figure().add_subplot(111)
+    ax.plot(restwl,flux,'k')
+    ax.plot(restwl,lmy,'r')
+    ax.figure.savefig('minimized_fit.png')
+#    print xf
+#    raw_input('minimized fit')
 
     ndim = nmodels + 1
-    p0 = [result['x'] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)]
+    p0 = [xf + 1e-1*xf*np.random.randn(ndim) for i in range(nwalkers)]
 
     S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(restwl[ok], custom_lib[:,ok], flux[ok], err[ok]))
     #run MCMC
@@ -217,15 +230,15 @@ def superfit(model, restwl, flux, err, vdisp,
         delta = tsum/(i+1)
         sys.stdout.write('\r')
         sys.stdout.write('[{{:<{}}}] in {{:5.2f}}s ({{:5.0f}}s remaining)'.format(cols).\
-                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, delta*(nsample-1)))
+                         format('='*(int((i+1)*cols/nsample)),time.time() - t1, delta*(nsample-i)))
         sys.stdout.flush()
 
     print 
     #Collect results
-    # fitcoefs = np.mean(S.flatchain,axis=0)
+#    fitcoefs = np.mean(S.flatchain,axis=0)
     fitcoefs = np.zeros(nmodels+1)
     for t in range(nmodels+1):
-        hist, bins = np.histogram(S.flatchain[:,t],bins=1000)
+        hist, bins = np.histogram(S.flatchain[:,t],bins=50)
         bins = 0.5*(bins[1:] + bins[:-1])
         fitcoefs[t] = bins[np.argmax(hist)]
 
@@ -308,6 +321,17 @@ def superfit(model, restwl, flux, err, vdisp,
 
 def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 
+    if labels is None:
+        labels = [r'$\tau_V$'] + ['$w_{{{}}}$'.format(ii+1) for ii in range(sampler.flatchain.shape[1])]
+    if truths is None:
+#        truths = np.mean(sampler.flatchain,axis=0)
+        fitcoefs = np.zeros(sampler.flatchain.shape[1])
+        for t in range(sampler.flatchain.shape[1]):
+            hist, bins = np.histogram(sampler.flatchain[:,t],bins=50)
+            bins = 0.5*(bins[1:] + bins[:-1])
+            fitcoefs[t] = bins[np.argmax(hist)]
+        truths = fitcoefs
+
     tracename = '{}_trace.pdf'.format(outputprefix)
     tracepp = PDF(tracename)
     subplot = 1
@@ -342,6 +366,46 @@ def plot_emcee(sampler,outputprefix,labels=None,truths=None):
 
     return
 
+def plot_age(sampler, datafile, sift=1,
+             model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
+             lightmin = 5450., lightmax = 5550., wavemin = 3750., wavemax = 6800.):
+
+    m = pyfits.open(model)[1].data
+    agearr = m['AGE'][0]/1e9
+    
+    dhdu = pyfits.open(datafile)[0]
+    header = dhdu.header
+    data = dhdu.data
+
+    try:
+        numfibers, wavesize = data.shape
+    except ValueError:
+        numfibers = 1
+        wavesize = data.size
+        print 'Found one fiber with length {}'.format(wavesize)
+
+    wave = (np.arange(wavesize) - header['CRPIX1']) * header['CDELT1'] \
+           +  header['CRVAL1']
+    idx = np.where((wave >= wavemin) & (wave <= wavemax))
+    wave = wave[idx]
+    
+    lightidx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
+
+    redd = np.exp(-1*sampler.flatchain[::sift,0][:,None]*(wave[lightidx]/5500)**(-0.7))
+    # print redd.shape, redd[:,None].shape
+    # print m['FLUX'][0][:,lightidx][None,:].shape
+    # print (m['FLUX'][0][:,lightidx][None,:] * redd[:,None]).shape
+    # print np.mean(m['FLUX'][0][:,lightidx][None,:] * redd[:,None], axis=2).shape
+    # print sampler.flatchain[:,1:].shape
+    light_weight = np.mean(m['FLUX'][0][:,lightidx][None,:] * redd[:,None], axis=2)*\
+                   sampler.flatchain[::sift,1:]
+
+    # print light_weight.shape
+    # print (light_weight * agearr).shape
+    MLWA = np.sum(light_weight * agearr,axis=1)/np.sum(light_weight,axis=1)
+
+    return MLWA
+
 def mcombine(theta, wave, mlib):
 
     tauv = theta[0]
@@ -358,7 +422,7 @@ def mcombine(theta, wave, mlib):
 def lnprob(theta, wave, mlib, data, err):
 
     lp = lnprior(theta)
-    
+
     model = mcombine(theta, wave, mlib)
     # val = lp - np.sum(((data - model)/err)**2)
     
@@ -377,7 +441,7 @@ def lnprior(theta):
         return supersmall
 
     for w in weights:
-        if w < 0.0 or w > 1e5:
+        if w < 0.0 or w > 1e11:
             return supersmall
 
     return 0.0

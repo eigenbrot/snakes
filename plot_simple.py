@@ -1,18 +1,23 @@
 import numpy as np
 import GradPak_plot as GPP
+import model_A as mA
 import matplotlib.pyplot as plt
 import pyfits
-#import pywcs
+import pywcs
+import time
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 from matplotlib import colors as mplcolors
 from matplotlib.ticker import ScalarFormatter
+import glob
+glob = glob.glob
 
 rc('text', usetex=False)
 rc('font', family='serif')
 rc('font', size=18.0)
 rc('axes', linewidth=1.0)
 rc('lines', linewidth=0.4)
+rc('patch', linewidth=0.1)
 rc('ps', usedistiller='Xpdf')
 rc('xtick', labelsize=18.0)
 rc('ytick', labelsize=18.0)
@@ -59,7 +64,11 @@ def plot_age(inputfile):
 def plot_age_hist(inputfile, outputfile, exclude=[]):
 
     data = np.loadtxt(inputfile)
-    fibers = data[:,0]
+    try:
+        fibers = data[:,0]
+    except IndexError:
+        fibers = np.array([data[0]])
+        data = np.array([data])
 
     form_age = 12.0 #Gyr
     logt = np.log10(np.r_[1e-99,AGES,form_age])
@@ -71,6 +80,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
     pp = PDF(outputfile)
     for i in range(fibers.size):
         print i
+        print np.log10(data[i,1:11])
         ax = plt.figure().add_subplot(111)
         ax.plot(AGES,np.log10(data[i,1:11]),'.g')
         ax.set_ylabel(r'Log($\int\psi (t)dt$ )')
@@ -82,7 +92,7 @@ def plot_age_hist(inputfile, outputfile, exclude=[]):
         ax.set_xlabel('Lookback time [Gyr]')
         ax.set_xlim(13,-1)
         ymin, ymax = ax.get_ylim()
-        ax.set_ylim(0,10)
+#        ax.set_ylim(5,11)
         MMWA = data[i,11]
         ax.set_title('Fiber {}\nMMWA = {:4.3f} Gyr'.format(i+1,MMWA))
         pp.savefig(ax.figure)
@@ -170,9 +180,9 @@ def plot_heights(inputfile, outputfile, title=''):
 
     return
 
-def all_maps(output,col=12,labelfibers=False,
-             label='Mean Light Weighted Age [Gyr]',
-             minval = None, maxval = None):
+def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibers=False,
+             label='Mean Light Weighted Age [Gyr]', log=False,
+             minval = None, maxval = None, exclude = None, binned=False):
 
     pp = PDF(output)
     centers = [
@@ -184,28 +194,53 @@ def all_maps(output,col=12,labelfibers=False,
         [35.648196,42.401217]]
 
     ax = None
+    if exclude is None:
+        exclude = [[],[],[],[],[],[]]
     for i in range(6):
         print i
-        inputfile = 'P{}.dat'.format(i+1)
+        inputfile = glob('{}*P{}*{}.dat'.format(inputprefix,i+1,inputsuffix))[0]
+        print inputfile
+
+        if binned:
+            fitsname = glob('{}*P{}*ms*fits'.format(inputprefix,i+1))[0]
+            print fitsname
+            binhead = pyfits.open(fitsname)[0].header
+        else:
+            binhead = None
+        
         data = np.loadtxt(inputfile,usecols=(col,),unpack=True)
         if col==12:
             label = 'Mean Light Weighted Age [Gyr]'
             minval = 0
-            maxval = 10#np.nanmax(data)
+            maxval = 13#np.nanmax(data)
         elif col==11:
             label = 'Mean Mass Weighted Age [Gyr]'
             minval = 0#np.nanmin(data)#7
             maxval = 10#np.nanmax(data)#10
-        elif col==17:
+        elif col == 13:
+            label = '$A_V$'
+            data *= 1.086
+            minval = 0
+            maxval = 6
+        elif col==19:
             data = np.log10(data)
             label = r'Log( Metallicity [$Z_{\odot}$] )'
             # cmap = mplcolors.ListedColormap(['black','blue','green','yellow','red','white'])
             # norm = mplcolors.BoundaryNorm([0,0.005,0.02,0.2,0.4,1,2.5], cmap.N)
             minval = -4
             maxval = 1
-
+        elif col==65:
+            data *= 1.086
+        
+        if log:
+            data = np.log10(data)
+            if i == 0:
+                label = 'Log( {} )'.format(label)
+        print 'excluding', exclude[i]
         ax = GPP.plot(data,
                       ax=ax,
+                      binheader=binhead,
+                      plotbins=False,
                       figsize=(8,4),
                       fitsfile=\
                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
@@ -216,7 +251,7 @@ def all_maps(output,col=12,labelfibers=False,
                       clabel=label,
                       cmap='gnuplot2',
                       labelfibers=labelfibers,
-                      exclude=[],
+                      exclude=exclude[i],
                       sky=False,
                       minval=minval,
                       maxval=maxval)
@@ -241,7 +276,7 @@ def all_maps(output,col=12,labelfibers=False,
     plt.close(ax.figure)
     return ax
 
-def all_heights(output,err=True):
+def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
 
     datname = output.split('.pdf')[0]+'.dat'
     f = open(datname,'w')
@@ -254,6 +289,7 @@ def all_heights(output,err=True):
     pp = PDF(output)
     symblist = ["o","^","v","s","*","x"]
     colorlist = ['b','c','g','y','m','r']
+    kpc_scale = 0.0485
     plist = [6,3,4,2,1,5]
     rlist = [-10.0, -6.4, -2.3, 0.8, 4.4, 8.1]
 #    rlist = [4.4,0.8,-6.4,-2.3,8.1,-10.0]
@@ -261,46 +297,139 @@ def all_heights(output,err=True):
     ax = None
     AVax = None
     metalax = None
+    if reg:
+        psi0ax = None
+        tausfax = None
+        invtausfax = None
+        tformax = None
+        massax = None
     for i in range(6):
 
-        inputfile = 'multi_Z_P{}.dat'.format(plist[i])
+        inputfile = glob('{}*P{}*fit.dat'.format(inputprefix,plist[i]))[0]
         print inputfile
-        MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,usecols=(11,12,13,14,17),
-                                              unpack=True)
-        
+        if binned:
+            fitsname = glob('{}*P{}*ms*fits'.format(inputprefix,plist[i]))[0]
+            print fitsname
+            binhead = pyfits.open(fitsname)[0].header
+        else:
+            binhead = False
+        if reg:
+            MMWA, MLWA, TAUV, SNR, Z, PSI0, TAUSF, TFORM = np.loadtxt(inputfile,
+                                                                      usecols=(11,12,13,14,17,18,19,20),
+                                                                      unpack=True)
+
+            mdata = np.loadtxt(inputfile)
+            MASS = np.sum(mdata[:,1:11],axis=1)
+        else:
+            MMWA, MLWA, TAUV, SNR, Z = np.loadtxt(inputfile,
+                                                  usecols=(11,12,13,14,19),
+                                                  unpack=True)
+
+        Z = np.log10(Z)
         ax, tmpz, tmpage, tmperr, tmpstd =  GPP.plot_rows(MLWA, 
+                                                          binheader = binhead,
                                                           weights=SNR,
                                                           ax=ax,
                                                           label='{}'.\
                                                           format(rlist[i]),
                                                           fullout=True,
-                                                          kpc_scale = 0.0485,
+                                                          kpc_scale = kpc_scale,
                                                           err=err, 
                                                           marker=symblist[i], 
                                                           linestyle='',
                                                           color=colorlist[i])
         AVax, _, tmpAV, tmpAVerr, tmpAVstd = GPP.plot_rows(TAUV*1.086,
+                                                           binheader = binhead,
                                                            weights=SNR,
                                                            ax=AVax,
                                                            label='{}'.\
                                                            format(rlist[i]),
                                                            fullout=True,
-                                                           kpc_scale=0.0458,
+                                                           kpc_scale=kpc_scale,
                                                            err=err,
                                                            marker=symblist[i],
                                                            linestyle='',
                                                            color=colorlist[i])
-        metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z,
+
+        metalax, _, tmpmetal, tmpmetalerr, tmpmetalstd = GPP.plot_rows(Z, 
+                                                                       binheader = binhead,
                                                                        weights=SNR,
                                                                        ax=metalax,
                                                                        label='{}'.\
                                                                        format(rlist[i]),
                                                                        fullout=True,
-                                                                       kpc_scale=0.0458,
+                                                                       kpc_scale=kpc_scale,
                                                                        err=err,
                                                                        marker=symblist[i],
                                                                        linestyle='',
                                                                        color=colorlist[i])
+
+        if reg:
+            psi0ax, _, tmppsi0, tmppsi0err, tmppsi0std = GPP.plot_rows(np.log10(PSI0), 
+                                                                       binheader = binhead,
+                                                                       weights=SNR,
+                                                                       ax=psi0ax,
+                                                                       label='{}'.\
+                                                                       format(rlist[i]),
+                                                                       fullout=True,
+                                                                       kpc_scale=kpc_scale,
+                                                                       err=err,
+                                                                       marker=symblist[i],
+                                                                       linestyle='',
+                                                                       color=colorlist[i])
+            
+            tausfax, _, tmptausf, tmptausferr, tmptausfstd = GPP.plot_rows(TAUSF, 
+                                                                           binheader = binhead,
+                                                                           weights=SNR,
+                                                                           ax=tausfax,
+                                                                           label='{}'.\
+                                                                           format(rlist[i]),
+                                                                           fullout=True,
+                                                                           kpc_scale=kpc_scale,
+                                                                           err=err,
+                                                                           marker=symblist[i],
+                                                                           linestyle='',
+                                                                           color=colorlist[i])
+            
+            invtausfax, _, tmpinvtausf, tmpinvtausferr, tmpinvtausfstd = GPP.plot_rows(1./TAUSF, 
+                                                                                       binheader = binhead,
+                                                                                       weights=SNR,
+                                                                                       ax=invtausfax,
+                                                                                       label='{}'.\
+                                                                                       format(rlist[i]),
+                                                                                       fullout=True,
+                                                                                       kpc_scale=kpc_scale,
+                                                                                       err=err,
+                                                                                       marker=symblist[i],
+                                                                                       linestyle='',
+                                                                                       color=colorlist[i])
+            
+            tformax, _, tmptform, tmptformerr, tmptformstd = GPP.plot_rows(TFORM, 
+                                                                           binheader = binhead,
+                                                                           weights=SNR,
+                                                                           ax=tformax,
+                                                                           label='{}'.\
+                                                                           format(rlist[i]),
+                                                                           fullout=True,
+                                                                           kpc_scale=kpc_scale,
+                                                                           err=err,
+                                                                           marker=symblist[i],
+                                                                           linestyle='',
+                                                                           color=colorlist[i])
+            
+            massax, _, tmpmass, tmpmasserr, tmpmassstd = GPP.plot_rows(np.log10(MASS), 
+                                                                       binheader = binhead,
+                                                                       weights=SNR,
+                                                                       ax=massax,
+                                                                       label='{}'.\
+                                                                       format(rlist[i]),
+                                                                       fullout=True,
+                                                                       kpc_scale=kpc_scale,
+                                                                       err=err,
+                                                                       marker=symblist[i],
+                                                                       linestyle='',
+                                                                       color=colorlist[i])
+
 
         f.write('\n# P{} '.format(i+1)+92*'#'+'\n# r ~ {} kpc\n'.\
                 format(rlist[i]))
@@ -321,6 +450,22 @@ def all_heights(output,err=True):
             metal = np.vstack((metal,tmpmetal))
             metalerr = np.vstack((metalerr,tmpmetalerr))
             metalstd = np.vstack((metalstd,tmpmetalstd))
+            if reg:
+                psi0 = np.vstack((psi0,tmppsi0))
+                psi0err = np.vstack((psi0err,tmppsi0err))
+                psi0std = np.vstack((psi0std,tmppsi0std))
+                tausf = np.vstack((tausf,tmptausf))
+                tausferr = np.vstack((tausferr,tmptausferr))
+                tausfstd = np.vstack((tausfstd,tmptausfstd))
+                invtausf = np.vstack((invtausf,tmpinvtausf))
+                invtausferr = np.vstack((invtausferr,tmpinvtausferr))
+                invtausfstd = np.vstack((invtausfstd,tmpinvtausfstd))
+                tform = np.vstack((tform,tmptform))
+                tformerr = np.vstack((tformerr,tmptformerr))
+                tformstd = np.vstack((tformstd,tmptformstd))
+                mass = np.vstack((mass,tmpmass))
+                masserr = np.vstack((masserr,tmpmasserr))
+                massstd = np.vstack((massstd,tmpmassstd))
         except UnboundLocalError:
             z = tmpz
             age = tmpage
@@ -332,42 +477,130 @@ def all_heights(output,err=True):
             metal = tmpmetal
             metalerr = tmpmetalerr
             metalstd = tmpmetalstd
+            if reg:
+                psi0 = tmppsi0
+                psi0err = tmppsi0err
+                psi0std = tmppsi0std
+                tausf = tmptausf
+                tausferr = tmptausferr
+                tausfstd = tmptausfstd            
+                invtausf = tmpinvtausf
+                invtausferr = tmpinvtausferr
+                invtausfstd = tmpinvtausfstd            
+                tform = tmptform
+                tformerr = tmptformerr
+                tformstd = tmptformstd
+                mass = tmpmass
+                masserr = tmpmasserr
+                massstd = tmpmassstd
 
-    bigz = np.mean(z,axis=0)
-    bigage = np.mean(age,axis=0)
+    bigz = np.nanmean(z,axis=0)
+    bigage = np.nanmean(age,axis=0)
     bigerr = np.sqrt(
-        np.sum(err*(age - bigage)**2,axis=0)/
-        ((err.shape[0] - 1.)/(err.shape[0]) * np.sum(err,axis=0)))
-    bigAV = np.mean(AV,axis=0)
+        np.nansum(err*(age - bigage)**2,axis=0)/
+        ((err.shape[0] - 1.)/(err.shape[0]) * np.nansum(err,axis=0)))
+    bigAV = np.nanmean(AV,axis=0)
     bigAVerr = np.sqrt(
-        np.sum(AVerr*(AV - bigAV)**2,axis=0)/
-        ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.sum(AVerr,axis=0)))
-    bigmetal = np.mean(metal,axis=0)
+        np.nansum(AVerr*(AV - bigAV)**2,axis=0)/
+        ((AVerr.shape[0] - 1.)/(AVerr.shape[0]) * np.nansum(AVerr,axis=0)))
+    bigmetal = np.nanmean(metal,axis=0)
     bigmetalerr = np.sqrt(
-        np.sum(metalerr*(metal - bigmetal)**2,axis=0)/
-        ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.sum(metalerr,axis=0)))
-    with open('means.dat','w') as fm:
+        np.nansum(metalerr*(metal - bigmetal)**2,axis=0)/
+        ((metalerr.shape[0] - 1.)/(metalerr.shape[0]) * np.nansum(metalerr,axis=0)))
+    
+    if reg:
+        bigpsi0 = np.nanmean(psi0,axis=0)
+        bigpsi0err = np.sqrt(np.abs(
+            np.nansum(psi0err*(psi0 - bigpsi0)**2,axis=0)/
+            ((psi0err.shape[0] - 1.)/(psi0err.shape[0]) * np.nansum(psi0err,axis=0))))
+        bigtausf = np.nanmean(tausf,axis=0)
+        bigtausferr = np.sqrt(
+            np.nansum(tausferr*(tausf - bigtausf)**2,axis=0)/
+            ((tausferr.shape[0] - 1.)/(tausferr.shape[0]) * np.nansum(tausferr,axis=0)))
+        biginvtausf = np.nanmean(invtausf,axis=0)
+        biginvtausferr = np.sqrt(
+            np.nansum(invtausferr*(invtausf - biginvtausf)**2,axis=0)/
+            ((invtausferr.shape[0] - 1.)/(invtausferr.shape[0]) * np.nansum(invtausferr,axis=0)))
+        bigtform = np.nanmean(tform,axis=0)
+        bigtformerr = np.sqrt(
+            np.nansum(tformerr*(tform - bigtform)**2,axis=0)/
+            ((tformerr.shape[0] - 1.)/(tformerr.shape[0]) * np.nansum(tformerr,axis=0)))
+        bigmass = np.nanmean(mass,axis=0)
+        bigmasserr = np.sqrt(
+            np.nansum(masserr*(mass - bigmass)**2,axis=0)/
+            ((masserr.shape[0] - 1.)/(masserr.shape[0]) * np.nansum(masserr,axis=0)))
+
+    with open('{}_means.dat'.format(datname.split('.dat')[0]),'w') as fm:
+        fm.write(str('#{:>9}'+'{:>10}'*6+'\n').format('height',
+                                                      'MLWA',
+                                                      'MLWA err',
+                                                      'Av',
+                                                      'Av err',
+                                                      'Z',
+                                                      'Z err'))
+
         for i in range(bigz.size):
-            fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
-                    format(bigz[i],bigage[i],bigerr[i],bigAV[i],bigAVerr[i],bigmetal[i],bigmetalerr[i]))
+              fm.write('{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}{:10.4f}\n'.\
+                       format(bigz[i],bigage[i],bigerr[i],bigAV[i],bigAVerr[i],bigmetal[i],bigmetalerr[i]))
 
     ax.plot(bigz, bigage)
     ax.fill_between(bigz,bigage-bigerr,bigage+bigerr,alpha=0.1)
     #ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     ax.set_xlim(-0.1,2.6)
+    ax.set_ylim(-2,10)
     ax.set_ylabel('Light-weighted age [Gyr]')
+    ax.set_title('Generated on {}'.format(time.asctime()))
 
     AVax.plot(bigz,bigAV)
     AVax.fill_between(bigz,bigAV-bigAVerr,bigAV+bigAVerr,alpha=0.1)
     #AVax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     AVax.set_xlim(-0.1,2.6)
+    AVax.set_ylim(0,6)
     AVax.set_ylabel(r'$A_V$')
+    # plotz = np.linspace(0,2.5,20)
+    # for t in range(len(rlist)):
+    #     modelAv = mA.A_vec(np.abs(rlist[t]),plotz,zd=1.0,tau0=0.85,hd=7.68)
+    #     AVax.plot(plotz,modelAv,color=colorlist[t])
 
     metalax.plot(bigz,bigmetal)
     metalax.fill_between(bigz, bigmetal-bigmetalerr, bigmetal+bigmetalerr,alpha=0.1)
     metalax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
     metalax.set_xlim(-0.1,2.6)
-    metalax.set_ylabel(r'$Z/Z_{\odot}$')
+#    metalax.set_ylim(-1.5,3.0)
+    metalax.set_ylabel(r'Log( $Z/Z_{\odot}$ )')
+
+    if reg:
+        psi0ax.plot(bigz,bigpsi0)
+        psi0ax.fill_between(bigz, bigpsi0-bigpsi0err, bigpsi0+bigpsi0err,alpha=0.1)
+        psi0ax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        psi0ax.set_xlim(-0.1,2.6)
+        psi0ax.set_ylabel(r'Log($\psi_0$)')
+        
+        tausfax.plot(bigz,bigtausf)
+        tausfax.fill_between(bigz, bigtausf-bigtausferr, bigtausf+bigtausferr,alpha=0.1)
+        tausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        tausfax.set_ylim(-1,5)
+        tausfax.set_xlim(-0.1,2.6)
+        tausfax.set_ylabel(r'$\tau_{\mathrm{sf}}$')
+        
+        invtausfax.plot(bigz,biginvtausf)
+        invtausfax.fill_between(bigz, biginvtausf-biginvtausferr, biginvtausf+biginvtausferr,alpha=0.1)
+        invtausfax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        invtausfax.set_ylim(-1,5)
+        invtausfax.set_xlim(-0.1,2.6)
+        invtausfax.set_ylabel(r'$1/\tau_{\mathrm{sf}}$')
+        
+        tformax.plot(bigz,bigtform)
+        tformax.fill_between(bigz, bigtform-bigtformerr, bigtform+bigtformerr,alpha=0.1)
+        tformax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        tformax.set_xlim(-0.1,2.6)
+        tformax.set_ylabel(r'$t_{\mathrm{form}}$')
+        
+        massax.plot(bigz,bigmass)
+        massax.fill_between(bigz, bigmass-bigmasserr, bigmass+bigmasserr,alpha=0.1)
+        massax.legend(loc=1,title='radius [kpc]',scatterpoints=1,numpoints=1,frameon=False)
+        massax.set_xlim(-0.1,2.6)
+        massax.set_ylabel(r'Log($M_{\mathrm{total}}$)')
 
     pp.savefig(ax.figure)
     pp.savefig(AVax.figure)
@@ -375,10 +608,87 @@ def all_heights(output,err=True):
     plt.close(ax.figure)
     plt.close(AVax.figure)
     plt.close(metalax.figure)
-
+    
+    if reg:
+        pp.savefig(psi0ax.figure)
+        pp.savefig(tausfax.figure)
+        pp.savefig(tformax.figure)
+        pp.savefig(invtausfax.figure)
+        pp.savefig(massax.figure)
+        plt.close(psi0ax.figure)
+        plt.close(tausfax.figure)
+        plt.close(invtausfax.figure)
+        plt.close(tformax.figure)
+        plt.close(massax.figure)
+    
     pp.close()
     f.close()
-
-    
  
     return
+
+def radial_gradient(input_file, output, col=1):
+
+    f = open(input_file,'r')
+    lines = f.readlines()
+
+    radii = np.array([])
+    values = np.array([])
+    errs = np.array([])
+    
+    tmp = np.array([])
+    for line in lines:
+        
+        if line == '\n':
+            continue
+        if line[0] == '#':
+            if len(line) < 3:
+                continue
+            elif line[2] == 'r':
+                print tmp
+                values = np.append(values, np.mean(tmp))
+                errs = np.append(errs, np.std(tmp))
+                tmp = np.array([])
+                radii = np.append(radii, float(line.split()[3]))
+                continue
+            else:
+                continue
+
+        cols = line.split()
+        Av = float(cols[4])
+        if Av <= 1.0:
+            tmp = np.append(tmp, float(cols[col]))
+
+    print tmp
+    values = np.append(values, np.mean(tmp))
+    errs = np.append(errs, np.std(tmp))
+    f.close()
+    
+    values = values[1:]
+    errs = errs[1:]
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel('~r [kpc]')
+    ax.set_ylabel('MLWA [Gyr]')
+    ax.set_xlim(-11, 11)
+    ax.errorbar(radii, values, yerr=errs, marker='.', ms=15, ls='')
+
+    return radii, values, ax
+
+def age_metal():
+
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+
+    prefix = '/d/monk/eigenbrot/WIYN/14B-0456/bin/metal_dat/NGC_891_P2_bin30'
+
+    age = np.zeros(fraclist.size)
+    metal = np.zeros(fraclist.size)
+    chi = np.zeros(fraclist.size)
+
+    for i, z in enumerate(fraclist):
+        
+        name = '{}_Z{:04}.dat'.format(prefix,int(z*1000))        
+        data = np.loadtxt(name)
+        age[i] = data[5,12]
+        chi[i] = data[5,15]
+        metal[i] = z
+
+    return age, metal, chi

@@ -1,9 +1,9 @@
 
-pro do_simple, datafile, errorfile, output, location=location, $
-               model=model, plot=plot, bluefit=bluefit,$
-               wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-               lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
-
+pro do_simple_allZ2, datafile, errorfile, output, location=location, $
+                    model=model, plot=plot, bluefit=bluefit,$
+                    wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
+                    lightmax=lightmax, multimodel=multimodel, savestep=savestep
+defplotcolors
 ; read in models
 if keyword_set(multimodel) then begin
    readcol, model, metals, models, format='F,A'
@@ -59,43 +59,22 @@ agearr = m.age/1e9
 numages = N_ELEMENTS(agearr)
 colarr = STRARR(numages)
 
-
 FOR k=0, numages - 1 DO BEGIN
-   colarr[k] = string(agearr[k],' Gyr',format='(F6.3,A4)')
+   colarr[k] = string(agearr[k],floor(k/10),' Gyr',format='(F7.3,I2,A4)')
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,4F12.3,2F10.3)'
+fmt = '(I11,'+string(numages + 4)+'F13.3,2F11.3,4E25.17)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-        format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'
-
-if n_elements(savefiber) ne 0 then begin
-   savename = (strsplit(output,'.',/extract))[0] + '_steps.dat'
-   openw, savelun, savename, /get_lun
-   printf, savelun, '# Generated on ',systime()
-   printf, savelun, '# Data file: ',datafile
-   printf, savelun, '# Error file: ',errorfile
-   printf, savelun, '# Model file: ',model,format='(A14,A90)'
-   printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-           'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-           format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'   
-   printf, savelun, '#'
-
-   startfiber = savefiber - 1
-   endfiber = savefiber - 1
-
-endif else begin
-   savefiber = -1
-   savelun = 0
-   startfiber = 43
-   endfiber = 61;numfibers - 1
-endelse
+        'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
+        'redChi','blueChi','HKChi',$
+        format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
+printf, lun, '#'
 
 if keyword_set(plot) then begin
    plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
@@ -103,10 +82,11 @@ if keyword_set(plot) then begin
 endif
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
-outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
-               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
+outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(numages),$
+               LIGHT_FRAC_ERR: dblarr(numages), $
+               MODEL_AGE: fltarr(numages), $
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
-               BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
+               BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -114,7 +94,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = startfiber, endfiber DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -145,21 +125,33 @@ for i = startfiber, endfiber DO BEGIN
       print, 'Using mode '+models[i]
    endif
 
-   if i eq savefiber - 1 then begin
-      savestep = 1
+   if keyword_set(savestep) then begin
+      savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i,format='(I02)') + '_steps.dat'
+      openw, savelun, savename, /get_lun
+      printf, savelun, '# Generated on ',systime()
+      printf, savelun, '# Data file: ',datafile
+      printf, savelun, '# Error file: ',errorfile
+      printf, savelun, '# Model file: ',model,format='(A14,A90)'
+      printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
+              'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
+              'redChi','blueChi','HKChi',$
+              format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
+      printf, lun, '#'
    endif else begin
       savestep = 0
+      savelun = 0
    endelse
 
 ; fit continuum
    print, vd
-   coef = bc_continuum(m, wave, flux, err, vd, $
-                       plotlabel=plotlabel, $
-                       bluefit=bluefit, $
-                       yfit=continuum, $
-                       savestep=savestep, lun=savelun, $
-                       lightidx=lightidx, fmt=fmt)
-
+   coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
+                             plotlabel=plotlabel, $
+                             bluefit=bluefit, $
+                             yfit=continuum, $
+                             savestep=savestep, lun=savelun, $
+                             lightidx=lightidx, fmt=fmt)
+   
+   if savestep then close, savelun
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
 ;;    mcoef = absline_index(wave, continuum, tag='_model') ; measure off model
@@ -170,6 +162,16 @@ for i = startfiber, endfiber DO BEGIN
 ;; ; Create output structure & save
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
+
+   ;; print, size(outputarray[i].tauv, /type), size(coef.tauv, /type)
+   ;; print, size(outputarray[i].light_frac, /type), size(coef.light_frac, /type)
+   ;; print, size(outputarray[i].model_age, /type), size(coef.model_age, /type)
+   ;; print, size(outputarray[i].chisq, /type), size(coef.chisq, /type)
+   ;; print, size(outputarray[i].MLWA, /type), size(coef.MLWA, /type)
+   ;; print, size(outputarray[i].MMWA, /type), size(coef.MMWA, /type)
+   ;; print, size(outputarray[i].SNR, /type), size(coef.SNR, /type)
+   ;; print, size(outputarray[i].redchi, /type), size(coef.redchi, /type)
+   ;; print, size(outputarray[i].bluechi, /type), size(coef.bluechi, /type)
 
    print, coef.bluefree
    outputarray[i] = coef
@@ -186,21 +188,21 @@ for i = startfiber, endfiber DO BEGIN
    ;;                     dimension=1) * coef.light_frac
    ;; MLWA = total(light_weight * agearr) / total(light_weight)
 
-   if i eq startfiber then begin
+   if i eq 0 then begin
       printf, lun, '# Blue_free: ', coef.bluefree
       printf, lun, '#'
    endif
 
-   printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, coef.MLWA, coef.tauv,$
-           coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,$
-           format=fmt
+   printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, $
+           coef.MLWA, coef.MMWZ, coef.MLWZ, coef.tauv, coef.SNR, $
+           coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, format=fmt
+   print, i
 
 ENDFOR
 
 if keyword_set(plot) then dfpsclose
 
 free_lun, lun
-if savefiber ne -1 then free_lun, savelun
 mwrfits, outputarray, fitsfile, /create
 print, m.norm
 

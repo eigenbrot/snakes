@@ -1,8 +1,8 @@
 
-pro do_simple, datafile, errorfile, output, location=location, $
-               model=model, plot=plot, bluefit=bluefit,$
-               wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-               lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
+pro do_simple_tau, datafile, errorfile, output, location=location, $
+                   model=model, plot=plot, $
+                   wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
+                   lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
 
 ; read in models
 if keyword_set(multimodel) then begin
@@ -14,6 +14,8 @@ endif else begin
    m = mrdfits(model, 1)
    metal = -99.9
 endelse
+
+m.flux *= rebin(transpose(m.norm), size(m.flux, /dimensions))
 
 ; read in data
 data = MRDFITS(datafile,0,header)
@@ -65,15 +67,16 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,4F12.3,2F10.3)'
+fmt = '(I11,'+string(numages+2)+'E13.3,F7.2,F12.3,2E12.3,F10.3,E12.3,2F13.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-        format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'
+        'Tau_V','S/N','Chisq','redChi','Z/Z_sol','psi_0','tau_sf','t_form',$
+        format='(A-11,'+string(numages+2)+'A13,A7,3A12,A10,A12,2A13)'
+printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
    savename = (strsplit(output,'.',/extract))[0] + '_steps.dat'
@@ -83,18 +86,12 @@ if n_elements(savefiber) ne 0 then begin
    printf, savelun, '# Error file: ',errorfile
    printf, savelun, '# Model file: ',model,format='(A14,A90)'
    printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-           'Tau_V','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-           format='(A-11,'+string(numages+2)+'A13,A7,5A12,2A10)'   
+           'Tau_V','S/N','Chisq','redChi','Z/Z_sol',$
+           format='(A-11,'+string(numages+2)+'A13,A7,3A12,2A10)'
    printf, savelun, '#'
-
-   startfiber = savefiber - 1
-   endfiber = savefiber - 1
-
 endif else begin
    savefiber = -1
    savelun = 0
-   startfiber = 43
-   endfiber = 61;numfibers - 1
 endelse
 
 if keyword_set(plot) then begin
@@ -103,10 +100,13 @@ if keyword_set(plot) then begin
 endif
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
-outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
-               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
-               CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
-               BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
+outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, $
+               psi0: 0.0D, psi0_err: 0.0D, $
+               tau_sf: 0.0D, tau_sf_err: 0.0D, $
+               t_form: 0.0D, t_form_err: 0.0D, $
+               MODEL_AGE: dblarr(10),$
+               CHISQ: 0.0D, REDCHI: 0.0D, $
+               mass: dblarr(10), weighted_age: dblarr(10)}
 outputarray = replicate(outputarray, numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -114,51 +114,47 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = startfiber, endfiber DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
    
-   print, 'Grabbing fiber '+string(i+1,format='(I3)')
+   print, 'Grabbing aperture '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
    
+   if keyword_set(multimodel) then begin
+      m = mrdfits(models[i], 1)
+      m.flux *= rebin(transpose(m.norm), size(m.flux, /dimensions))
+      metal = metals[i]
+      print, 'Using mode '+models[i]
+   endif
+
    if keyword_set(location) then begin
       lidx = where(sizeidx eq fiber_radii[i])
       vd = vdisp[lidx]
       plotlabel = string('Aperture',i+1,'r=',rkpc[i],'z=',zkpc[i],$
-                         format='(A8,I4,A3,F6.2,A3,F5.2)')
+                         format='(A8,I4,A3,F5.2,A3,F5.2)')
       print, plotlabel
-
    endif else begin
       print, i, size_borders
       if i eq size_borders[0] then begin
          size_switch += 1
          size_borders = size_borders[1:*]
+         vd = vdisp[size_switch]
+         plotlabel = string('Aperture',i+1,format='(A8,I4)')
       endif
-      vd = vdisp[size_switch]
-      plotlabel = string('Aperture',i+1,format='(A8,I4)')
    endelse
 
-   if keyword_set(multimodel) then begin
-      m = mrdfits(models[i], 1)
-      metal = metals[i]
-      plotlabel += '!c!c'
-      plotlabel += string('Z/Z_sol = ',metal,format='(A10,F8.4)')
-      print, 'Using mode '+models[i]
-   endif
-
-   if i eq savefiber - 1 then begin
+   if i eq savefiber then begin
       savestep = 1
    endif else begin
       savestep = 0
    endelse
 
 ; fit continuum
-   print, vd
-   coef = bc_continuum(m, wave, flux, err, vd, $
-                       plotlabel=plotlabel, $
-                       bluefit=bluefit, $
-                       yfit=continuum, $
-                       savestep=savestep, lun=savelun, $
-                       lightidx=lightidx, fmt=fmt)
+   coef = bc_continuum_tau(m, wave, flux, err, vd, $
+                           plotlabel=plotlabel,$
+                           yfit=continuum, $
+                           savestep=savestep, lun=savelun, $
+                           lightidx=lightidx, fmt=fmt)
 
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
@@ -171,37 +167,33 @@ for i = startfiber, endfiber DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
-   print, coef.bluefree
    outputarray[i] = coef
+   
+   goodidx = where(coef.mass ne -99)
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
-   ;; SNR = mean(flux[lightidx]/err[lightidx])
+   SNR = mean(flux[lightidx]/err[lightidx])
 
-   ;; MMWA = total(agearr*coef.light_frac*1./m.norm) $
-   ;;        / total(coef.light_frac*1./m.norm)
+   MMWA = total(coef.weighted_age[goodidx]*coef.mass[goodidx]) $
+          / total(coef.mass[goodidx])
 
-   ;; redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
-   ;; light_weight = mean(m.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
-   ;;                                                n_elements(agearr)), $
-   ;;                     dimension=1) * coef.light_frac
-   ;; MLWA = total(light_weight * agearr) / total(light_weight)
+   redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
 
-   if i eq startfiber then begin
-      printf, lun, '# Blue_free: ', coef.bluefree
-      printf, lun, '#'
-   endif
+   light_weight = mean(m.flux[lightidx,goodidx,0] * $
+                       rebin(redd,n_elements(lightidx),$
+                             n_elements(goodidx)), $
+                       dimension=1) * coef.mass[goodidx]
+   MLWA = total(light_weight * coef.weighted_age[goodidx]) / total(light_weight)
 
-   printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, coef.MLWA, coef.tauv,$
-           coef.SNR, coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, metal,$
-           format=fmt
+   printf, lun, i+1, coef.mass, MMWA, MLWA, coef.tauv,$
+           SNR, coef.chisq, coef.redchi, metal, coef.psi0, $
+           coef.tau_sf, coef.t_form, format=fmt
 
 ENDFOR
 
 if keyword_set(plot) then dfpsclose
 
 free_lun, lun
-if savefiber ne -1 then free_lun, savelun
 mwrfits, outputarray, fitsfile, /create
-print, m.norm
 
 end

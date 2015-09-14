@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import random, os, sys, time
+import random, os, sys, time, pickle
         
 class Board:
     '''
@@ -225,7 +225,7 @@ class Board:
                 
 class Player:
     
-    def __init__(self,ox,tbt,ply,totalply,memory={}):
+    def __init__(self,ox,tbt,ply,totalply,memory):
         """initializes the data for the player class"""
         self.ox=ox             # Player character
         self.tbt=tbt           # Tie break behaviour
@@ -260,6 +260,7 @@ class Player:
         will chose one depending on the tbt type defined in the class.
         
         """
+        scores = list(scores)
         t=[]
         m=max(scores)
         while m in scores:
@@ -310,9 +311,8 @@ class Player:
         else:
             '''we need to recurse more until we run out of ply-ness'''
             L=[]
-            key = hash('{}: {}'.format(self.ox,b.__repr__()))
-            if key in self.memory.keys():
-                return self.memory[key][0]
+            if self.memory.czech(self.ox,b):
+                return self.memory.recall(self.ox,b)
             for i in range(b.cols):
                 if b.allowsMove(i)==True:
                     b.addMove(i,self.ox)
@@ -358,7 +358,7 @@ class Player:
             #         print b,oldB
             #         print oldL, L
             if self.ply > 1:
-                self.memory[key] = [L, '{}:\n{}'.format(self.ox,b.__repr__())]
+                self.memory.remember(self.ox,b,L)
             return L
             
     def nextMove(self,b):
@@ -375,6 +375,46 @@ class Player:
             except SyntaxError:
                 return self.nextMove(b)
             return x
+
+class Memory():
+    
+    def __init__(self, ply, name, location):
+
+        self.path = '{}/{}'.format(location,name)
+        if os.path.exists(self.path):
+            self.brain = self.load()
+        else:
+            self.brain = {}
+
+        self.ply = ply
+
+    def load(self):
+        
+        with open(self.path,'r') as f:
+            data = pickle.load(f)
+        return data
+
+    def unload(self):
+
+        with open(self.path,'w') as f:
+            pickle.dump(self.brain,f,1)
+            
+        print 'Wrote memory to {}'.format(self.path)
+        return
+
+    def czech(self, ox, board):
+        
+        if hash('{}-{}: {}'.format(ox,self.ply,board)) in self.brain.keys():
+            return True
+        else:
+            return False
+
+    def recall(self, ox, board):
+        return self.brain[hash('{}-{}: {}'.format(ox,self.ply,board))]
+
+    def remember(self, ox, board, L):
+
+        self.brain[hash('{}-{}: {}'.format(ox,self.ply,board))] = L
 
 def main():
     """
@@ -433,14 +473,29 @@ def main():
         ply2=input()
     else: ply2='HUMAN'
 
+    basemem = '/usr/users/eigenbrot/snakes/scratch/.C4mem'
+    memloc1 = 'p{}'.format(ply1)
+    memloc2 = 'p{}'.format(ply2)
+
     B=Board(r,c)
-    P1=Player('X','RANDOM',ply1,ply1)
-    P2=Player('O','RANDOM',ply2,ply2)
+    M1 = Memory(ply1,memloc1,basemem)
+    M2 = Memory(ply2,memloc2,basemem)
+    P1=Player('X','RANDOM',ply1,ply1,M1)
+    P2=Player('O','RANDOM',ply2,ply2,M2)
 
     # print P1
     # print P2
 
+    # try:
+    #     B.playGame(P1,P2)
+    # except Exception as e:
+    #     print e
+    #     pass
     B.playGame(P1,P2)
+    if ply1 != 'HUMAN':
+        M1.unload()
+    if ply2 != 'HUMAN':
+        M2.unload()
     return
 
 if __name__ == '__main__':
