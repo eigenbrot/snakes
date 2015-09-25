@@ -1,6 +1,9 @@
 #include <stdio.h>
 using namespace std;
 
+class Player;
+class Board;
+
 /*##################################################
 
 BOARD CLASS
@@ -23,7 +26,7 @@ public:
     int vagyvag(char, int, int);
     int winsFor(char);
     int gameOver();
-    void playGame();
+    void playGame(Player, Player);
 };
 
 Board::Board (int r, int c) {
@@ -182,7 +185,7 @@ int Board::winsFor(char ox) {
 	    return 1;
     };
     return 0;
-};
+};		    
 
 /*##################################################
 
@@ -200,8 +203,8 @@ public:
     float scoreOneBoard(Board);
     int tiebreakMove(float[]);
     int findHi(float[]);
-    float *scoresFor(Board);
-    int nextMove(Board);
+    float *scoresFor(Board *);
+    int nextMove(Board *);
 };
 
 Player::Player(char c, char tb, int pl) {  
@@ -217,37 +220,98 @@ void Player::repr() {
 };
 
 
+/*##############################*/
+
+int Player::nextMove(Board * b) {
+    
+    if (ply < 0) {
+	int x;
+	printf("%c's move: ",ox);
+	scanf("%d", &x);
+	return x;
+    };
+};
+
+void Board::playGame(Player p1, Player p2) {
+
+    int moveCol;
+    repr();
+
+    while (1) {
+
+	//P1
+	moveCol = p1.nextMove(this);
+	while (allowsMove(moveCol) == 0) {
+	    printf("That column is either full or non-existant.\nPlease try again\n");
+	    moveCol = p1.nextMove(this);
+	};
+	addMove(moveCol,p1.ox);
+	repr();
+	
+	if (winsFor(p1.ox)) {
+	    printf("%c wins!\n",p1.ox);
+	    return;
+	};
+	
+	//P2
+	moveCol = p2.nextMove(this);
+	while (allowsMove(moveCol) == 0) {
+	    printf("That column is either full or non-existant.\nPlease try again\n");
+	    moveCol = p2.nextMove(this);
+	};
+	addMove(moveCol,p2.ox);
+	
+	repr();
+	
+	if (winsFor(p2.ox)) {
+	    printf("%c wins!\n",p2.ox);
+	    return;
+	};	
+	
+	if (isFull()) {
+	    printf("Tie\n");
+	    return;
+	};
+    };
+};
+
+
 int main () {
     
     Board b1 (4,4);
-    b1.addMove(2,'O');
-    b1.addMove(2,'X');
-    b1.addMove(2,'O');
+    // b1.addMove(2,'O');
+    // b1.addMove(2,'X');
+    // b1.addMove(2,'O');
+    // printf("Allows? %d\n",b1.allowsMove(2));
+    // b1.repr();
+    // b1.addMove(2,'X');
+    // b1.addMove(0,'O');
+    // b1.addMove(0,'X');
+    // b1.addMove(0,'O');
+    // b1.addMove(1,'X');
+    // b1.addMove(1,'O');
+    // b1.addMove(1,'X');
+    // b1.addMove(1,'X');
+    // b1.addMove(3,'O');
+    // b1.addMove(0,'X');
+    // b1.addMove(3,'O');
+    // b1.addMove(3,'O');
+    // b1.addMove(3,'O');
+    // b1.repr();
+    // printf("Allows? %d\n",b1.allowsMove(2));
+    // printf("full? %d\n",b1.isFull());
+    // printf("agy? %d\n",b1.agywag('X',0,0));
+    // printf("vagy? %d\n",b1.vagyvag('O',0,3));
+    // printf("win bot %d\n",b1.horz('O',3));
+    // printf("winsfor X? %d\n",b1.winsFor('X'));
+    // printf("winsfor O? %d\n",b1.winsFor('O'));
+    // Player p1 ('X','r',-1);
+    // p1.repr();
+    // printf("%d",p1.nextMove());
+    Player p1 ('X','r',-1);
+    Player p2 ('O','r',-1);
     printf("Allows? %d\n",b1.allowsMove(2));
-    b1.repr();
-    b1.addMove(2,'X');
-    b1.addMove(0,'O');
-    b1.addMove(0,'X');
-    b1.addMove(0,'O');
-    b1.addMove(1,'X');
-    b1.addMove(1,'O');
-    b1.addMove(1,'X');
-    b1.addMove(1,'X');
-    b1.addMove(3,'O');
-    b1.addMove(0,'X');
-    b1.addMove(3,'O');
-    b1.addMove(3,'O');
-    b1.addMove(3,'O');
-    b1.repr();
-    printf("Allows? %d\n",b1.allowsMove(2));
-    printf("full? %d\n",b1.isFull());
-    printf("agy? %d\n",b1.agywag('X',0,0));
-    printf("vagy? %d\n",b1.vagyvag('O',0,3));
-    printf("win bot %d\n",b1.horz('O',3));
-    printf("winsfor X? %d\n",b1.winsFor('X'));
-    printf("winsfor O? %d\n",b1.winsFor('O'));
-    Player p1 ('X','r',3);
-    p1.repr();
+    b1.playGame(p1,p2);
     delete[] b1.data;
     return 0;
 };
