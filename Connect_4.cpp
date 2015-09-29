@@ -199,12 +199,14 @@ public:
     int ply;
     Player(char, char, int);
     void repr();
-    char opChar();
-    float scoreOneBoard(Board);
+    char oppChar();
+    float scoreOneBoard(Board *);
     int tiebreakMove(float[]);
     int findHi(float[]);
     float *scoresFor(Board *);
     int nextMove(Board *);
+    int findhi(float[], int, float);
+    float findmax(float[], int);
 };
 
 Player::Player(char c, char tb, int pl) {  
@@ -219,6 +221,44 @@ void Player::repr() {
 
 };
 
+char Player::oppChar() {
+    
+    if (ox == 'X')
+	return 'O';
+    else
+	return 'X';
+};
+
+float Player::scoreOneBoard(Board * b) {
+
+    if (b->winsFor(ox))
+	return 100.0;
+    if (b->winsFor(oppChar()))
+	return 0.0;
+    else
+	return 50.0;
+};
+
+int Player::findhi(float *scores, int len, float max) {
+
+    if (len == 1)
+	return 0;
+    else if (scores[0] == max)
+	return 0;
+    else
+	return findhi(scores + 1, len - 1, max) + 1;
+};
+
+float Player::findmax(float *scores, int len) {
+    
+    float max = -99.99;
+    for (int i = 0; i < len; i++) {
+	if (scores[i] > max)
+	    max = scores[i];
+    };
+    
+    return max;
+};
 
 /*##############################*/
 
@@ -311,7 +351,13 @@ int main () {
     Player p1 ('X','r',-1);
     Player p2 ('O','r',-1);
     printf("Allows? %d\n",b1.allowsMove(2));
-    b1.playGame(p1,p2);
+//    b1.playGame(p1,p2);
+    float scores[6] = {100.0, 320000.42, 2.3, 900.3, 0.001, 23.445};
+    float max = p1.findmax(scores,6);
+    int id = p1.findhi(scores,6,max);
+    printf("Max: %f\n",max);
+    printf("ID: %d\n",id);
+    
     delete[] b1.data;
     return 0;
 };
