@@ -33,6 +33,10 @@
 # History:
 #      v1 - A. Eigenbrot Nov. 2014
 #      v1.1 - A. Eigenbrot Dec. 2014
+#      v2.0 - A. Eigenbrot Aug. 2015
+#               Corrected implimentation of fitflat+
+#      v2.1 - A. Eigenbrot Sep. 2015
+#               Added shutter lag correction
 #
 ####################################################
 
@@ -83,7 +87,6 @@ def scale_spectra(imagelist):
 
     hdulist = [pyfits.open(image)[0] for image in imagelist]
     means = [np.mean(h.data[fiber1 - 1:fiber2 - 1,:]) for h in hdulist]
-    print means
     scales = means[0]/np.array(means)
 
     print 'Scaling extracted flats...'
@@ -91,6 +94,24 @@ def scale_spectra(imagelist):
     for h, scale, name in zip(hdulist, scales, outputnames):
         print '\t{} {}'.format(name, scale)
         h.data *= scale
+        h.writeto(name,clobber=True)
+
+    return outputnames
+
+def shutter_correction(imagelist):
+
+    fiber1 = 44
+    fiber2 = 62
+
+    hdulist = [pyfits.open(image)[0] for image in imagelist]
+    avgs = [np.mean(h.data[fiber1 - 1:fiber2 - 1,:],axis=0) for h in hdulist]
+    corrections = avgs[0]/np.array(avgs)
+
+    outputnames = ['{}_shut.ms.fits'.format(image.split('.ms.fits')[0]) for image in imagelist]
+    print 'Correcting for shutter lag...'
+    for h, corr, name in zip(hdulist, corrections, outputnames):
+        print '\t{} {}'.format(name,np.mean(corr))
+        h.data *= corr
         h.writeto(name,clobber=True)
 
     return outputnames
@@ -396,10 +417,11 @@ def main():
     msl, scales = initial_run(flat_list, traceflat, throughput)
     if not msl:
         '''Here is where we catch IRAF being bad'''
-        msl, scales = initial_run(sl, traceflat, throughput)
+        msl, scales = initial_run(msl, traceflat, throughput)
     outstring = get_scrunch(flat_list[0],msl[0])
     mean_scale(msl,scales)
     msl = scale_spectra(msl)
+    msl = shutter_correction(msl)
     master = stitch_flats(msl,pivot_list,outstring)
     if fitflat:
         fit_flat(master)
