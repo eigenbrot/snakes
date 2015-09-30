@@ -22,9 +22,14 @@ def go(pointing='*',prefix='NGC_891',night=''):
     fre = re.compile('\d_(\d{3})_')
     fnum = np.array([int(fre.search(i).group(1)) for i in skylist])
     
-    mjd = np.array([float(pyfits.open(s)[0].header['JD']) for s in skylist])
-    mjd -= np.min(mjd)
-    mjd *= 24.
+    utc = np.array([get_utc(pyfits.open(s)[0].header['TIME-OBS']) for s in skylist])
+    air = np.array([float(pyfits.open(s)[0].header['AIRMASS']) for s in skylist])
+    # mjd = np.array([float(pyfits.open(s)[0].header['JD']) for s in skylist])
+    # mjd -= np.min(mjd)
+    # mjd *= 24.
+
+    # mjd = utc
+    # print mjd
 
     sky = get_sky(skylist)
     source_sky = get_source(sslist)
@@ -38,42 +43,54 @@ def go(pointing='*',prefix='NGC_891',night=''):
     soax.set_ylabel('$\\frac{F - S}{<F - S>_{\mathrm{night}}}$',fontsize=14)
 
     rmax = fig.add_subplot(313)
-    rmax.set_xlabel('Hours since first exposure')
+    rmax.set_xlabel('UTC time')
     rmax.set_ylabel('rms($S - <S>_{\mathrm{size}}$)',fontsize=10)
 
-    skax.errorbar(mjd, sky[0], yerr=sky[1],ls='',marker='o',color='k')
-    soax.errorbar(mjd, source_sky[0], yerr=source_sky[1],ls='',marker='o',color='k')
-    rmax.errorbar(mjd, rms[0], yerr=rms[1],ls='',marker='o',color='k')
+    skax.errorbar(utc, sky[0], yerr=sky[1],ls='',marker='o',color='k')
+    soax.errorbar(utc, source_sky[0], yerr=source_sky[1],ls='',marker='o',color='k')
+    rmax.errorbar(utc, rms[0], yerr=rms[1],ls='',marker='o',color='k')
 
-    for i in range(mjd.size):
-        skax.text(mjd[i]+0.08, sky[0,i],'{:4.2f}'.format(sky[0,i]),
+    for i in range(utc.size):
+        skax.text(utc[i]+0.08, sky[0,i],'{:4.2f}'.format(sky[0,i]),
                   va='center',fontsize=6)
-        soax.text(mjd[i]+0.08, source_sky[0,i],'{:4.2f}'.format(source_sky[0,i]),
+        soax.text(utc[i]+0.08, source_sky[0,i],'{:4.2f}'.format(source_sky[0,i]),
                   va='center',fontsize=6)
-        rmax.text(mjd[i]+0.08, rms[0,i],'{:4.2f}'.format(rms[0,i]),
+        rmax.text(utc[i]+0.08, rms[0,i],'{:4.2f}'.format(rms[0,i]),
                   va='center',fontsize=6)
 
 
     skax.set_xticklabels([])
     soax.set_xticklabels([])
     
-    utcax = skax.twiny()
-    utcax.set_xticks(mjd)
-    utcax.set_xticklabels(fnum)
-    utcax.set_xlabel('Exposure number')
+    expax = skax.twiny()
+    expax.set_xticks(utc)
+    expax.set_xticklabels(fnum)
+#    expax.set_xlabel('Exposure number')
+    expax.tick_params(pad=-20,labelsize=9,direction='both')
+    
+    airax = skax.twiny()
+    airax.set_xticks(utc)
+    airax.set_xticklabels(air)
+    airax.tick_params(labelsize=10)
+    airax.set_xlabel('Airmass',fontsize=11)
 
-    skax.set_xlim(-0.5,np.max(mjd)+0.5)
+    skax.set_xlim(np.min(utc) - 0.5,np.max(utc) + 0.5)
     soax.set_xlim(skax.get_xlim())
     rmax.set_xlim(skax.get_xlim())
-    utcax.set_xlim(skax.get_xlim())
+    expax.set_xlim(skax.get_xlim())
+    airax.set_xlim(skax.get_xlim())
 
-    skax.set_ylim(skax.get_ylim()*np.array([0.999,1.]))
-    soax.set_ylim(soax.get_ylim()*np.array([0.999,1.1]))
+    # skax.set_ylim(skax.get_ylim()*np.array([0.999,1.]))
+    # soax.set_ylim(soax.get_ylim()*np.array([0.999,1.1]))
+    skax.set_ylim(0.5,1.6)
+    soax.set_ylim(-0.9,5)
     rmax.set_ylim(rmax.get_ylim()*np.array([1.,1.1]))
 
     fig.subplots_adjust(hspace=0.0001)
 
-    skax.text(0.05,0.9,'Error bars are $\sigma$\nacross all fibers',
+    skax.text(0.02,0.9,'Exp #',transform = skax.transAxes, fontsize=6)
+
+    skax.text(0.05,0.85,'Error bars are $\sigma$\nacross all fibers',
               transform=skax.transAxes, va='top',
               fontsize=9)
     soax.text(0.05,0.9,'Error bars are $\sigma$\nacross all fibers',
@@ -102,7 +119,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
         
     if unip.size > 1:
         pidx = np.where(plist == unip[0])[0]
-        ploc = np.mean([mjd[pidx[-1]],mjd[pidx[-1]+1]])
+        ploc = np.mean([utc[pidx[-1]],utc[pidx[-1]+1]])
         skax.axvline(ploc,ls=':',alpha=0.8,color='k')
         soax.axvline(ploc,ls=':',alpha=0.8,color='k')
         rmax.axvline(ploc,ls=':',alpha=0.8,color='k')
@@ -119,6 +136,11 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     return fig
 
+def get_utc(s):
+
+    split = s.split(':')
+    return float(split[0]) + float(split[1])/60. + float(split[2])/3600.
+    
 def openfits(image):
 
     h = pyfits.open(image)[0]
