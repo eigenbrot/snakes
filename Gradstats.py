@@ -8,19 +8,19 @@ import os
 import sys
 import time
 
+#TO DO: multi wavelength range
+
 wavemin = 4500.
 wavemax = 5500.
 
-def go(pointing='*',prefix='NGC_891'):
+def go(pointing='*',prefix='NGC_891',night=''):
 
     skylist = glob('{}_P{}*otdcs*ms_lin.fits'.format(prefix,pointing))
     skylist.sort()
     sslist = [s.replace('ms_lin','ms_s_lin') for s in skylist]
-    print skylist
-    print sslist
 
-    p = re.compile('\d_(\d{3})_')
-    fnum = np.array([int(p.search(i).group(1)) for i in skylist])
+    fre = re.compile('\d_(\d{3})_')
+    fnum = np.array([int(fre.search(i).group(1)) for i in skylist])
     
     mjd = np.array([float(pyfits.open(s)[0].header['JD']) for s in skylist])
     mjd -= np.min(mjd)
@@ -47,11 +47,12 @@ def go(pointing='*',prefix='NGC_891'):
 
     for i in range(mjd.size):
         skax.text(mjd[i]+0.08, sky[0,i],'{:4.2f}'.format(sky[0,i]),
-                  va='center',fontsize=7)
+                  va='center',fontsize=6)
         soax.text(mjd[i]+0.08, source_sky[0,i],'{:4.2f}'.format(source_sky[0,i]),
-                  va='center',fontsize=7)
+                  va='center',fontsize=6)
         rmax.text(mjd[i]+0.08, rms[0,i],'{:4.2f}'.format(rms[0,i]),
-                  va='center',fontsize=7)
+                  va='center',fontsize=6)
+
 
     skax.set_xticklabels([])
     soax.set_xticklabels([])
@@ -72,13 +73,13 @@ def go(pointing='*',prefix='NGC_891'):
 
     fig.subplots_adjust(hspace=0.0001)
 
-    skax.text(0.1,0.9,'Error bars are $\sigma$\nacross all fibers',
+    skax.text(0.05,0.9,'Error bars are $\sigma$\nacross all fibers',
               transform=skax.transAxes, va='top',
               fontsize=9)
-    soax.text(0.1,0.9,'Error bars are $\sigma$\nacross all fibers',
+    soax.text(0.05,0.9,'Error bars are $\sigma$\nacross all fibers',
               transform=soax.transAxes, va='top',
               fontsize=9)
-    rmax.text(0.1,0.9,'Error bars are $\sigma$\nof RMS across each\nfiber size',
+    rmax.text(0.05,0.9,'Error bars are $\sigma$\nof RMS across\neach fiber size',
               transform=rmax.transAxes, va='top',
               fontsize=9)
 
@@ -95,7 +96,24 @@ def go(pointing='*',prefix='NGC_891'):
               transform=skax.transAxes, va='top',
               fontsize=7)
 
-    skax.text(0.85,1.3,'{}_P{}\n{}'.format(prefix,pointing,time.asctime()),
+    pre = re.compile('P(\d)')
+    plist = np.array([int(pre.search(i).group(1)) for i in skylist])
+    unip = np.unique(plist)
+        
+    if unip.size > 1:
+        pidx = np.where(plist == unip[0])[0]
+        ploc = np.mean([mjd[pidx[-1]],mjd[pidx[-1]+1]])
+        skax.axvline(ploc,ls=':',alpha=0.8,color='k')
+        soax.axvline(ploc,ls=':',alpha=0.8,color='k')
+        rmax.axvline(ploc,ls=':',alpha=0.8,color='k')
+        skax.text(ploc-0.05,skax.get_ylim()[0],'$\Leftarrow$ P{}'.format(unip[0]),
+                  va='bottom', ha='right',fontsize=7)
+        skax.text(ploc+0.05,skax.get_ylim()[0],'P{} $\\Rightarrow$'.format(unip[1]),
+                  va='bottom', ha='left',fontsize=7)
+    else:
+        pointing = unip[0]
+
+    skax.text(0.85,1.3,'{} P{}\n{}'.format(night,pointing,time.asctime()),
               transform=skax.transAxes, va='top',
               fontsize=7)
 
@@ -187,9 +205,9 @@ def main():
         plot_name = "{}-P{}-{}_stats.png".format(split[-2],p,split[-1])
     except IndexError:
         p = '*'
-        plot_name = "{}-{}_stats.png".format(*cwd.split('/')[-2:])
+        plot_name = "{}-all-{}_stats.png".format(*cwd.split('/')[-2:])
 
-    f = go(pointing=p)
+    f = go(pointing=p,night=cwd.split('/')[-2])
     f.savefig(plot_name)
 
     return 0
