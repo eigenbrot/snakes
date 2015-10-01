@@ -24,6 +24,10 @@ def go(pointing='*',prefix='NGC_891',night=''):
     
     utc = np.array([get_utc(pyfits.open(s)[0].header['TIME-OBS']) for s in skylist])
     air = np.array([float(pyfits.open(s)[0].header['AIRMASS']) for s in skylist])
+
+    idx = np.where(utc < 17) #We'll never observe before 5, so these must be
+    utc[idx] += 24.          #after midnight.
+
     # mjd = np.array([float(pyfits.open(s)[0].header['JD']) for s in skylist])
     # mjd -= np.min(mjd)
     # mjd *= 24.
@@ -44,7 +48,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     rmax = fig.add_subplot(313)
     rmax.set_xlabel('UTC time')
-    rmax.set_ylabel('rms($S - <S>_{\mathrm{size}}$)',fontsize=10)
+    rmax.set_ylabel('rms($S_i - <S_i>_{\mathrm{size}}$)',fontsize=10)
 
     skax.errorbar(utc, sky[0], yerr=sky[1],ls='',marker='o',color='k')
     soax.errorbar(utc, source_sky[0], yerr=source_sky[1],ls='',marker='o',color='k')
@@ -135,12 +139,12 @@ def go(pointing='*',prefix='NGC_891',night=''):
               fontsize=7)
 
     return fig
-
+    
 def get_utc(s):
 
-    split = s.split(':')
-    return float(split[0]) + float(split[1])/60. + float(split[2])/3600.
-    
+    ts = s.split(':')
+    return float(ts[0]) + float(ts[1])/60. + float(ts[2])/3600.
+
 def openfits(image):
 
     h = pyfits.open(image)[0]
