@@ -1,8 +1,56 @@
 #include <stdio.h>
+#include <cfloat>
 using namespace std;
 
 class Player;
 class Board;
+float floatMax(float[], int);
+float floatMin(float[], int);
+int floatWhere(float[], float, int);
+float *floatCopy(float[], int);
+
+float floatMax(float *list, int len) {
+    
+    float max = FLT_MIN;
+    for (int i = 0; i < len; i++) {
+	if (list[i] > max)
+	    max = list[i];
+    };
+    
+    return max;
+};
+
+float floatMin(float *list, int len) {
+    
+    float min = FLT_MAX;
+    for (int i = 0; i < len; i++) {
+	if (list[i] < min)
+	    min = list[i];
+    };
+
+    return min;
+};
+
+int floatWhere(float *list, float elem, int len) {
+
+    if (len == 1)
+	return 0;
+    else if (list[0] == elem)
+	return 0;
+    else
+	return floatWhere(list + 1, elem, len - 1) + 1;
+};
+
+float *floatCopy(float *list, int len) {
+
+    float *copy = new float[len];
+    
+    for (int i = 0; i < len; i++) {
+	copy[i] = list[i];
+    };
+    return copy;
+};
+	
 
 /*##################################################
 
@@ -205,8 +253,6 @@ public:
     int findHi(float[]);
     float *scoresFor(Board *);
     int nextMove(Board *);
-    int findhi(float[], int, float);
-    float findmax(float[], int);
 };
 
 Player::Player(char c, char tb, int pl) {  
@@ -239,26 +285,9 @@ float Player::scoreOneBoard(Board * b) {
 	return 50.0;
 };
 
-int Player::findhi(float *scores, int len, float max) {
+//int tiebreakMove(float *scores, int len) {
 
-    if (len == 1)
-	return 0;
-    else if (scores[0] == max)
-	return 0;
-    else
-	return findhi(scores + 1, len - 1, max) + 1;
-};
-
-float Player::findmax(float *scores, int len) {
     
-    float max = -99.99;
-    for (int i = 0; i < len; i++) {
-	if (scores[i] > max)
-	    max = scores[i];
-    };
-    
-    return max;
-};
 
 /*##############################*/
 
@@ -352,12 +381,21 @@ int main () {
     Player p2 ('O','r',-1);
     printf("Allows? %d\n",b1.allowsMove(2));
 //    b1.playGame(p1,p2);
-    float scores[6] = {100.0, 320000.42, 2.3, 900.3, 0.001, 23.445};
-    float max = p1.findmax(scores,6);
-    int id = p1.findhi(scores,6,max);
-    printf("Max: %f\n",max);
-    printf("ID: %d\n",id);
-    
+    float scores[6] = {100.0, 32.42, 2.3, 900.3, 0.001, 23.445};
+    // float max = floatMax(scores,6);
+    // float min = floatMin(scores,6);
+    // int id = floatWhere(scores,max,6);
+    // int mid = floatWhere(scores,min,6);
+    // printf("Max: %f\n",max);
+    // printf("ID: %d\n",id);
+    // printf("Min: %f\n",min);
+    // printf("ID: %d\n",mid);
+
+    float *copy = floatCopy(scores, 6);
+    copy[2] = 9999.9;
+    for (int i = 0; i < 6; i++) {
+	printf("%f %f\n",scores[i],copy[i]);
+    };
     delete[] b1.data;
     return 0;
 };
