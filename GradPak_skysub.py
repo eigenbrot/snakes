@@ -49,8 +49,8 @@ def skysub(imagename,fibersize):
                 objbeam='{},{}'.format(fibersize,fibersize*11),
                 skybeam='{}'.format(fibersize*11),
                 skyedit='yes',
-                combine='median',
-                reject='none',
+                combine='average',
+                reject='avsigclip',
                 scale='none',
                 savesky='yes',
                 logfile='spool.txt')
