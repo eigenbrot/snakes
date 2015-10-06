@@ -52,7 +52,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     fig = plt.figure()
     skax = fig.add_subplot(311)
-    skax.set_ylabel('$\\frac{B_S}{<B_S>_{\mathrm{night}}}$',fontsize=14)
+    skax.set_ylabel('$\\frac{S}{<S>_{\mathrm{night}}}$',fontsize=14)
     
     soax = fig.add_subplot(312)
     soax.set_ylabel('$\\frac{F - S}{<F - S>_{\mathrm{night}}}$',fontsize=14)
@@ -141,14 +141,10 @@ def go(pointing='*',prefix='NGC_891',night=''):
               fontsize=9)
 
     skax.text(-0.1,1.3,
-              '$B_S$ = Sky surface brightness',
-              transform=skax.transAxes, va='top',
-              fontsize=7)
-    skax.text(-0.1,1.23,
               '$F$ = Galaxy flux',
               transform=skax.transAxes, va='top',
               fontsize=7)
-    skax.text(-0.1,1.16,
+    skax.text(-0.1,1.23,
               '$S$ = Sky flux',
               transform=skax.transAxes, va='top',
               fontsize=7)
@@ -206,11 +202,6 @@ def get_sky(skylist):
         idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
         d = data[skidx]
         d = d[:,idx]
-        d[0:4] /= 2.
-        d[4:8] /= 3.
-        d[8:12] /= 4.
-        d[12:16] /= 5.
-        d[16:20] /= 6.
         med = np.median(d,axis=1)
         tmp.append(med)
         
