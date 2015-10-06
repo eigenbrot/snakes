@@ -48,7 +48,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     sky = get_sky(skylist)
     source_sky = get_source(sslist)
-    rms = get_rms(skylist)
+    rms = get_rms2(skylist)
 
     fig = plt.figure()
     skax = fig.add_subplot(311)
@@ -59,7 +59,8 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     rmax = fig.add_subplot(313)
     rmax.set_xlabel('Local time')
-    rmax.set_ylabel('rms($S_i - <S_i>_{\mathrm{size}}$)',fontsize=10)
+    # rmax.set_ylabel('rms($S_i - <S_i>_{\mathrm{size}}$)',fontsize=10)
+    rmax.set_ylabel(r'$\sqrt{\Sigma_{f,s}\left(\frac{S_{f,s}}{<S_s>} - 1\right)^2}$')
 
     skax.set_xticklabels([])
     soax.set_xticklabels([])
@@ -68,12 +69,12 @@ def go(pointing='*',prefix='NGC_891',night=''):
     expax.set_xticks(utc)
     expax.set_xticklabels(fnum)
 #    expax.set_xlabel('Exposure number')
-    expax.tick_params(pad=-20,labelsize=9,direction='both')
+    expax.tick_params(pad=-15,labelsize=7,direction='both')
     
     airax = skax.twiny()
     airax.set_xticks(utc)
     airax.set_xticklabels(air)
-    airax.tick_params(labelsize=10)
+    airax.tick_params(labelsize=8)
     airax.set_xlabel('Airmass',fontsize=11)
 
     for d, date in enumerate(unid):
@@ -87,16 +88,25 @@ def go(pointing='*',prefix='NGC_891',night=''):
                       source_sky[0][didx],
                       yerr=source_sky[1][didx],
                       ls='',marker='o',color=colors[d],
-        markeredgecolor=colors[d])
-        rmax.errorbar(utc[didx],
-                      rms[0][didx],
-                      yerr=rms[1][didx],
-                      ls='',marker='o',color=colors[d],
                       markeredgecolor=colors[d])
+        rmax.plot(utc[didx],
+                  rms[didx],
+                  ls='',marker='o',color=colors[d],
+                  markeredgecolor=colors[d])
+        # rmax.errorbar(utc[didx],
+        #               rms[0][didx],
+        #               yerr=rms[1][didx],
+        #               ls='',marker='o',color=colors[d],
+        #               markeredgecolor=colors[d])
         
         for t in didx:
             expax.get_xticklabels()[t].set_color(colors[d])
             airax.get_xticklabels()[t].set_color(colors[d])
+            airax.get_xticklabels()[t].\
+                set_position(airax.get_xticklabels()[t].get_position()*np.array([1-0.02*d,1+0.07*d]))
+            expax.get_xticklabels()[t].\
+                set_position(expax.get_xticklabels()[t].get_position()*np.array([1-0.02*d,1-0.055*d]))
+                                                     
 
         for i in range(utc[didx].size):
             skax.text(utc[didx][i]+0.08, sky[0][didx][i],
@@ -105,8 +115,8 @@ def go(pointing='*',prefix='NGC_891',night=''):
             soax.text(utc[didx][i]+0.08, source_sky[0][didx][i],
                       '{:4.2f}'.format(source_sky[0][didx][i]),
                       va='center',fontsize=6,color=colors[d])
-            rmax.text(utc[didx][i]+0.08, rms[0][didx][i],
-                      '{:4.2f}'.format(rms[0][didx][i]),
+            rmax.text(utc[didx][i]+0.08, rms[didx][i],
+                      '{:4.2f}'.format(rms[didx][i]),
                       va='center',fontsize=6,color=colors[d])
 
 
@@ -136,9 +146,9 @@ def go(pointing='*',prefix='NGC_891',night=''):
     soax.text(0.05,0.9,'Error bars are $\sigma$\nacross all fibers',
               transform=soax.transAxes, va='top',
               fontsize=9)
-    rmax.text(0.05,0.9,'Error bars are $\sigma$\nof RMS across\neach fiber size',
-              transform=rmax.transAxes, va='top',
-              fontsize=9)
+    # rmax.text(0.05,0.9,'Error bars are $\sigma$\nof RMS across\neach fiber size',
+    #           transform=rmax.transAxes, va='top',
+    #           fontsize=9)
 
     skax.text(-0.1,1.3,
               '$F$ = Galaxy flux',
@@ -254,6 +264,30 @@ def get_rms(skylist):
         bigout.append(np.array([np.mean(sizeout),np.std(sizeout)]))
 
     return np.array(bigout).T
+
+def get_rms2(skylist):
+
+    skidx = np.array([1,2,18,19,20,31,32,43,44,53,54,62,63,71,79,87,88,95,102,109]) - 1
+    print 'RMS:'
+    bigout = []
+    for frame in skylist:
+        print '\t', frame
+        wave, data = openfits(frame)
+        idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
+        d = data[skidx]
+        d = d[:,idx]
+        sizeout = []
+        for i in range(5):
+            tmp = d[i*4:(i+1)*4,:]
+            med = np.median(tmp,axis=1)
+            mean = np.mean(med)
+            ratio = (med/mean - 1.)**2
+            sizeout.append(ratio)
+        
+        bigout.append(np.sqrt(np.sum(sizeout)))
+
+    return np.array(bigout)
+
 
 def main():
 
