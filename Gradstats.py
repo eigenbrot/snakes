@@ -22,8 +22,19 @@ def go(pointing='*',prefix='NGC_891',night=''):
     fre = re.compile('\d_(\d{3})_')
     fnum = np.array([int(fre.search(i).group(1)) for i in skylist])
     
-    utc = np.array([get_utc(pyfits.open(s)[0].header['TIME-OBS']) for s in skylist])
-    air = np.array([float(pyfits.open(s)[0].header['AIRMASS']) for s in skylist])
+    utc = np.array([get_utc(pyfits.open(s)[0].\
+                            header['TIME-OBS']) for s in skylist])
+    air = np.array([float(pyfits.open(s)[0].\
+                          header['AIRMASS']) for s in skylist])
+    full_dates = [pyfits.open(s)[0].\
+                           header['DATE-OBS'].split('T')[0] for s in skylist]
+    dates = np.array([int(dd.split('-')[2]) for dd in full_dates])
+
+    unid = np.unique(dates)
+    dated = {}
+    colors = ['k','r','b','g']
+    for d in unid:
+        dated[d] = np.where(dates == d)[0]
 
     idx = np.where(utc < 17) #We'll never observe before 5, so these must be
     utc[idx] += 24.          #after midnight.
@@ -50,19 +61,6 @@ def go(pointing='*',prefix='NGC_891',night=''):
     rmax.set_xlabel('Local time')
     rmax.set_ylabel('rms($S_i - <S_i>_{\mathrm{size}}$)',fontsize=10)
 
-    skax.errorbar(utc, sky[0], yerr=sky[1],ls='',marker='o',color='k')
-    soax.errorbar(utc, source_sky[0], yerr=source_sky[1],ls='',marker='o',color='k')
-    rmax.errorbar(utc, rms[0], yerr=rms[1],ls='',marker='o',color='k')
-
-    for i in range(utc.size):
-        skax.text(utc[i]+0.08, sky[0,i],'{:4.2f}'.format(sky[0,i]),
-                  va='center',fontsize=6)
-        soax.text(utc[i]+0.08, source_sky[0,i],'{:4.2f}'.format(source_sky[0,i]),
-                  va='center',fontsize=6)
-        rmax.text(utc[i]+0.08, rms[0,i],'{:4.2f}'.format(rms[0,i]),
-                  va='center',fontsize=6)
-
-
     skax.set_xticklabels([])
     soax.set_xticklabels([])
     
@@ -77,6 +75,40 @@ def go(pointing='*',prefix='NGC_891',night=''):
     airax.set_xticklabels(air)
     airax.tick_params(labelsize=10)
     airax.set_xlabel('Airmass',fontsize=11)
+
+    for d, date in enumerate(unid):
+        didx = dated[date]
+        skax.errorbar(utc[didx], 
+                      sky[0][didx], 
+                      yerr=sky[1][didx],
+                      ls='',marker='o',color=colors[d],
+                      markeredgecolor=colors[d])
+        soax.errorbar(utc[didx],
+                      source_sky[0][didx],
+                      yerr=source_sky[1][didx],
+                      ls='',marker='o',color=colors[d],
+        markeredgecolor=colors[d])
+        rmax.errorbar(utc[didx],
+                      rms[0][didx],
+                      yerr=rms[1][didx],
+                      ls='',marker='o',color=colors[d],
+                      markeredgecolor=colors[d])
+        
+        for t in didx:
+            expax.get_xticklabels()[t].set_color(colors[d])
+            airax.get_xticklabels()[t].set_color(colors[d])
+
+        for i in range(utc[didx].size):
+            skax.text(utc[didx][i]+0.08, sky[0][didx][i],
+                      '{:4.2f}'.format(sky[0][didx][i]),
+                      va='center',fontsize=6,color=colors[d])
+            soax.text(utc[didx][i]+0.08, source_sky[0][didx][i],
+                      '{:4.2f}'.format(source_sky[0][didx][i]),
+                      va='center',fontsize=6,color=colors[d])
+            rmax.text(utc[didx][i]+0.08, rms[0][didx][i],
+                      '{:4.2f}'.format(rms[0][didx][i]),
+                      va='center',fontsize=6,color=colors[d])
+
 
     skax.set_xlim(np.min(utc) - 0.5,np.max(utc) + 0.5)
     soax.set_xlim(skax.get_xlim())
@@ -137,6 +169,12 @@ def go(pointing='*',prefix='NGC_891',night=''):
     skax.text(0.85,1.3,'{} P{}\n{}'.format(night,pointing,time.asctime()),
               transform=skax.transAxes, va='top',
               fontsize=7)
+
+    for d, dd in enumerate(unid):
+        fd = full_dates[dated[dd][0]]
+        skax.text(0.3,1.3-d*0.07,fd,
+                  color=colors[d], transform=skax.transAxes,
+                  fontsize=7, va='top')
 
     return fig
     
