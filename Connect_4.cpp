@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include <cfloat>
+#include <climits>
 using namespace std;
 
 class Player;
 class Board;
 float floatMax(float[], int);
 float floatMin(float[], int);
-int floatWhere(float[], float, int);
+int floatWhere(float[], int, float);
 float *floatCopy(float[], int);
+
+int intMax(int[], int);
+int intMin(int[], int);
+int *intCopy(int[], int);
 
 float floatMax(float *list, int len) {
     
@@ -31,7 +36,7 @@ float floatMin(float *list, int len) {
     return min;
 };
 
-int floatWhere(float *list, float elem, int len) {
+int floatWhere(float *list, int len, float elem) {
 
     if (len == 1)
 	return 0;
@@ -50,7 +55,39 @@ float *floatCopy(float *list, int len) {
     };
     return copy;
 };
+
+int intMax(int *list, int len) {
+    
+    int max = INT_MIN;
+    for (int i = 0; i < len; i++) {
+	if (list[i] > max)
+	    max = list[i];
+    };
+    
+    return max;
+};
+
+int intMin(int *list, int len) {
+    
+    int min = INT_MAX;
+    for (int i = 0; i < len; i++) {
+	if (list[i] < min)
+	    min = list[i];
+    };
+
+    return min;
+};
 	
+int *intCopy(int *list, int len) {
+
+    int *copy = new int[len];
+    
+    for (int i = 0; i < len; i++) {
+	copy[i] = list[i];
+    };
+    return copy;
+};
+
 
 /*##################################################
 
@@ -249,7 +286,7 @@ public:
     void repr();
     char oppChar();
     float scoreOneBoard(Board *);
-    int tiebreakMove(float[]);
+    int tiebreakMove(float[], int);
     int findHi(float[]);
     float *scoresFor(Board *);
     int nextMove(Board *);
@@ -285,10 +322,38 @@ float Player::scoreOneBoard(Board * b) {
 	return 50.0;
 };
 
-//int tiebreakMove(float *scores, int len) {
+int Player::tiebreakMove(float *scores, int len) {
 
+    float *tmp = floatCopy(scores, len);
+    int *t = new int[len];
+    float m = floatMax(scores, len);
+    int i = 0;
+    int h;
+    int out;
     
+    while (1) {
+	h = floatWhere(tmp, len, m);
+	t[i] = h;
+	tmp[h] = -99.9;
+	i += 1;
+    }
+    
+    int *t2 = intCopy(t,i);
 
+    if (tbt == 'l')
+	out = intMin(t2,i);
+    else if (tbt == 'r')
+	out = intMax(t2,i);
+    else
+	out = 0;
+    
+    delete t;
+    delete t2;
+    delete tmp;
+
+    return out;
+};
+    
 /*##############################*/
 
 int Player::nextMove(Board * b) {
@@ -381,7 +446,7 @@ int main () {
     Player p2 ('O','r',-1);
     printf("Allows? %d\n",b1.allowsMove(2));
 //    b1.playGame(p1,p2);
-    float scores[6] = {100.0, 32.42, 2.3, 900.3, 0.001, 23.445};
+//    float scores[6] = {100.0, 32.42, 2.3, 900.3, 0.001, 23.445};
     // float max = floatMax(scores,6);
     // float min = floatMin(scores,6);
     // int id = floatWhere(scores,max,6);
@@ -391,11 +456,27 @@ int main () {
     // printf("Min: %f\n",min);
     // printf("ID: %d\n",mid);
 
-    float *copy = floatCopy(scores, 6);
-    copy[2] = 9999.9;
-    for (int i = 0; i < 6; i++) {
-	printf("%f %f\n",scores[i],copy[i]);
+    // float *copy = floatCopy(scores, 6);
+    // copy[2] = 9999.9;
+    // for (int i = 0; i < 6; i++) {
+    // 	printf("%f %f\n",scores[i],copy[i]);
+    // };
+    
+    int s[5] = {1,2,5,8,33};
+    int max = intMax(s,5);
+    int min = intMin(s,5);
+    printf("Max: %d\n",max);
+    printf("Min: %d\n",min);
+    int *c = intCopy(s,5);
+    c[2] = -999;
+    for (int i = 0; i < 5; i++) {
+	printf("%d %d\n",s[i],c[i]);
     };
+    int *c2 = intCopy(s,2);
+    for (int i = 0; i < 5; i++) {
+	printf("%d ",c2[i]);
+    };
+
     delete[] b1.data;
     return 0;
 };
