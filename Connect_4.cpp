@@ -284,6 +284,14 @@ int Board::winsFor(char ox) {
     return 0;
 };		    
 
+int Board::gameOver() {
+    
+    if (winsFor('X') || winsFor('O') || isFull())
+	return 1;
+    else
+	return 0;
+};
+
 /*##################################################
 
 PLAYER CLASS
@@ -365,8 +373,48 @@ int Player::tiebreakMove(float *scores, int len) {
 
     return out;
 };
-    
+
 /*##############################*/
+
+float *Player::scoresFor(Board * b) {
+    
+    if (ply <= 0) {
+	printf("base case\n");
+	float *Z = new float[b->col];
+	for (int c = 0; c < b->col; c++) {
+	    if (b->allowsMove(c))
+		Z[c]  = scoreOneBoard(b);
+	    else
+		Z[c] = -1.0;
+	};
+	return Z;
+    }
+
+    else {
+	printf("recursing: %c, ply = %d\n",ox,ply);
+	float *L = new float[b->col];
+	for (int c = 0; c < b->col; c++) {
+	    if (b->allowsMove(c)) {
+		b->addMove(c,ox);
+		
+		if (b->gameOver())
+		    L[c] = 100.0;
+
+		else {
+		    Player badguy (oppChar(),tbt,ply-1);
+		    float *badscore = badguy.scoresFor(b);
+		    L[c] = 100.0 - floatMax(badscore,b->col);
+		    delete[] badscore;
+		}
+		b->delMove(c);
+	    }
+	    else
+		L[c] = -1.0;
+	};
+	
+	return L;
+    }
+};
 
 int Player::nextMove(Board * b) {
     
@@ -425,32 +473,33 @@ void Board::playGame(Player p1, Player p2) {
 int main () {
     
     Board b1 (4,4);
-    // b1.addMove(2,'O');
-    // b1.addMove(2,'X');
-    // b1.addMove(2,'O');
+    b1.addMove(2,'O');
+    b1.addMove(2,'X');
+    b1.addMove(2,'O');
     // printf("Allows? %d\n",b1.allowsMove(2));
     // b1.repr();
-    // b1.addMove(2,'X');
-    // b1.addMove(0,'O');
-    // b1.addMove(0,'X');
-    // b1.addMove(0,'O');
-    // b1.addMove(1,'X');
-    // b1.addMove(1,'O');
-    // b1.addMove(1,'X');
-    // b1.addMove(1,'X');
-    // b1.addMove(3,'O');
-    // b1.addMove(0,'X');
-    // b1.addMove(3,'O');
-    // b1.addMove(3,'O');
-    // b1.addMove(3,'O');
-    // b1.repr();
+//    b1.addMove(2,'X');
+    b1.addMove(0,'O');
+    b1.addMove(0,'X');
+    b1.addMove(0,'O');
+    b1.addMove(1,'X');
+    b1.addMove(1,'O');
+    b1.addMove(1,'X');
+    b1.addMove(1,'X');
+    b1.addMove(3,'O');
+//    b1.addMove(0,'X');
+    b1.addMove(3,'O');
+    b1.addMove(3,'O');
+//    b1.addMove(3,'O');
+    b1.repr();
     // printf("Allows? %d\n",b1.allowsMove(2));
     // printf("full? %d\n",b1.isFull());
     // printf("agy? %d\n",b1.agywag('X',0,0));
     // printf("vagy? %d\n",b1.vagyvag('O',0,3));
     // printf("win bot %d\n",b1.horz('O',3));
-    // printf("winsfor X? %d\n",b1.winsFor('X'));
-    // printf("winsfor O? %d\n",b1.winsFor('O'));
+    printf("winsfor X? %d\n",b1.winsFor('X'));
+    printf("winsfor O? %d\n",b1.winsFor('O'));
+    printf("Game over? %d\n",b1.gameOver());
     // Player p1 ('X','r',-1);
     // p1.repr();
     // printf("%d",p1.nextMove());
@@ -486,24 +535,32 @@ int main () {
     // 	printf("%d ",c2[i]);
     // };
 
-    Player p1 ('X','r',-1);
-    Player p2 ('O','l',-1);
-    Player p3 ('X','?',-1);
-    float scores[5] = {2.0, 50.0, 100.0, 100.0, 1.0};    
+    Player p1 ('X','r',2);
+    Player p2 ('O','l',1);
     
-    int m1 = p1.tiebreakMove(scores,5);
-    int m2 = p2.tiebreakMove(scores,5);
-    int m3 = p3.tiebreakMove(scores,5);
-    int m32 = p3.tiebreakMove(scores,5);
-    int m33 = p3.tiebreakMove(scores,5);
-    int m34 = p3.tiebreakMove(scores,5);
+    float *scores = p1.scoresFor( &b1);
+    
+    for (int c = 0; c < b1.col; c++) {
+	printf("%5.1f  ",scores[c]);
+    };
+    printf("\n");
+    delete[] scores;
+    // Player p3 ('X','?',-1);
+    // float scores[5] = {2.0, 50.0, 100.0, 100.0, 1.0};    
+    
+    // int m1 = p1.tiebreakMove(scores,5);
+    // int m2 = p2.tiebreakMove(scores,5);
+    // int m3 = p3.tiebreakMove(scores,5);
+    // int m32 = p3.tiebreakMove(scores,5);
+    // int m33 = p3.tiebreakMove(scores,5);
+    // int m34 = p3.tiebreakMove(scores,5);
 
-    printf("P1: %d\n",m1);
-    printf("P2: %d\n",m2);
-    printf("P3: %d\n",m3);
-    printf("P3: %d\n",m32);
-    printf("P3: %d\n",m32);
-    printf("P3: %d\n",m34);
+    // printf("P1: %d\n",m1);
+    // printf("P2: %d\n",m2);
+    // printf("P3: %d\n",m3);
+    // printf("P3: %d\n",m32);
+    // printf("P3: %d\n",m32);
+    // printf("P3: %d\n",m34);
 
     delete[] b1.data;
     return 0;
