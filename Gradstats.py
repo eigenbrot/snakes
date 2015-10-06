@@ -118,8 +118,12 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     # skax.set_ylim(skax.get_ylim()*np.array([0.999,1.]))
     # soax.set_ylim(soax.get_ylim()*np.array([0.999,1.1]))
-    skax.set_ylim(0.5,1.6)
-    soax.set_ylim(-0.9,5)
+    skax.set_yscale('log')
+    soax.set_yscale('log')
+    skax.set_ylim(10.**(-0.89),10.**(0.8))
+    soax.set_ylim(10.**(-0.89),10.**(0.8))
+    # skax.set_ylim(0.5,1.6)
+    # soax.set_ylim(-0.9,5)
     rmax.set_ylim(rmax.get_ylim()*np.array([1.,1.1]))
 
     fig.subplots_adjust(hspace=0.0001)
