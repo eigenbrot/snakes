@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cfloat>
 #include <climits>
+#include <random>
 using namespace std;
 
 class Player;
@@ -9,6 +10,7 @@ float floatMax(float[], int);
 float floatMin(float[], int);
 int floatWhere(float[], int, float);
 float *floatCopy(float[], int);
+int floatIn(float[], int);
 
 int intMax(int[], int);
 int intMin(int[], int);
@@ -43,7 +45,7 @@ int floatWhere(float *list, int len, float elem) {
     else if (list[0] == elem)
 	return 0;
     else
-	return floatWhere(list + 1, elem, len - 1) + 1;
+	return floatWhere(list + 1, len - 1, elem) + 1;
 };
 
 float *floatCopy(float *list, int len) {
@@ -54,6 +56,16 @@ float *floatCopy(float *list, int len) {
 	copy[i] = list[i];
     };
     return copy;
+};
+
+int floatIn(float *list, int len, float elem) {
+    
+    for (int i = 0; i < len; i++) {
+	if (list[i] == elem)
+	    return 1;
+    };
+    
+    return 0;
 };
 
 int intMax(int *list, int len) {
@@ -281,6 +293,7 @@ PLAYER CLASS
 class Player {
 public:
     char ox, tbt;
+    minstd_rand seed;
     int ply;
     Player(char, char, int);
     void repr();
@@ -331,25 +344,24 @@ int Player::tiebreakMove(float *scores, int len) {
     int h;
     int out;
     
-    while (1) {
+    while (floatIn(tmp,len,m)) {
 	h = floatWhere(tmp, len, m);
 	t[i] = h;
 	tmp[h] = -99.9;
 	i += 1;
     }
     
-    int *t2 = intCopy(t,i);
-
     if (tbt == 'l')
-	out = intMin(t2,i);
+	out = intMin(t,i);
     else if (tbt == 'r')
-	out = intMax(t2,i);
-    else
-	out = 0;
-    
-    delete t;
-    delete t2;
-    delete tmp;
+	out = intMax(t,i);
+    else {
+	uniform_int_distribution<int> R(0,i-1);
+	out = t[R(seed)];
+    };
+
+    delete[] t;
+    delete[] tmp;
 
     return out;
 };
@@ -442,9 +454,6 @@ int main () {
     // Player p1 ('X','r',-1);
     // p1.repr();
     // printf("%d",p1.nextMove());
-    Player p1 ('X','r',-1);
-    Player p2 ('O','r',-1);
-    printf("Allows? %d\n",b1.allowsMove(2));
 //    b1.playGame(p1,p2);
 //    float scores[6] = {100.0, 32.42, 2.3, 900.3, 0.001, 23.445};
     // float max = floatMax(scores,6);
@@ -462,20 +471,39 @@ int main () {
     // 	printf("%f %f\n",scores[i],copy[i]);
     // };
     
-    int s[5] = {1,2,5,8,33};
-    int max = intMax(s,5);
-    int min = intMin(s,5);
-    printf("Max: %d\n",max);
-    printf("Min: %d\n",min);
-    int *c = intCopy(s,5);
-    c[2] = -999;
-    for (int i = 0; i < 5; i++) {
-	printf("%d %d\n",s[i],c[i]);
-    };
-    int *c2 = intCopy(s,2);
-    for (int i = 0; i < 5; i++) {
-	printf("%d ",c2[i]);
-    };
+    // int s[5] = {1,2,5,8,33};
+    // int max = intMax(s,5);
+    // int min = intMin(s,5);
+    // printf("Max: %d\n",max);
+    // printf("Min: %d\n",min);
+    // int *c = intCopy(s,5);
+    // c[2] = -999;
+    // for (int i = 0; i < 5; i++) {
+    // 	printf("%d %d\n",s[i],c[i]);
+    // };
+    // int *c2 = intCopy(s,2);
+    // for (int i = 0; i < 5; i++) {
+    // 	printf("%d ",c2[i]);
+    // };
+
+    Player p1 ('X','r',-1);
+    Player p2 ('O','l',-1);
+    Player p3 ('X','?',-1);
+    float scores[5] = {2.0, 50.0, 100.0, 100.0, 1.0};    
+    
+    int m1 = p1.tiebreakMove(scores,5);
+    int m2 = p2.tiebreakMove(scores,5);
+    int m3 = p3.tiebreakMove(scores,5);
+    int m32 = p3.tiebreakMove(scores,5);
+    int m33 = p3.tiebreakMove(scores,5);
+    int m34 = p3.tiebreakMove(scores,5);
+
+    printf("P1: %d\n",m1);
+    printf("P2: %d\n",m2);
+    printf("P3: %d\n",m3);
+    printf("P3: %d\n",m32);
+    printf("P3: %d\n",m32);
+    printf("P3: %d\n",m34);
 
     delete[] b1.data;
     return 0;
