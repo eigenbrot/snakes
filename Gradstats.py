@@ -47,7 +47,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
     soax.set_ylabel('$\\frac{F - S}{<F - S>_{\mathrm{night}}}$',fontsize=14)
 
     rmax = fig.add_subplot(313)
-    rmax.set_xlabel('UTC time')
+    rmax.set_xlabel('Local time')
     rmax.set_ylabel('rms($S_i - <S_i>_{\mathrm{size}}$)',fontsize=10)
 
     skax.errorbar(utc, sky[0], yerr=sky[1],ls='',marker='o',color='k')
