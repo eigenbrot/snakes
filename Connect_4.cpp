@@ -1,4 +1,4 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <cfloat>
 #include <climits>
 #include <random>
@@ -335,12 +335,12 @@ char Player::oppChar() {
 
 float Player::scoreOneBoard(Board * b) {
 
-    if (b->winsFor(ox))
-	return 100.0;
-    if (b->winsFor(oppChar()))
-	return 0.0;
-    else
-	return 50.0;
+  if (b->winsFor(ox)) 
+    return 100.0;
+  if (b->winsFor(oppChar())) 
+    return 0.0;
+  else 
+    return 50.0;
 };
 
 int Player::tiebreakMove(float *scores, int len) {
@@ -379,7 +379,6 @@ int Player::tiebreakMove(float *scores, int len) {
 float *Player::scoresFor(Board * b) {
     
     if (ply <= 0) {
-	printf("base case\n");
 	float *Z = new float[b->col];
 	for (int c = 0; c < b->col; c++) {
 	    if (b->allowsMove(c))
@@ -391,15 +390,20 @@ float *Player::scoresFor(Board * b) {
     }
 
     else {
-	printf("recursing: %c, ply = %d\n",ox,ply);
 	float *L = new float[b->col];
 	for (int c = 0; c < b->col; c++) {
 	    if (b->allowsMove(c)) {
-		b->addMove(c,ox);
-		
-		if (b->gameOver())
-		    L[c] = 100.0;
+	        b->addMove(c,ox);
 
+		if (b->winsFor(ox)) 
+		  L[c] = 100.0;
+
+		else if (b->winsFor(oppChar())) 
+		  L[c] = 0.0;
+
+		else if (b->isFull()) 
+		  L[c] = 50.0;
+		
 		else {
 		    Player badguy (oppChar(),tbt,ply-1);
 		    float *badscore = badguy.scoresFor(b);
@@ -408,8 +412,8 @@ float *Player::scoresFor(Board * b) {
 		}
 		b->delMove(c);
 	    }
-	    else
-		L[c] = -1.0;
+	    else 
+              L[c] = -1.0;
 	};
 	
 	return L;
@@ -423,7 +427,11 @@ int Player::nextMove(Board * b) {
 	printf("%c's move: ",ox);
 	scanf("%d", &x);
 	return x;
-    };
+    }
+
+    else 
+      return tiebreakMove(scoresFor(b), b->col);
+
 };
 
 void Board::playGame(Player p1, Player p2) {
@@ -478,20 +486,20 @@ int main () {
     b1.addMove(2,'O');
     // printf("Allows? %d\n",b1.allowsMove(2));
     // b1.repr();
-//    b1.addMove(2,'X');
+    //    b1.addMove(2,'X');
     b1.addMove(0,'O');
     b1.addMove(0,'X');
     b1.addMove(0,'O');
     b1.addMove(1,'X');
     b1.addMove(1,'O');
     b1.addMove(1,'X');
-    b1.addMove(1,'X');
-    b1.addMove(3,'O');
+    //    b1.addMove(1,'X');
+    b1.addMove(3,'X');
 //    b1.addMove(0,'X');
     b1.addMove(3,'O');
     b1.addMove(3,'O');
 //    b1.addMove(3,'O');
-    b1.repr();
+//    b1.repr();
     // printf("Allows? %d\n",b1.allowsMove(2));
     // printf("full? %d\n",b1.isFull());
     // printf("agy? %d\n",b1.agywag('X',0,0));
@@ -535,8 +543,8 @@ int main () {
     // 	printf("%d ",c2[i]);
     // };
 
-    Player p1 ('X','r',2);
-    Player p2 ('O','l',1);
+    Player p1 ('X','r',-1);
+    Player p2 ('O','?',6);
     
     float *scores = p1.scoresFor( &b1);
     
@@ -544,6 +552,10 @@ int main () {
 	printf("%5.1f  ",scores[c]);
     };
     printf("\n");
+    
+    // int nm = p1.nextMove( &b1);
+    // printf("%d\n",nm);
+
     delete[] scores;
     // Player p3 ('X','?',-1);
     // float scores[5] = {2.0, 50.0, 100.0, 100.0, 1.0};    
@@ -562,6 +574,10 @@ int main () {
     // printf("P3: %d\n",m32);
     // printf("P3: %d\n",m34);
 
+    Board b2(6,7);
+    b2.playGame(p1,p2);
+
     delete[] b1.data;
+    delete[] b2.data;
     return 0;
 };
