@@ -1,4 +1,4 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <cfloat>
 #include <climits>
 #include <random>
@@ -322,7 +322,7 @@ Player::Player(char c, char tb, int pl) {
 void Player::repr() {
     
     printf("Player for %c\n\twith tiebreak %c\n\tand ply = %d\n",ox,tbt,ply);
-
+    
 };
 
 char Player::oppChar() {
@@ -335,12 +335,12 @@ char Player::oppChar() {
 
 float Player::scoreOneBoard(Board * b) {
 
-  if (b->winsFor(ox)) 
-    return 100.0;
-  if (b->winsFor(oppChar())) 
-    return 0.0;
-  else 
-    return 50.0;
+    if (b->winsFor(ox)) 
+	return 100.0;
+    if (b->winsFor(oppChar())) 
+	return 0.0;
+    else 
+	return 50.0;
 };
 
 int Player::tiebreakMove(float *scores, int len) {
@@ -370,7 +370,7 @@ int Player::tiebreakMove(float *scores, int len) {
 
     delete[] t;
     delete[] tmp;
-
+    
     return out;
 };
 
@@ -388,21 +388,21 @@ float *Player::scoresFor(Board * b) {
 	};
 	return Z;
     }
-
+    
     else {
 	float *L = new float[b->col];
 	for (int c = 0; c < b->col; c++) {
 	    if (b->allowsMove(c)) {
 	        b->addMove(c,ox);
-
+		
 		if (b->winsFor(ox)) 
-		  L[c] = 100.0;
-
+		    L[c] = 100.0;
+		
 		else if (b->winsFor(oppChar())) 
-		  L[c] = 0.0;
-
+		    L[c] = 0.0;
+		
 		else if (b->isFull()) 
-		  L[c] = 50.0;
+		    L[c] = 50.0;
 		
 		else {
 		    Player badguy (oppChar(),tbt,ply-1);
@@ -413,7 +413,7 @@ float *Player::scoresFor(Board * b) {
 		b->delMove(c);
 	    }
 	    else 
-              L[c] = -1.0;
+		L[c] = -1.0;
 	};
 	
 	return L;
@@ -428,19 +428,19 @@ int Player::nextMove(Board * b) {
 	scanf("%d", &x);
 	return x;
     }
-
+    
     else 
-      return tiebreakMove(scoresFor(b), b->col);
-
+	return tiebreakMove(scoresFor(b), b->col);
+    
 };
 
 void Board::playGame(Player p1, Player p2) {
-
+    
     int moveCol;
     repr();
-
+    
     while (1) {
-
+	
 	//P1
 	moveCol = p1.nextMove(this);
 	while (allowsMove(moveCol) == 0) {
