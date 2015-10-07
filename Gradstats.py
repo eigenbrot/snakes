@@ -17,7 +17,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     skylist = glob('{}_P{}*otdcs*ms_lin.fits'.format(prefix,pointing))
     skylist.sort()
-    sslist = [s.replace('ms_lin','ms_s_lin') for s in skylist]
+    sslist = [s.replace('ms_lin','ms_rfs_lin') for s in skylist]
 
     fre = re.compile('\d_(\d{3})_')
     fnum = np.array([int(fre.search(i).group(1)) for i in skylist])
@@ -88,7 +88,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
                       source_sky[0][didx],
                       yerr=source_sky[1][didx],
                       ls='',marker='o',color=colors[d],
-                      markeredgecolor=colors[d])
+                      markeredgecolor=colors[d],ecolor=colors[d])
         rmax.plot(utc[didx],
                   rms[didx],
                   ls='',marker='o',color=colors[d],
@@ -186,7 +186,7 @@ def go(pointing='*',prefix='NGC_891',night=''):
                   color=colors[d], transform=skax.transAxes,
                   fontsize=7, va='top')
 
-    return fig
+    return fig, sslist, source_sky
     
 def get_utc(s):
 
@@ -295,13 +295,25 @@ def main():
     try:
         p = sys.argv[1]
         split = cwd.split('/')
-        plot_name = "{}-P{}-{}_stats.png".format(split[-2],p,split[-1])
+        base_name = "{}-P{}-{}".format(split[-2],p,split[-1])
     except IndexError:
         p = '*'
-        plot_name = "{}-all-{}_stats.png".format(*cwd.split('/')[-2:])
+        base_name = "{}-all-rf-{}".format(*cwd.split('/')[-2:])
 
-    f = go(pointing=p,night=cwd.split('/')[-2])
-    f.savefig(plot_name)
+    plot_name = "{}_stats.png".format(base_name)
+    scale_name = "{}_scales.lst".format(base_name)
+    weight_name = "{}_weights.lst".format(base_name)
+
+    fig, sl, ss = go(pointing=p,night=cwd.split('/')[-2])
+    fig.savefig(plot_name,dpi=150)
+
+    with open(scale_name, 'w') as f:
+        for scale, name in zip(ss[0],sl):
+            f.write("{:6.3f}  #{:}\n".format(1./scale, name))
+
+    with open(weight_name, 'w') as f:
+        for source, std, name in zip(ss[0],ss[1],sl):
+            f.write("{:6.3f}  #{:}\n".format((source/std)**2, name))
 
     return 0
 
