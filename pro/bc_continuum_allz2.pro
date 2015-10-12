@@ -89,15 +89,36 @@ if outside_model[0] ne -1 then quality[outside_model] = 0
 bad = where(finite(flux) ne 1 or finite(err) ne 1 or err eq 0)
 if bad[0] ne -1 then quality[bad] = 0
 
-;------------------------------------------------------------------------------
-; Mask out emission lines
+;; Old
+;; ;------------------------------------------------------------------------------
+;; ; Mask out emission lines
 
-;     OII       OII     H8       NeIII     Hg        Hd      Hb      OIII 
-em= [3726.03, 3728.82, 3889.05, 3869.06, 4101.73, 4340.46, 4861.33, 4959.91, $
-;    OIII     He I     OI        NII      Ha       NII      SII      SII 
-    5006.84, 5875.67, 6300.30, 6548.04, 6562.82, 6583.41, 6716.44, 6730.81]
-; bad sky lines
-sk = [5569., 5882.6]
+;; ;     OII       OII     H8       NeIII     Hg        Hd      Hb      OIII 
+;; em= [3726.03, 3728.82, 3889.05, 3869.06, 4101.73, 4340.46, 4861.33, 4959.91, $
+;; ;    OIII     He I     OI        NII      Ha       NII      SII      SII 
+;;     5006.84, 5875.67, 6300.30, 6548.04, 6562.82, 6583.41, 6716.44, 6730.81]
+;; ; bad sky lines
+;; sk = [5569., 5882.6]
+
+;; dz = emmaskw / 3e5 ; clipping interval
+;; dzsk = 1000. / 3e5
+
+;; for ii = 0, n_elements(em) - 1 do begin 
+;;   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
+;;   if maskout[0] ne -1 then quality[maskout] = 0
+;; endfor
+
+sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
+sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
+
+em=     [3727.3,  4959.,    5006.8,   6563.8, 6716.0]
+emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
+
+abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
+absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
+;sk = [5569., 5882.6]
+HPS = 5914.
+HPS_wid = 230.
 
 dz = emmaskw / 3e5 ; clipping interval
 dzsk = 1000. / 3e5
@@ -107,10 +128,10 @@ for ii = 0, n_elements(em) - 1 do begin
   if maskout[0] ne -1 then quality[maskout] = 0
 endfor
 
-for ii = 0, n_elements(sk) - 1 do begin 
-  maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
-  if maskout[0] ne -1 then quality[maskout] = 0
-endfor
+;; for ii = 0, n_elements(sk) - 1 do begin 
+;;   maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
+;;   if maskout[0] ne -1 then quality[maskout] = 0
+;; endfor
 
 ok = where(quality eq 1)
 
@@ -217,17 +238,17 @@ coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
 
-;defplotcolors
+defplotcolors
 smoothkern = 5
 
 blueymax = max(yfit[blueidx]) / 0.8
 ymax = max(yfit) * 1.1
-ymax = max([ymax,blueymax])
+ymax = max([ymax,blueymax,max(flux)*1.1])
 xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
-plot, restwl, flux, xtickformat='(A1)', /nodata,$
-      ytitle = 'Flux', yrange = [1, ymax], xrange = [xmin,xmax], $
+plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
+      ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax*2.0)], xrange = [xmin,xmax], $
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
 
 vline, 5250., color=!gray, linestyle=2
@@ -237,7 +258,7 @@ vline, hkhigh, color=!gray, linestyle=2
 for i=0, nmodels - 1 do begin
    yi = coefs.light_frac[i] * custom_lib[*,i] * $
          exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
-    oplot, restwl, smooth(yi,smoothkern), color = !lblue, thick=thick, linestyle=0, /t3d
+    oplot, restwl, alog10(smooth(yi,smoothkern)), color = !lblue, thick=thick, linestyle=0, /t3d
     ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
     ;;                         mean(yi[lightidx]),$
     ;;                         format='(A2,I02,A3,E10.3)'),$
@@ -245,7 +266,8 @@ for i=0, nmodels - 1 do begin
 endfor
 
 errsmooth = 5
-oband, restwl[0:*:errsmooth], (flux-err)[0:*:errsmooth], (flux+err)[0:*:errsmooth], color=!gray
+oband, restwl[0:*:errsmooth], alog10((flux-err)[0:*:errsmooth]), $
+       alog10((flux+err)[0:*:errsmooth]), color=!gray, /t3d, /noclip
 
 ; Show masked regions in green
 galfit = flux  + 'NaN'
@@ -253,13 +275,28 @@ galfit[ok] = flux[ok]
 masked = flux
 masked[ok] = 'NaN'
 thick=1.0
-oplot, restwl, smooth(galfit,smoothkern,/NAN), thick=thick, color=!black, /t3d
-oplot, restwl, smooth(masked,smoothkern,/NAN), color=!green, thick=thick, /t3d
+oplot, restwl, alog10(smooth(galfit,smoothkern,/NAN)), thick=thick, color=!black, /t3d
+oplot, restwl, alog10(smooth(masked,smoothkern,/NAN)), color=!cyan, thick=thick*4, /t3d
 
-oplot, restwl, smooth(yfit,smoothkern), color = !red, thick=thick, /t3d
+oplot, restwl, alog10(smooth(yfit,smoothkern)), color = !red, thick=thick, /t3d
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
+
+for s=0, n_elements(sk) - 1 do begin
+   ypos = alog10(interpol(flux, restwl, sk[s]))*1.03
+   xyouts, sk[s], ypos, sknam[s], alignment=0.5, charsize=0.5, /data
+endfor
+
+for e=0, n_elements(em) - 1 do begin
+   ypos = alog10(interpol(flux, restwl, em[e]))*1.03
+   xyouts, em[e]*(fitcoefs[0]*100./3e5 + 1), ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
+endfor
+
+for a=0, n_elements(abs) - 1 do begin
+   ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
+   xyouts, abs[a]*(fitcoefs[0]*100./3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
+endfor
  
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $

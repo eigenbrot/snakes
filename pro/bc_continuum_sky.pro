@@ -112,18 +112,18 @@ HPS_wid = 230.
 dz = emmaskw / 3e5 ; clipping interval
 dzsk = 1000. / 3e5
 
-;; for ii = 0, n_elements(em) - 1 do begin 
-;;   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
-;;   if maskout[0] ne -1 then quality[maskout] = 0
-;; endfor
-
-for ii = 0, n_elements(sk) - 1 do begin 
-  maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
+for ii = 0, n_elements(em) - 1 do begin 
+  maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
   if maskout[0] ne -1 then quality[maskout] = 0
 endfor
 
-maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
-if maskout[0] ne -1 then quality[maskout] = 0
+;; for ii = 0, n_elements(sk) - 1 do begin 
+;;   maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
+;;   if maskout[0] ne -1 then quality[maskout] = 0
+;; endfor
+
+;; maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
+;; if maskout[0] ne -1 then quality[maskout] = 0
 
 ok = where(quality eq 1)
 
@@ -158,10 +158,11 @@ if keyword_set(bluefit) then begin
    fitwave = restwl[ok[fitidx]]
    fitlib = custom_lib[ok[fitidx],*]
 endif else begin
-   fitflux = flux[ok]
-   fiterr = err[ok]
-   fitwave = restwl[ok]
-   fitlib = custom_lib[ok,*]
+   fitidx = where(restwl[ok] gt 3700)
+   fitflux = flux[ok[fitidx]]
+   fiterr = err[ok[fitidx]]
+   fitwave = restwl[ok[fitidx]]
+   fitlib = custom_lib[ok[fitidx],*]
 endelse
 
 redidx = where(restwl ge 5250)
@@ -298,12 +299,12 @@ for a=0, n_elements(abs) - 1 do begin
 endfor
 
 ;Massey sky
-readcol, 'Sky1.txt', ml, mab
-mf = 3d10/(ml*ml*1d-8) * 10^(-1*(mab + 48.6)/2.5)
-mf *= 4*!DPI*1d17
-oplot, ml, alog10(smooth(mf,smoothkern)), color=!dorange
-sratio = skyfit/interpol(mf,ml,restwl)
-oplot, restwl, alog10(smooth(sratio,smoothkern)), color=!brown
+;; readcol, 'Sky1.txt', ml, mab
+;; mf = 3d10/(ml*ml*1d-8) * 10^(-1*(mab + 48.6)/2.5)
+;; mf *= 4*!DPI*1d17
+;; oplot, ml, alog10(smooth(mf,smoothkern)), color=!dorange
+;; sratio = skyfit/interpol(mf,ml,restwl)
+;; oplot, restwl, alog10(smooth(sratio,smoothkern)), color=!brown
 
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $

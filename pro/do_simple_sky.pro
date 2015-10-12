@@ -93,8 +93,8 @@ if n_elements(savefiber) ne 0 then begin
 endif else begin
    savefiber = -1
    savelun = 0
-   startfiber = 43
-   endfiber = 61;numfibers - 1
+   startfiber = 0
+   endfiber = numfibers - 1
 endelse
 
 if keyword_set(plot) then begin

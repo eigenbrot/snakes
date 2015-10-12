@@ -43,7 +43,7 @@ e_tau_lam = exp(-a[1] * klam)
 y = y * e_tau_lam
 
 y = interpol(y,xred,x)
-y = y + (mlib[*,0] * a[2] * 1000.)
+;y = y + (mlib[*,0] * a[2] * 1000.)
 
 if n_elements(savestep) eq 0 then savestep = 0
 
