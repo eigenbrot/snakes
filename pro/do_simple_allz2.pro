@@ -64,16 +64,16 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages + 4)+'F13.3,2F11.3,4E25.17)'
+fmt = '(I11,'+string(numages + 5)+'F13.3,2F11.3,4E25.17)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
+        'MMWZ [Z_sol]','MLWZ [Z_sol]','V_sys','Tau_V','S/N','Chisq',$
         'redChi','blueChi','HKChi',$
-        format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
+        format='(A-11,'+string(numages + 5)+'A13,2A11,4A25)'
 printf, lun, '#'
 
 if keyword_set(plot) then begin
@@ -82,7 +82,8 @@ if keyword_set(plot) then begin
 endif
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
-outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(numages),$
+outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
+               LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
                MODEL_AGE: fltarr(numages), $
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
@@ -133,9 +134,9 @@ for i = 0, numfibers - 1 DO BEGIN
       printf, savelun, '# Error file: ',errorfile
       printf, savelun, '# Model file: ',model,format='(A14,A90)'
       printf, savelun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
-              'MMWZ [Z_sol]','MLWZ [Z_sol]','Tau_V','S/N','Chisq',$
+              'MMWZ [Z_sol]','MLWZ [Z_sol]','V_sys','Tau_V','S/N','Chisq',$
               'redChi','blueChi','HKChi',$
-              format='(A-11,'+string(numages + 4)+'A13,2A11,4A25)'
+              format='(A-11,'+string(numages + 5)+'A13,2A11,4A25)'
       printf, lun, '#'
    endif else begin
       savestep = 0
@@ -163,9 +164,13 @@ for i = 0, numfibers - 1 DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
+   ;; print, size(outputarray[i].vsys, /type), size(coef.vsys, /type)
    ;; print, size(outputarray[i].tauv, /type), size(coef.tauv, /type)
    ;; print, size(outputarray[i].light_frac, /type), size(coef.light_frac, /type)
+   ;; print, size(outputarray[i].light_frac, /dimensions), size(coef.light_frac, /dimensions)
+   ;; print, size(outputarray[i].light_frac_err, /dimensions), size(coef.light_frac_err, /dimensions)
    ;; print, size(outputarray[i].model_age, /type), size(coef.model_age, /type)
+   ;; print, size(outputarray[i].model_age, /dimensions), size(coef.model_age, /dimensions)
    ;; print, size(outputarray[i].chisq, /type), size(coef.chisq, /type)
    ;; print, size(outputarray[i].MLWA, /type), size(coef.MLWA, /type)
    ;; print, size(outputarray[i].MMWA, /type), size(coef.MMWA, /type)
@@ -194,7 +199,7 @@ for i = 0, numfibers - 1 DO BEGIN
    endif
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.MMWA, $
-           coef.MLWA, coef.MMWZ, coef.MLWZ, coef.tauv, coef.SNR, $
+           coef.MLWA, coef.MMWZ, coef.MLWZ, coef.vsys, coef.tauv, coef.SNR, $
            coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, format=fmt
    print, i
 

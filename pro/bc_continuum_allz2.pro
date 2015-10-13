@@ -71,10 +71,12 @@ nmodels = dims[1]
 ; (fitcoefs = [TauV, model_coefs[*]])
 
 parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
-                    limits:[0.0,0], step:0}, nmodels + 1)
+                    limits:[0.0,0], step:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [0,20]
+parinfo[0].limits = [-20.,20.]
+parinfo[1].limited = [1,1]
+parinfo[1].limits = [0,20]
 parinfo[1:*].limited = [1,0]
 parinfo[1:*].limits = [0,0]
 
@@ -192,6 +194,16 @@ print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 print, 'CONTINUUM_FIT ERRMSG: ', errmsg
 
+; structure containing fit coefs
+coefs = {vsys: fitcoefs[0]*100., vsys_error: perror[0]*100., $
+         tauv: fitcoefs[1], tauv_err: perror[1], $
+         light_frac: fitcoefs[2:*]*light_factor, $
+         light_frac_err: perror[2:*]*light_factor, $
+         model_age: model.age, chisq: 0.0D, $
+         redchi: 0.0D, bluechi: 0.0D, hkchi: 0.0D, $
+         bluefree: 0L, MMWA: 0.0D, MLWA: 0.0D, $
+         MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
+
 ; fit to full spectrum including masked pixels
 redidx = where(restwl ge 5250)
 blueidx = where(restwl lt 5250)
@@ -201,39 +213,32 @@ hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
 yfit = bc_mcombine_allZ2(restwl, fitcoefs, mlib=custom_lib)
 
-bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
+coefs.bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 
-chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
-redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
+coefs.chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
+coefs.redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
          (n_elements(redidx) - n_elements(fitcoefs) - 1)
-bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
+coefs.bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
           (n_elements(blueidx) - n_elements(fitcoefs) - 1)
-hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
+coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
         (n_elements(hkidx) - n_elements(fitcoefs) - 1)
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 
-SNR = mean(flux[lightidx]/err[lightidx])
+coefs.SNR = mean(flux[lightidx]/err[lightidx])
 
-MMWA = total(model.age/1e9*fitcoefs[1:*]*light_factor/model.norm) $
-          / total(fitcoefs[1:*]*light_factor/model.norm)
+coefs.MMWA = total(model.age/1e9*coefs.light_frac/model.norm) $
+          / total(coefs.light_frac/model.norm)
 
-redd = exp(-fitcoefs[0]*(restwl[lightidx]/5500)^(-0.7))
+redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
 light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
                                                    n_elements(model.age)), $
-                    dimension=1) * fitcoefs[1:*] * light_factor
-MLWA = total(light_weight * model.age/1e9) / total(light_weight)
+                    dimension=1) * coefs.light_frac
+coefs.MLWA = total(light_weight * model.age/1e9) / total(light_weight)
 
-MMWZ = total(model.Z*fitcoefs[1:*]*light_factor/model.norm) $
-          / total(fitcoefs[1:*]*light_factor/model.norm)
-MLWZ = total(light_weight * model.Z) / total(light_weight)
-
-; structure containing fit coefs
-coefs = {tauv: fitcoefs[0], tauv_err: perror[0], $
-         light_frac: fitcoefs[1:*]*light_factor, light_frac_err: perror[1:*]*light_factor, $
-         model_age: model.age, chisq: chisq, $
-         redchi: redchi, bluechi: bluechi, hkchi: hkchi, $
-         bluefree: bluefree, MMWA: MMWA, MLWA: MLWA, MMWZ: MMWZ, MLWZ: MLWZ, SNR: SNR}
+coefs.MMWZ = total(model.Z*coefs.light_frac/model.norm) $
+          / total(coefs.light_frac/model.norm)
+coefs.MLWZ = total(light_weight * model.Z) / total(light_weight)
 
 ;---------------------------------------------------------------------------
 ; Plot spectrum, best fit, and individual stellar components
@@ -256,9 +261,12 @@ vline, hklow, color=!gray, linestyle=2
 vline, hkhigh, color=!gray, linestyle=2
 
 for i=0, nmodels - 1 do begin
+   xred = restwl * (coefs.vsys/3e5 + 1)
    yi = coefs.light_frac[i] * custom_lib[*,i] * $
-         exp(-fitcoefs[0]*(restwl/5500.0)^(-0.7))
-    oplot, restwl, alog10(smooth(yi,smoothkern)), color = !lblue, thick=thick, linestyle=0, /t3d
+         exp(-coefs.tauv*(restwl/5500.0)^(-0.7))
+   yi = interpol(yi,xred,restwl)
+   oplot, restwl, alog10(smooth(yi,smoothkern)), $
+          color = !lblue, thick=thick, linestyle=0, /t3d
     ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
     ;;                         mean(yi[lightidx]),$
     ;;                         format='(A2,I02,A3,E10.3)'),$
@@ -290,12 +298,12 @@ endfor
 
 for e=0, n_elements(em) - 1 do begin
    ypos = alog10(interpol(flux, restwl, em[e]))*1.03
-   xyouts, em[e]*(fitcoefs[0]*100./3e5 + 1), ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
+   xyouts, em[e]*(coefs.vsys/3e5 + 1), ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
 endfor
 
 for a=0, n_elements(abs) - 1 do begin
    ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
-   xyouts, abs[a]*(fitcoefs[0]*100./3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
+   xyouts, abs[a]*(coefs.vsys/3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
 endfor
  
 plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
@@ -307,28 +315,30 @@ plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (A
 if keyword_set(plotlabel) then $
    xyouts, 0.2, 0.955, plotlabel, color = !black, /norm, /t3d
 
-xyouts, 0.2, 0.90, 'Tau V = ' + string(fitcoefs[0], format = '(F5.2)'), $
+xyouts, 0.2, 0.90, 'Tau V = ' + string(coefs.tauv, format = '(F5.2)'), $
         /norm, /t3d
 xyouts, 0.2, 0.88, 'V_disp = ' + string(vdisp, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.86, 'MLWA = ' + string(MLWA, format = '(F8.2)'), $
+xyouts, 0.2, 0.86, 'MLWA = ' + string(coefs.MLWA, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.84, 'MMWA = ' + string(MMWA, format = '(F8.2)'), $
+xyouts, 0.2, 0.84, 'MMWA = ' + string(coefs.MMWA, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.2, 0.82, 'SNR = ' + string(SNR, format = '(F8.2)'), $
+xyouts, 0.2, 0.82, 'SNR = ' + string(coefs.SNR, format = '(F8.2)'), $
+        /norm, /t3d
+xyouts, 0.2, 0.8, 'V = ' + string(coefs.vsys, format = '(F8.2)') + ' km/s', $
         /norm, /t3d
 
-xyouts, 0.4, 0.90, 'Chisq = ' + string(chisq, format = '(F8.2)'), $
+xyouts, 0.4, 0.90, 'Chisq = ' + string(coefs.chisq, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.4, 0.88, 'redChi = ' + string(redchi, format = '(F8.2)'), $
+xyouts, 0.4, 0.88, 'redChi = ' + string(coefs.redchi, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.4, 0.86, 'bluChi = ' + string(bluechi, format = '(F8.2)'), $
+xyouts, 0.4, 0.86, 'bluChi = ' + string(coefs.bluechi, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.4, 0.84, 'HK_Chi = ' + string(hkchi, format = '(F8.2)'), $
+xyouts, 0.4, 0.84, 'HK_Chi = ' + string(coefs.hkchi, format = '(F8.2)'), $
         /norm, /t3d
-xyouts, 0.4, 0.82, 'MLWZ = ' + string(MLWZ, format = '(F8.2)') + '(Z/Z_sol)', $
+xyouts, 0.4, 0.82, 'MLWZ = ' + string(coefs.MLWZ, format = '(F8.2)') + '(Z/Z_sol)', $
         /norm, /t3d
-xyouts, 0.4, 0.8, 'MMWZ = ' + string(MMWZ, format = '(F8.2)'), $
+xyouts, 0.4, 0.8, 'MMWZ = ' + string(coefs.MMWZ, format = '(F8.2)'), $
         /norm, /t3d
 
 ;; for i = 0, n_elements(coefs.light_frac) - 1 do begin
@@ -338,6 +348,11 @@ xyouts, 0.4, 0.8, 'MMWZ = ' + string(MMWZ, format = '(F8.2)'), $
 ;; endfor
 
 print, fitcoefs, format = '(15F6.1)'
+print, coefs.vsys
+print, coefs.tauv
+print, coefs.hkchi
+print, coefs.MLWZ
+print, coefs.MMWZ
 
 return, coefs
 

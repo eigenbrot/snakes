@@ -31,18 +31,21 @@ function bc_mcombine_allZ2, x, a, mlib=mlib, savedata=savedata
 
 light_factor = 100.
 
-y = mlib # (a[1:*] * 100.)
+y = mlib # (a[2:*] * light_factor)
+
+; Redshift
+xred = x * (a[0]*100. / 3e5 + 1)
 
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)
 
-klam = (x / 5500.0)^(-0.7)
-e_tau_lam = exp(-1. * klam * a[0])
+klam = (xred / 5500.0)^(-0.7)
+e_tau_lam = exp(-1. * klam * a[1])
 
 ; Create a linear combination of the templates
-
 y = y * e_tau_lam
 
+y = interpol(y,xred,x)
 
 if n_elements(savedata) eq 0 then savedata = 0
 
