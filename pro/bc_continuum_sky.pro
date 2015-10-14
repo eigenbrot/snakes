@@ -234,6 +234,7 @@ coefs = {tauv: fitcoefs[1], tauv_err: perror[1], $
 
 defplotcolors
 smoothkern = 5
+thick=1.0
 
 blueymax = max(yfit[blueidx]) / 0.8
 ymax = max(yfit) * 1.1
@@ -242,7 +243,7 @@ xmin = min(restwl) * 0.98
 xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
 plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
-      ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax)], xrange = [xmin,xmax],$
+      ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax*2.0)], xrange = [xmin,xmax],$
       position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
 
 vline, 5350., color=!gray, linestyle=2
@@ -272,29 +273,29 @@ galfit = flux  + 'NaN'
 galfit[ok] = flux[ok]
 masked = flux
 masked[ok] = 'NaN'
-thick=1.0
-oplot, restwl, alog10(smooth(flux,smoothkern,/NAN)), thick=thick, color=!black, /t3d
+oplot, restwl, alog10(smooth(galfit,smoothkern,/NAN)), thick=thick, color=!black, /t3d
 oplot, restwl, alog10(smooth(masked,smoothkern,/NAN)), color=!cyan, thick=thick*4, /t3d
 
-oplot, restwl, alog10(smooth(yfit-skyfit,smoothkern)), color = !dpink, thick=thick, /t3d
+;oplot, restwl, alog10(smooth(yfit-skyfit,smoothkern)), color = !dpink, thick=thick, /t3d
 oplot, restwl, alog10(smooth(yfit,smoothkern)), color = !red
-oplot, restwl, alog10(smooth(flux - skyfit, smoothkern)), color = !dgray, linestyle=0
+;oplot, restwl, alog10(smooth(flux - skyfit, smoothkern)), color = !dgray, linestyle=0
 
 if status ge 5 then $
     xyouts, 0.20, 0.9, "FAILED", charsize = 2, color = !red, /norm, /t3d
  
 for s=0, n_elements(sk) - 1 do begin
-   ypos = alog10(interpol(flux, restwl, sk[s]))*1.03
+   ypos = alog10(interpol(flux, restwl, sk[s]))*1.06
    xyouts, sk[s], ypos, sknam[s], alignment=0.5, charsize=0.5, /data
 endfor
 
 for e=0, n_elements(em) - 1 do begin
-   ypos = alog10(interpol(flux, restwl, em[e]))*1.03
+   ypos = alog10(interpol(flux, restwl, em[e]))*1.06
    xyouts, em[e]*(fitcoefs[0]*100./3e5 + 1), ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
 endfor
 
 for a=0, n_elements(abs) - 1 do begin
-   ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
+   ypos = alog10(min([interpol(flux, restwl, abs[a]),$
+              interpol(galfit,restwl,abs[a])]))*0.9
    xyouts, abs[a]*(fitcoefs[0]*100./3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
 endfor
 
