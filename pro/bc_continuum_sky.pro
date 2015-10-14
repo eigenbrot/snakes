@@ -58,7 +58,7 @@ print, vdisp
 if n_elements(savestep) eq 0 then savestep = 0
 
 ; width of emission line masks in km/s
-if not keyword_set(emmaskw) then emmaskw = 400.0
+if not keyword_set(emmaskw) then emmaskw = 1200.0
 
 nmodels = n_elements(model.age)
 
@@ -100,8 +100,13 @@ if bad[0] ne -1 then quality[bad] = 0
 sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
 sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
 
-em=     [3727.3,  4959.,    5006.8,   6563.8, 6716.0]
-emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
+sk2 = [6300., 5890., 5577.]
+
+;; em=     [3727.3,  4959.,    5006.8,   6563.8, 6716.0]
+;; emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
+
+em = [6563.8,  6716.0]
+emnam = ['Ha', 'S2']
 
 abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
 absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
@@ -110,17 +115,17 @@ HPS = 5914.
 HPS_wid = 230.
 
 dz = emmaskw / 3e5 ; clipping interval
-dzsk = 1000. / 3e5
+dzsk = 1200. / 3e5
 
 for ii = 0, n_elements(em) - 1 do begin 
   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
   if maskout[0] ne -1 then quality[maskout] = 0
 endfor
 
-;; for ii = 0, n_elements(sk) - 1 do begin 
-;;   maskout = where(restwl gt sk[ii]*(1-dzsk) and restwl lt sk[ii]*(1+dzsk))
-;;   if maskout[0] ne -1 then quality[maskout] = 0
-;; endfor
+for ii = 0, n_elements(sk2) - 1 do begin 
+  maskout = where(restwl gt sk2[ii]*(1-dzsk) and restwl lt sk2[ii]*(1+dzsk))
+  if maskout[0] ne -1 then quality[maskout] = 0
+endfor
 
 ;; maskout = where(restwl gt HPS - HPS_wid/2. and restwl lt HPS + HPS_wid/2.)
 ;; if maskout[0] ne -1 then quality[maskout] = 0
