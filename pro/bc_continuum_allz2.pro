@@ -280,8 +280,8 @@ for i=0, nmodels - 1 do begin
 endfor
 
 errsmooth = 5
-oband, restwl[0:*:errsmooth], alog10((flux-err)[0:*:errsmooth]), $
-       alog10((flux+err)[0:*:errsmooth]), color=!gray, /t3d, /noclip
+oband, restwl[0:*:errsmooth], alog10((smooth(flux-err,smoothkern))[0:*:errsmooth]), $
+       alog10((smooth(flux+err,smoothkern))[0:*:errsmooth]), color=!gray, /t3d, /noclip
 
 ; Show masked regions in green
 galfit = flux  + 'NaN'
