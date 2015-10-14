@@ -51,7 +51,8 @@
 
 function bc_continuum_sky, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
                            yfit = yfit, plotlabel = plotlabel, bluefit = bluefit, $
-                           savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt
+                           savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
+                           chivec=chivec
 
 print, vdisp
 
@@ -312,7 +313,8 @@ endfor
 ;; sratio = skyfit/interpol(mf,ml,restwl)
 ;; oplot, restwl, alog10(smooth(sratio,smoothkern)), color=!brown
 
-plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
+chivec = (galfit - yfit)/err
+plot, restwl, smooth(chivec,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $
       position=[0.15,0.15,0.95,0.3], xrange=[xmin,xmax], yrange=[-5,5], $
       yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $

@@ -109,6 +109,9 @@ outputarray = {TAUV: 0.0D, TAUV_ERR: 0.0D, LIGHT_FRAC: dblarr(10),$
                BLUEFREE: 0L, MMWA: 0.0D, MLWA: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
+chifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
+chiarray = fltarr(numfibers, n_elements(wave))
+
 L_sun = 3.826e33 ;ergs s^-1
 dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
@@ -158,7 +161,8 @@ for i = startfiber, endfiber DO BEGIN
                            bluefit=bluefit, $
                            yfit=continuum, $
                            savestep=savestep, lun=savelun, $
-                           lightidx=lightidx, fmt=fmt)
+                           lightidx=lightidx, fmt=fmt, $
+                           chivec=chivec)
 
    if keyword_set(skysub) then begin
       sky = interpol(m.flux[*,0]*m.skynorm, m.wave, OGwave)
@@ -180,7 +184,9 @@ for i = startfiber, endfiber DO BEGIN
 
    print, coef.bluefree
    outputarray[i] = coef
-
+   chiarray[i,*] = chivec
+   print, size(chiarray, /dimensions), n_elements(chivec)
+;   print, chivec
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
    ;; SNR = mean(flux[lightidx]/err[lightidx])
 
@@ -207,9 +213,45 @@ ENDFOR
 if keyword_set(plot) then dfpsclose
 if keyword_set(skysub) then writefits, skysub, data, header
 
+chiplot = (strsplit(output,'.',/extract))[0] + '.chi.ps'
+dfpsplot, chiplot, /color, /times, /landscape
+meanchi = smooth(mean(chiarray,dimension=1),5,/NAN)
+stdchi = smooth(stddev(chiarray,dimension=1),5,/NAN)
+plot, wave, meanchi, xtitle='Wavelength', ytitle='<Chi>', /nodata, $
+      xrange = [min(wave), max(wave)], yrange=[-10,10], /t3d, /xs, /ys
+
+oband, wave[0:*:5], (meanchi-stdchi)[0:*:5], $
+       (meanchi+stdchi)[0:*:5], color=!gray, /noclip, /t3d
+
+oplot, wave, meanchi, color=!black, /t3d
+
+sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
+sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
+em = [6563.8,  6716.0]
+emnam = ['Ha', 'S2']
+
+abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
+absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
+for s=0, n_elements(sk) - 1 do begin
+   ypos = abs(interpol(meanchi, wave, sk[s])*1.7)
+   xyouts, sk[s], ypos, sknam[s], alignment=0.5, charsize=0.5, /data
+endfor
+
+for e=0, n_elements(em) - 1 do begin
+   ypos = abs(interpol(meanchi, wave, em[e])*1.7)
+   xyouts, em[e], ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
+endfor
+
+for a=0, n_elements(abs) - 1 do begin
+   ypos = abs(interpol(meanchi, wave, abs[a])*1.7)
+   xyouts, abs[a], ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
+endfor
+dfpsclose
+
 free_lun, lun
 if savefiber ne -1 then free_lun, savelun
 mwrfits, outputarray, fitsfile, /create
+mwrfits, transpose(chiarray), chifile, /create
 print, m.norm
 
 end

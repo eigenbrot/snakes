@@ -50,8 +50,9 @@
 
 
 function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
-                            yfit = yfit, plotlabel = plotlabel, bluefit = bluefit, $
-                            savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt
+                             yfit = yfit, plotlabel = plotlabel, bluefit = bluefit, $
+                             savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
+                             chivec=chivec
 
 print, vdisp
 
@@ -310,8 +311,9 @@ for a=0, n_elements(abs) - 1 do begin
    ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
    xyouts, abs[a]*(coefs.vsys/3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
 endfor
- 
-plot, restwl, smooth((galfit - yfit)/err,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
+
+chivec = (galfit - yfit)/err
+plot, restwl, smooth(chivec,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
       ytitle='Residuals/error', $
       position=[0.15,0.15,0.95,0.3], xrange=[xmin,xmax], yrange=[-5,5], $
       yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $
