@@ -50,7 +50,7 @@ defplotcolors
 smoothkern = 5
 thick=1.0
 
-for i = 3, 4 DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
 
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -145,7 +145,7 @@ for i = 3, 4 DO BEGIN
    xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
    plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
-         ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax*2.0)], xrange = [xmin,xmax], $
+         ytitle = 'Log Flux + 17', yrange = [0, 2.6], xrange = [xmin,xmax], $
          position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
    
    vline, 5400., color=!gray, linestyle=2

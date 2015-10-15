@@ -1,6 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                    model=model, plot=plot, bluefit=bluefit,$
+                    model=model, bluefit=bluefit,$
                     wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                     lightmax=lightmax, multimodel=multimodel, savestep=savestep
 ;defplotcolors
@@ -96,7 +96,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 3, 4 DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -105,9 +105,6 @@ for i = 3, 4 DO BEGIN
    if keyword_set(location) then begin
       lidx = where(sizeidx eq fiber_radii[i])
       vd = vdisp[lidx]
-      plotlabel = string('Aperture',i+1,'r=',rkpc[i],'z=',zkpc[i],$
-                         format='(A8,I4,A3,F6.2,A3,F5.2)')
-      print, plotlabel
 
    endif else begin
       print, i, size_borders
@@ -116,14 +113,11 @@ for i = 3, 4 DO BEGIN
          size_borders = size_borders[1:*]
       endif
       vd = vdisp[size_switch]
-      plotlabel = string('Aperture',i+1,format='(A8,I4)')
    endelse
 
    if keyword_set(multimodel) then begin
       m = mrdfits(models[i], 1)
       metal = metals[i]
-      plotlabel += '!c!c'
-      plotlabel += string('Z/Z_sol = ',metal,format='(A10,F8.4)')
       print, 'Using mode '+models[i]
    endif
 
@@ -147,7 +141,6 @@ for i = 3, 4 DO BEGIN
 ; fit continuum
    print, vd
    coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
-                             plotlabel=plotlabel, $
                              bluefit=bluefit, $
                              yfit=yfit, $
                              savestep=savestep, lun=savelun, $
@@ -184,18 +177,6 @@ for i = 3, 4 DO BEGIN
    outputarray[i] = coef
    chiarray[i,*] = chivec
    yfitarray[*,i] = yfit/flux_factor
-
-   ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
-   ;; SNR = mean(flux[lightidx]/err[lightidx])
-
-   ;; MMWA = total(agearr*coef.light_frac*1./m.norm) $
-   ;;        / total(coef.light_frac*1./m.norm)
-
-   ;; redd = exp(-coef.tauv*(wave[lightidx]/5500)^(-0.7))
-   ;; light_weight = mean(m.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
-   ;;                                                n_elements(agearr)), $
-   ;;                     dimension=1) * coef.light_frac
-   ;; MLWA = total(light_weight * agearr) / total(light_weight)
 
    if i eq 0 then begin
       printf, lun, '# Blue_free: ', coef.bluefree

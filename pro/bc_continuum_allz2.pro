@@ -50,7 +50,7 @@
 
 
 function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
-                             yfit = yfit, plotlabel = plotlabel, bluefit = bluefit, $
+                             yfit = yfit, bluefit = bluefit, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
 
