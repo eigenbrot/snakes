@@ -39,8 +39,8 @@ vdisp = [493., 589., 691., 796., 966.]/2.355
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
-redidx = where(restwl ge 5250)
-blueidx = where(restwl lt 5250)
+redidx = where(restwl ge 5400)
+blueidx = where(restwl lt 5400)
 hklow = 3920
 hkhigh = 4000
 hkidx = where(restwl gt hklow and restwl lt hkhigh)
@@ -148,7 +148,7 @@ for i = 3, 4 DO BEGIN
          ytitle = 'Log Flux + 17', yrange = [0, alog10(ymax*2.0)], xrange = [xmin,xmax], $
          position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
    
-   vline, 5250., color=!gray, linestyle=2
+   vline, 5400., color=!gray, linestyle=2
    vline, hklow, color=!gray, linestyle=2
    vline, hkhigh, color=!gray, linestyle=2
    

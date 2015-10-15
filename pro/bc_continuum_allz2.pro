@@ -164,7 +164,7 @@ if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
 ;-------------------------------------------------------------------------------
 if keyword_set(bluefit) then begin
-   fitidx = where(restwl[ok] lt 5250)
+   fitidx = where(restwl[ok] lt 5400)
    fitflux = flux[ok[fitidx]]
    fiterr = err[ok[fitidx]]
    fitwave = restwl[ok[fitidx]]
@@ -211,8 +211,8 @@ coefs = {vsys: fitcoefs[0]*100., vsys_error: perror[0]*100., $
          MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
 
 ; fit to full spectrum including masked pixels
-redidx = where(restwl ge 5250)
-blueidx = where(restwl lt 5250)
+redidx = where(restwl ge 5400)
+blueidx = where(restwl lt 5400)
 hklow = 3920
 hkhigh = 4000
 hkidx = where(restwl gt hklow and restwl lt hkhigh)
