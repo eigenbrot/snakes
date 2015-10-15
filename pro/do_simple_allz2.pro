@@ -76,11 +76,6 @@ printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         format='(A-11,'+string(numages + 5)+'A13,2A11,4A25)'
 printf, lun, '#'
 
-if keyword_set(plot) then begin
-   plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
-   dfpsplot, plotfile, /color, /times, /landscape
-endif
-
 fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
 outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                LIGHT_FRAC: dblarr(numages),$
@@ -93,7 +88,7 @@ outputarray = replicate(outputarray, numfibers)
 chifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
 chiarray = fltarr(numfibers, n_elements(wave))
 
-yfitfile = (strsplit(output,'.',/extract))[0] + '.fits.fit'
+yfitfile = (strsplit(output,'.',/extract))[0] + '.fit.fits'
 yfitarray = fltarr(n_elements(wave), numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
@@ -214,8 +209,8 @@ for i = 3, 4 DO BEGIN
 
 ENDFOR
 
-if keyword_set(plot) then dfpsclose
 
+defplotcolors
 chiplot = (strsplit(output,'.',/extract))[0] + '.chi.ps'
 dfpsplot, chiplot, /color, /times, /landscape
 meanchi = smooth(mean(chiarray,dimension=1),5,/NAN)

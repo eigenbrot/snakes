@@ -50,7 +50,7 @@ defplotcolors
 smoothkern = 5
 thick=1.0
 
-for i = 0, numfibers - 1 DO BEGIN
+for i = 3, 4 DO BEGIN
 
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -133,6 +133,7 @@ for i = 0, numfibers - 1 DO BEGIN
    if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
    yfit = yfits[*,i]*flux_factor
+   print, mean(yfit-flux)
    coefs = coef_arr[i]
    
    blueymax = max(yfit[blueidx]) / 0.8
@@ -149,14 +150,14 @@ for i = 0, numfibers - 1 DO BEGIN
    vline, hklow, color=!gray, linestyle=2
    vline, hkhigh, color=!gray, linestyle=2
    
-   for i=0, n_elements(coefs.light_frac) - 1 do begin
+   for j=0, n_elements(coefs.light_frac) - 1 do begin
       xred = restwl * (coefs.vsys/3e5 + 1)
-      yi = coefs.light_frac[i] * custom_lib[*,i] * $
+      yi = coefs.light_frac[j] * custom_lib[*,j] * $
            exp(-coefs.tauv*(restwl/5500.0)^(-0.7))
       yi = interpol(yi,xred,restwl)
       oplot, restwl, alog10(smooth(yi,smoothkern)), $
              color = !lblue, thick=thick, linestyle=0, /t3d
-      ;; xyouts, 0.2, 0.88 - 0.02*i, string('f_',i,' = ',$
+      ;; xyouts, 0.2, 0.88 - 0.02*j, string('f_',j,' = ',$
       ;;                         mean(yi[lightidx]),$
       ;;                         format='(A2,I02,A3,E10.3)'),$
       ;;        charsize=0.6, /norm, /t3d
@@ -194,10 +195,9 @@ for i = 0, numfibers - 1 DO BEGIN
    chivec = (galfit - yfit)/err
    plot, restwl, smooth(chivec,smoothkern,/NAN), xtitle='Wavelength (Angstroms)', $
          ytitle='Residuals/error', $
-         position=[0.15,0.15,0.95,0.3], xrange=[xmin,xmax], yrange=[-5,5], $
-         yminor=1, yticks=4, charsize=1.0, charthick=1.0, thick=thick, $
-         /xs, /ys, /noerase, /t3d
-;, ytickv=[-200,0,200]
+         position=[0.15,0.15,0.95,0.3], xrange=[xmin,xmax], yrange=[-6,6], $
+         yminor=1, yticks=2, charsize=1.0, charthick=1.0, thick=thick, $
+         /xs, /ys, /noerase, /t3d;, ytickv=[-200,0,200]
    if keyword_set(plotlabel) then $
       xyouts, 0.2, 0.955, plotlabel, color = !black, /norm, /t3d
    
@@ -227,7 +227,8 @@ for i = 0, numfibers - 1 DO BEGIN
    xyouts, 0.4, 0.8, 'MMWZ = ' + string(coefs.MMWZ, format = '(F8.2)'), $
            /norm, /t3d
    
-   
+   print, i
+
 ENDFOR
 
 dfpsclose
