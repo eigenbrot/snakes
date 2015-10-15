@@ -81,7 +81,7 @@ if keyword_set(plot) then begin
    dfpsplot, plotfile, /color, /times, /landscape
 endif
 
-fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
+fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
 outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
@@ -93,12 +93,15 @@ outputarray = replicate(outputarray, numfibers)
 chifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
 chiarray = fltarr(numfibers, n_elements(wave))
 
+yfitfile = (strsplit(output,'.',/extract))[0] + '.fits.fit'
+yfitarray = fltarr(n_elements(wave), numfibers)
+
 L_sun = 3.826e33 ;ergs s^-1
 dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1 DO BEGIN
+for i = 3, 4 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -151,7 +154,7 @@ for i = 0, numfibers - 1 DO BEGIN
    coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
                              plotlabel=plotlabel, $
                              bluefit=bluefit, $
-                             yfit=continuum, $
+                             yfit=yfit, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
                              chivec=chivec)
@@ -185,6 +188,7 @@ for i = 0, numfibers - 1 DO BEGIN
    print, coef.bluefree
    outputarray[i] = coef
    chiarray[i,*] = chivec
+   yfitarray[*,i] = yfit/flux_factor
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
    ;; SNR = mean(flux[lightidx]/err[lightidx])
@@ -250,6 +254,7 @@ dfpsclose
 free_lun, lun
 mwrfits, outputarray, fitsfile, /create
 mwrfits, transpose(chiarray), chifile, /create
+mwrfits, yfitarray, yfitfile, /create
 print, m.norm
 
 end
