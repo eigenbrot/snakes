@@ -89,8 +89,10 @@ for i = 3, 4 DO BEGIN
 ;; em=     [3727.3,  4959.,    5006.8,   6563.8, 6716.0]
 ;; emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
 
-   em = [6563.8,  6716.0]
-   emnam = ['Ha', 'S2']
+   em2 = [6563.8,  6716.0, 6583.41, 6548.04]
+
+   em = [6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8]
+   emnam = ['Ha', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
 
    abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
    absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
@@ -101,8 +103,8 @@ for i = 3, 4 DO BEGIN
    dz = 1200. / 3e5           ; clipping interval
    dzsk = 1200. / 3e5
    
-   for ii = 0, n_elements(em) - 1 do begin 
-      maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
+   for ii = 0, n_elements(em2) - 1 do begin 
+      maskout = where(restwl gt em2[ii]*(1-dz) and restwl lt em2[ii]*(1+dz))
       if maskout[0] ne -1 then quality[maskout] = 0
    endfor
    
