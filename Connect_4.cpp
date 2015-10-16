@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/ioctl.h>
 #include <cfloat>
 #include <climits>
 #include <random>
@@ -442,12 +443,16 @@ void Board::playGame(Player p1, Player p2) {
     while (1) {
 	
 	//P1
+	if (p1.ply >= 0 & p2.ply < 0)
+	    printf("Thinking...\n");
 	moveCol = p1.nextMove(this);
 	while (allowsMove(moveCol) == 0) {
 	    printf("That column is either full or non-existant.\nPlease try again\n");
 	    moveCol = p1.nextMove(this);
 	};
 	addMove(moveCol,p1.ox);
+	if (p1.ply >= 0 & p2.ply < 0)
+	    printf("I choose %d\n",moveCol);		  
 	repr();
 	
 	if (winsFor(p1.ox)) {
@@ -456,13 +461,17 @@ void Board::playGame(Player p1, Player p2) {
 	};
 	
 	//P2
+	if (p2.ply >= 0 & p1.ply < 0)
+	    printf("Thinking...\n");
 	moveCol = p2.nextMove(this);
 	while (allowsMove(moveCol) == 0) {
 	    printf("That column is either full or non-existant.\nPlease try again\n");
 	    moveCol = p2.nextMove(this);
 	};
-	addMove(moveCol,p2.ox);
-	
+
+	addMove(moveCol,p2.ox);	
+	if (p2.ply >= 0 & p1.ply < 0)
+	    printf("I choose %d\n",moveCol);
 	repr();
 	
 	if (winsFor(p2.ox)) {
@@ -480,104 +489,68 @@ void Board::playGame(Player p1, Player p2) {
 
 int main () {
     
-    Board b1 (4,4);
-    b1.addMove(2,'O');
-    b1.addMove(2,'X');
-    b1.addMove(2,'O');
-    // printf("Allows? %d\n",b1.allowsMove(2));
-    // b1.repr();
-    //    b1.addMove(2,'X');
-    b1.addMove(0,'O');
-    b1.addMove(0,'X');
-    b1.addMove(0,'O');
-    b1.addMove(1,'X');
-    b1.addMove(1,'O');
-    b1.addMove(1,'X');
-    //    b1.addMove(1,'X');
-    b1.addMove(3,'X');
-//    b1.addMove(0,'X');
-    b1.addMove(3,'O');
-    b1.addMove(3,'O');
-//    b1.addMove(3,'O');
-//    b1.repr();
-    // printf("Allows? %d\n",b1.allowsMove(2));
-    // printf("full? %d\n",b1.isFull());
-    // printf("agy? %d\n",b1.agywag('X',0,0));
-    // printf("vagy? %d\n",b1.vagyvag('O',0,3));
-    // printf("win bot %d\n",b1.horz('O',3));
-    printf("winsfor X? %d\n",b1.winsFor('X'));
-    printf("winsfor O? %d\n",b1.winsFor('O'));
-    printf("Game over? %d\n",b1.gameOver());
-    // Player p1 ('X','r',-1);
-    // p1.repr();
-    // printf("%d",p1.nextMove());
-//    b1.playGame(p1,p2);
-//    float scores[6] = {100.0, 32.42, 2.3, 900.3, 0.001, 23.445};
-    // float max = floatMax(scores,6);
-    // float min = floatMin(scores,6);
-    // int id = floatWhere(scores,max,6);
-    // int mid = floatWhere(scores,min,6);
-    // printf("Max: %f\n",max);
-    // printf("ID: %d\n",id);
-    // printf("Min: %f\n",min);
-    // printf("ID: %d\n",mid);
+    struct winsize w;
+    int r;
+    int c;
+    int p1 = 99;
+    int p2 = 99;
+    int ply1;
+    int ply2;
 
-    // float *copy = floatCopy(scores, 6);
-    // copy[2] = 9999.9;
-    // for (int i = 0; i < 6; i++) {
-    // 	printf("%f %f\n",scores[i],copy[i]);
-    // };
-    
-    // int s[5] = {1,2,5,8,33};
-    // int max = intMax(s,5);
-    // int min = intMin(s,5);
-    // printf("Max: %d\n",max);
-    // printf("Min: %d\n",min);
-    // int *c = intCopy(s,5);
-    // c[2] = -999;
-    // for (int i = 0; i < 5; i++) {
-    // 	printf("%d %d\n",s[i],c[i]);
-    // };
-    // int *c2 = intCopy(s,2);
-    // for (int i = 0; i < 5; i++) {
-    // 	printf("%d ",c2[i]);
-    // };
+    ioctl(0, TIOCGWINSZ, &w);
 
-    Player p1 ('X','r',-1);
-    Player p2 ('O','?',6);
-    
-    float *scores = p1.scoresFor( &b1);
-    
-    for (int c = 0; c < b1.col; c++) {
-	printf("%5.1f  ",scores[c]);
-    };
+    for (int cc=0; cc < w.ws_col; cc++){printf("*");};
     printf("\n");
+    int cp = (w.ws_col - 25) / 2;
     
-    // int nm = p1.nextMove( &b1);
-    // printf("%d\n",nm);
+    for (int cc=0; cc < cp; cc++){printf("*");};
+    printf(" WELCOME TO CONNECT FOUR ");
+    for (int cc=0; cc < cp; cc++){printf("*");};
+    if ((w.ws_col - 25) % 2 == 1)
+	printf("*\n");
+    else
+	printf("\n");
 
-    delete[] scores;
-    // Player p3 ('X','?',-1);
-    // float scores[5] = {2.0, 50.0, 100.0, 100.0, 1.0};    
+    printf("What size board do you want?\n(Rows): ");
+    scanf("%d", &r);
+    printf("(Columns): ");
+    scanf("%d", &c);
     
-    // int m1 = p1.tiebreakMove(scores,5);
-    // int m2 = p2.tiebreakMove(scores,5);
-    // int m3 = p3.tiebreakMove(scores,5);
-    // int m32 = p3.tiebreakMove(scores,5);
-    // int m33 = p3.tiebreakMove(scores,5);
-    // int m34 = p3.tiebreakMove(scores,5);
+    while (p1 != 1 & p1 != 2) {
+	printf("\nWill the X player be a...\n(1) Human\n(2) Computer\n");
+	scanf("%d",&p1);
+    };
 
-    // printf("P1: %d\n",m1);
-    // printf("P2: %d\n",m2);
-    // printf("P3: %d\n",m3);
-    // printf("P3: %d\n",m32);
-    // printf("P3: %d\n",m32);
-    // printf("P3: %d\n",m34);
+    if (p1 == 1)
+	ply1 = -1;
+    else {
+	printf("How hard should the computer be?\n(0) Super Easy\n(1) Pretty Easy\n(2) A Tad Hard\n(3) Kinda Hard\n(4) Quite Thoughtful\n");
+	scanf("%d",&ply1);
+    };
 
-    Board b2(6,7);
-    b2.playGame(p1,p2);
+    while (p2 != 1 & p2 != 2) {
+	printf("\nWill the O player be a...\n(1) Human\n(2) Computer\n");
+	scanf("%d",&p2);
+    };
 
-    delete[] b1.data;
-    delete[] b2.data;
+    if (p2 == 1)
+	ply2 = -1;
+    else {
+	printf("How hard should the computer be?\n(0) Super Easy\n(1) Pretty Easy\n(2) A Tad Hard\n(3) Kinda Hard\n(4) Quite Thoughtful\n");
+	scanf("%d",&ply2);
+    };
+
+    Board B(r,c);
+    
+    Player P1('X','?',ply1);
+    Player P2('O','?',ply2);
+    
+    P1.repr();
+    P2.repr();
+
+    B.playGame(P1,P2);
+
+    delete[] B.data;
+
     return 0;
 };
