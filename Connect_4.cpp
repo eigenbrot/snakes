@@ -302,7 +302,7 @@ PLAYER CLASS
 class Player {
 public:
     char ox, tbt;
-    minstd_rand seed;
+    mt19937 mt;
     int ply;
     Player(char, char, int);
     void repr();
@@ -365,8 +365,9 @@ int Player::tiebreakMove(float *scores, int len) {
     else if (tbt == 'r')
 	out = intMax(t,i);
     else {
+	mt();
 	uniform_int_distribution<int> R(0,i-1);
-	out = t[R(seed)];
+	out = t[R(mt)];
     };
 
     delete[] t;
