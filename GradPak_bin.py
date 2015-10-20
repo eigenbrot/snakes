@@ -41,9 +41,14 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
         n = 0
 
         while fibnums[idx[n]] in exclude:
+            print 'Skipping fiber {}'.format(fibnums[idx[n]])
             n += 1
 
         while n < len(idx):
+            while fibnums[idx[n]] in exclude:
+                print 'Skipping fiber {}'.format(fibnums[idx[n]])
+                n += 1
+
             tmpf = data[idx[n]]
             tmpe = err[idx[n]]
             tmp = compute_SN(tmpf, tmpe, waveidx)
@@ -58,6 +63,7 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
                     print "WARNING, SN threshold not met in row {}, bin {}".\
                         format(i,b)
                     break
+
                 if fibnums[idx[n]] in exclude:
                     print 'Skipping fiber {}'.format(fibnums[idx[n]])
                     continue
