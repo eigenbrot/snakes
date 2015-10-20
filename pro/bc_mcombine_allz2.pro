@@ -30,11 +30,12 @@
 function bc_mcombine_allZ2, x, a, mlib=mlib, savedata=savedata
 
 light_factor = 100.
+vel_factor = 100.
 
 y = mlib # (a[2:*] * light_factor)
 
 ; Redshift
-xred = x * (a[0]*100. / 3e5 + 1)
+xred = x * (a[0]*vel_factor / 3e5 + 1)
 
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)

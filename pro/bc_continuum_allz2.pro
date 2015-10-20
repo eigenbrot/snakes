@@ -50,15 +50,17 @@
 
 
 function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
-                             yfit = yfit, bluefit = bluefit, $
+                             yfit = yfit, bluefit = bluefit, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
 
 print, vdisp
 
 light_factor = 100.
+vel_factor = 100.
 
 if n_elements(savestep) eq 0 then savestep = 0
+if n_elements(velstart) eq 0 then velstart = 10.
 
 ; width of emission line masks in km/s
 if not keyword_set(emmaskw) then emmaskw = 1200.0
@@ -72,14 +74,18 @@ nmodels = dims[1]
 ; (fitcoefs = [TauV, model_coefs[*]])
 
 parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
-                    limits:[0.0,0], step:0}, nmodels + 2)
+                    limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [-20.,20.]
+parinfo[0].limits = [-10.,30.]
+;parinfo[0].step = 0.1
+;parinfo[0].relstep = 1.5
+parinfo[0].fixed = 0
+parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]
-parinfo[1].limits = [0,20]
-parinfo[1:*].limited = [1,0]
-parinfo[1:*].limits = [0,0]
+parinfo[1].limits = [0.,20.]
+parinfo[2:*].limited = [1,0]
+parinfo[2:*].limits = [0.,0.]
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 
@@ -190,7 +196,7 @@ endif else begin
    savedata = 0
 endelse
 
-fitcoefs = mpfitfun('bc_mcombine_allZ2', fitwave, fitflux, fiterr, $
+fitcoefs = mpfitfun('bc_mcombine_allz2', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
                     functargs = {mlib: fitlib, savedata: savedata}, $
                     perror=perror, niter=niter, status=status, $
@@ -201,7 +207,7 @@ print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
 print, 'CONTINUUM_FIT ERRMSG: ', errmsg
 
 ; structure containing fit coefs
-coefs = {vsys: fitcoefs[0]*100., vsys_error: perror[0]*100., $
+coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          tauv: fitcoefs[1], tauv_err: perror[1], $
          light_frac: fitcoefs[2:*]*light_factor, $
          light_frac_err: perror[2:*]*light_factor, $
@@ -217,7 +223,7 @@ hklow = 3920
 hkhigh = 4000
 hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
-yfit = bc_mcombine_allZ2(restwl, fitcoefs, mlib=custom_lib)
+yfit = bc_mcombine_allz2(restwl, fitcoefs, mlib=custom_lib)
 
 coefs.bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 

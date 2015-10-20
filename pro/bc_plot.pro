@@ -135,7 +135,6 @@ for i = 0, numfibers - 1 DO BEGIN
    if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
    yfit = yfits[*,i]*flux_factor
-   print, mean(yfit-flux)
    coefs = coef_arr[i]
    
    blueymax = max(yfit[blueidx]) / 0.8
@@ -229,7 +228,6 @@ for i = 0, numfibers - 1 DO BEGIN
    xyouts, 0.4, 0.8, 'MMWZ = ' + string(coefs.MMWZ, format = '(F8.2)'), $
            /norm, /t3d
    
-   print, i
 
 ENDFOR
 
