@@ -45,9 +45,12 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
             n += 1
 
         while n < len(idx):
-            while fibnums[idx[n]] in exclude:
-                print 'Skipping fiber {}'.format(fibnums[idx[n]])
-                n += 1
+            try:
+                while fibnums[idx[n]] in exclude:
+                    print 'Skipping fiber {}'.format(fibnums[idx[n]])
+                    n += 1
+            except IndexError: #The rest of the fibers in the row are excluded
+                break
 
             tmpf = data[idx[n]]
             tmpe = err[idx[n]]
@@ -75,7 +78,7 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
                 xpos.append(x_values[idx[n]])
                 ypos.append(y_values[idx[n]])
 
-            print 'binned fiber {}: {}, SNR: {}'.format(binnum,fibers, tmp)
+            print 'binned aperture {}: {}, SNR: {}'.format(binnum,fibers, tmp)
             bin_x_pos = np.mean(xpos)
             bin_y_pos = np.mean(ypos)
             fibstr = [str(i) for i in fibers]
