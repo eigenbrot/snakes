@@ -52,10 +52,10 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     fig = plt.figure()
     skax = fig.add_subplot(311)
-    skax.set_ylabel('$\\frac{S}{<S>_{\mathrm{night}}}$',fontsize=14)
+    skax.set_ylabel(r'Log$\left(\frac{S}{<S>_{\mathrm{night}}}\right)$',fontsize=14)
     
     soax = fig.add_subplot(312)
-    soax.set_ylabel('$\\frac{F - S}{<F - S>_{\mathrm{night}}}$',fontsize=14)
+    soax.set_ylabel(r'Log$\left(\frac{F - S}{<F - S>_{\mathrm{night}}}\right)$',fontsize=14)
 
     rmax = fig.add_subplot(313)
     rmax.set_xlabel('Local time')
@@ -80,13 +80,13 @@ def go(pointing='*',prefix='NGC_891',night=''):
     for d, date in enumerate(unid):
         didx = dated[date]
         skax.errorbar(utc[didx], 
-                      sky[0][didx], 
-                      yerr=sky[1][didx],
+                      np.log10(sky[0][didx]),
+                      yerr=sky[1][didx]*np.log(10)/sky[0][didx],
                       ls='',marker='o',color=colors[d],
                       markeredgecolor=colors[d])
         soax.errorbar(utc[didx],
-                      source_sky[0][didx],
-                      yerr=source_sky[1][didx],
+                      np.log10(source_sky[0][didx]),
+                      yerr=np.log(10)/source_sky[0][didx]*source_sky[1][didx],
                       ls='',marker='o',color=colors[d],
                       markeredgecolor=colors[d],ecolor=colors[d])
         rmax.plot(utc[didx],
@@ -109,10 +109,10 @@ def go(pointing='*',prefix='NGC_891',night=''):
                                                      
 
         for i in range(utc[didx].size):
-            skax.text(utc[didx][i]+0.08, sky[0][didx][i],
+            skax.text(utc[didx][i]+0.08, np.log10(sky[0][didx][i]),
                       '{:4.2f}'.format(sky[0][didx][i]),
                       va='center',fontsize=6,color=colors[d])
-            soax.text(utc[didx][i]+0.08, source_sky[0][didx][i],
+            soax.text(utc[didx][i]+0.08, np.log10(source_sky[0][didx][i]),
                       '{:4.2f}'.format(source_sky[0][didx][i]),
                       va='center',fontsize=6,color=colors[d])
             rmax.text(utc[didx][i]+0.08, rms[didx][i],
@@ -128,10 +128,12 @@ def go(pointing='*',prefix='NGC_891',night=''):
 
     # skax.set_ylim(skax.get_ylim()*np.array([0.999,1.]))
     # soax.set_ylim(soax.get_ylim()*np.array([0.999,1.1]))
-    skax.set_yscale('log')
-    soax.set_yscale('log')
-    skax.set_ylim(10.**(-0.89),10.**(0.8))
-    soax.set_ylim(10.**(-0.89),10.**(0.8))
+    #skax.set_yscale('log')
+    #soax.set_yscale('log')
+    soax.set_ylim(-1.89,1.89)
+    skax.set_ylim(-0.89,0.89)
+    # skax.set_ylim(10.**(-0.89),10.**(0.8))
+    # soax.set_ylim(10.**(-0.89),10.**(0.8))
     # skax.set_ylim(0.5,1.6)
     # soax.set_ylim(-0.9,5)
     rmax.set_ylim(rmax.get_ylim()*np.array([1.,1.1]))
