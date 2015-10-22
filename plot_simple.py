@@ -198,7 +198,12 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
         exclude = [[],[],[],[],[],[]]
     for i in range(6):
         print i
-        inputfile = glob('{}*P{}*{}.dat'.format(inputprefix,i+1,inputsuffix))[0]
+        try:
+            inputfile = glob('{}*P{}*{}'.format(inputprefix,i+1,inputsuffix))[0]
+        except IndexError:
+            print 'Could not find P{} data, skipping'.format(i+1)
+            continue
+
         print inputfile
 
         if binned:
