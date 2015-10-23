@@ -26,8 +26,8 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
     fibnums = np.arange(109) + 1
     row_pos = np.unique(y_values)
 
-    binf = np.zeros(data.shape[1])
-    bine = np.zeros(data.shape[1])
+    finalf = np.zeros(data.shape[1])
+    finale = np.zeros(data.shape[1])
 
     fibdict = {}
     binnum = 1
@@ -52,10 +52,10 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
             except IndexError: #The rest of the fibers in the row are excluded
                 break
 
-            fstack = data[idx[n]]
-            estack = err[idx[n]]
+            fstack = data[idx[n]][None,:]
+            estack = err[idx[n]][None,:]
             tmp = compute_SN(data[idx[n]], err[idx[n]], waveidx)
-            snstack = tmp
+            snstack = np.array([[tmp]])
             fibers = [fibnums[idx[n]]]
             xpos = [x_values[idx[n]]]
             ypos = [y_values[idx[n]]]
@@ -83,27 +83,30 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
                 xpos.append(x_values[idx[n]])
                 ypos.append(y_values[idx[n]])
 
-            print 'binned aperture {}: {}, SNR: {}'.format(binnum,fibers, tmp)
+            binf, bine = create_bin(fstack, estack, snstack)
+            binsn = compute_SN(binf, bine, waveidx)
+            print 'binned aperture {}: {}, SNR: {}'.format(binnum,fibers, binsn)
             bin_x_pos = np.mean(xpos)
             bin_y_pos = np.mean(ypos)
             fibstr = [str(i) for i in fibers]
             hdu.header.update('BIN{:03}F'.format(binnum),' '.join(fibstr))
             hdu.header.update('BIN{:03}P'.format(binnum),' '.\
                               join([str(bin_x_pos),str(bin_y_pos)]))
-            binf = np.vstack((binf,tmpf))
-            bine = np.vstack((bine,tmpe))
+
+            finalf = np.vstack((finalf,binf))
+            finale = np.vstack((finale,bine))
             fibdict['{}_{}'.format(i,b)] = fibers
             b += 1
             n += 1
             binnum += 1
 
-    binf = binf[1:]/1e17
-    bine = bine[1:]/1e17
-    pyfits.PrimaryHDU(binf, hdu.header).\
+    finalf = finalf[1:]/1e17
+    finale = finale[1:]/1e17
+    pyfits.PrimaryHDU(finalf, hdu.header).\
         writeto('{}.ms.fits'.format(outputfile),clobber=True)
-    pyfits.PrimaryHDU(bine, hdu.header).\
+    pyfits.PrimaryHDU(finale, hdu.header).\
         writeto('{}.me.fits'.format(outputfile),clobber=True)
-    return binf, bine, fibdict
+    return finalf, finale, fibdict
 
 def create_bin(fstack, estack, snstack):
 
