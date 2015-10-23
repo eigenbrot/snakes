@@ -52,9 +52,10 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
             except IndexError: #The rest of the fibers in the row are excluded
                 break
 
-            tmpf = data[idx[n]]
-            tmpe = err[idx[n]]
-            tmp = compute_SN(tmpf, tmpe, waveidx)
+            fstack = data[idx[n]]
+            estack = err[idx[n]]
+            tmp = compute_SN(data[idx[n]], err[idx[n]], waveidx)
+            snstack = tmp
             fibers = [fibnums[idx[n]]]
             xpos = [x_values[idx[n]]]
             ypos = [y_values[idx[n]]]
@@ -71,8 +72,12 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
                     print 'Skipping fiber {}'.format(fibnums[idx[n]])
                     continue
                     
-                tmpf, tmpe = add_to_bin(tmpf, tmpe, data[idx[n]], err[idx[n]], 
-                                        waveidx)
+                fstack = np.vstack((fstack, data[idx[n]]))
+                estack = np.vstack((estack, err[idx[n]]))
+                snstack = np.vstack((snstack, compute_SN(data[idx[n]], 
+                                                         err[idx[n]], 
+                                                         waveidx)))
+                tmpf, tmpe = create_bin(fstack, estack, snstack)
                 tmp = compute_SN(tmpf, tmpe, waveidx)
                 fibers.append(fibnums[idx[n]])
                 xpos.append(x_values[idx[n]])
@@ -100,15 +105,12 @@ def bin(datafile, errfile, SNR, outputfile, waverange=None, exclude=[]):
         writeto('{}.me.fits'.format(outputfile),clobber=True)
     return binf, bine, fibdict
 
-def add_to_bin(binf, bine, data, error, idx=None):
+def create_bin(fstack, estack, snstack):
 
-    binSNR = compute_SN(binf, bine, idx)
-    addSNR = compute_SN(data, error, idx)
-    sumSNR = binSNR**2 + addSNR**2
+    sumW = np.sum(snstack**2)
 
-    newbin = (binf * binSNR**2 + data * addSNR**2)/sumSNR
-    newerr = np.sqrt(((binSNR**2 * bine)/sumSNR)**2 + \
-                     ((addSNR**2 * error)/sumSNR)**2)
+    newbin = np.sum(fstack*snstack**2,axis=0)/sumW
+    newerr = np.sqrt(np.sum((estack*snstack**2/sumW)**2,axis=0))
 
     return newbin, newerr
 
