@@ -144,7 +144,7 @@ for i = 0, numfibers - 1 DO BEGIN
    xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
    plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
-         ytitle = 'Log Flux + 17', yrange = [0, 2.6], xrange = [xmin,xmax], $
+         ytitle = 'Log Flux + 17', yrange = [-0.5, 2.6], xrange = [xmin,xmax], $
          position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
    
    vline, 5400., color=!gray, linestyle=2

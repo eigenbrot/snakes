@@ -194,15 +194,19 @@ ENDFOR
 defplotcolors
 chiplot = (strsplit(output,'.',/extract))[0] + '.chi.ps'
 dfpsplot, chiplot, /color, /times, /landscape
-meanchi = smooth(mean(chiarray,dimension=1),5,/NAN)
-stdchi = smooth(stddev(chiarray,dimension=1),5,/NAN)
-plot, wave, meanchi, xtitle='Wavelength', ytitle='<Chi>', /nodata, $
-      xrange = [min(wave), max(wave)], yrange=[-10,10], /t3d, /xs, /ys
+chid0 = (size(chiarray, /dimensions))[0]
+chid1 = (size(chiarray, /dimensions))[1]
+medchi = median(chiarray,dimension=1)
+rms = sqrt(mean((chiarray - transpose(rebin(medchi,chid1,chid0)))^2,dimension=1))
+mchi = smooth(medchi,5,/NAN)
+stdchi = smooth(rms,5,/NAN)
+plot, wave, mchi, xtitle='Wavelength', ytitle='<Chi>', /nodata, $
+      xrange = [min(wave), max(wave)], /t3d, /xs, /ys
 
-oband, wave[0:*:5], (meanchi-stdchi)[0:*:5], $
-       (meanchi+stdchi)[0:*:5], color=!gray, /noclip, /t3d
+oband, wave[0:*:5], (mchi-stdchi)[0:*:5], $
+       (mchi+stdchi)[0:*:5], color=!gray, /noclip, /t3d
 
-oplot, wave, meanchi, color=!black, /t3d
+oplot, wave, mchi, color=!black, /t3d
 
 sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
 sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
@@ -212,17 +216,17 @@ emnam = ['Ha', 'S2']
 abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
 absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
 for s=0, n_elements(sk) - 1 do begin
-   ypos = abs(interpol(meanchi, wave, sk[s])*1.7)
+   ypos = abs(interpol(mchi, wave, sk[s])*1.7)
    xyouts, sk[s], ypos, sknam[s], alignment=0.5, charsize=0.5, /data
 endfor
 
 for e=0, n_elements(em) - 1 do begin
-   ypos = abs(interpol(meanchi, wave, em[e])*1.7)
+   ypos = abs(interpol(mchi, wave, em[e])*1.7)
    xyouts, em[e], ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
 endfor
 
 for a=0, n_elements(abs) - 1 do begin
-   ypos = abs(interpol(meanchi, wave, abs[a])*1.7)
+   ypos = abs(interpol(mchi, wave, abs[a])*1.7)
    xyouts, abs[a], ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
 endfor
 dfpsclose
