@@ -50,7 +50,8 @@ for zz = 0, 5 do begin
             ytitle = string('F!D!X',lambda,'!N (L',sunsymbol(),$
                             '/M',sunsymbol(),' ',angstrom,')')
 
-      xyouts, 0.5, 0.98, string(age[ii],' Gyr',format='(F7.3,A4)'), /norm
+      xyouts, 0.5, 0.98, string(age[ii],' Gyr, ', Z_arr[zz], ' Z/Z_sol',$
+                                format='(F7.3,A6,F7.3,A8)'), /norm
       hline, median(spec[nwl])
       vline, m.wave[nwl[0]]
       vline, m.wave[nwl[-1]]
