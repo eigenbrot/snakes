@@ -100,8 +100,8 @@ for i = 0, numfibers - 1 DO BEGIN
    HPS = 5914.
    HPS_wid = 230.
    
-   dz = 1200. / 3e5           ; clipping interval
-   dzsk = 1200. / 3e5
+   dz = 1500. / 3e5           ; clipping interval
+   dzsk = 1600. / 3e5
    
    for ii = 0, n_elements(em2) - 1 do begin 
       maskout = where(restwl gt em2[ii]*(1-dz) and restwl lt em2[ii]*(1+dz))

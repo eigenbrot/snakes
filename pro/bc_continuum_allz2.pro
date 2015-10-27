@@ -63,7 +63,7 @@ if n_elements(savestep) eq 0 then savestep = 0
 if n_elements(velstart) eq 0 then velstart = 10.
 
 ; width of emission line masks in km/s
-if not keyword_set(emmaskw) then emmaskw = 1200.0
+if not keyword_set(emmaskw) then emmaskw = 1500.0
 
 dims = size(model.flux, /dimensions)
 npix = n_elements(restwl)
@@ -135,7 +135,7 @@ HPS = 5914.
 HPS_wid = 230.
 
 dz = emmaskw / 3e5 ; clipping interval
-dzsk = 1200. / 3e5
+dzsk = 1600. / 3e5
 
 for ii = 0, n_elements(em) - 1 do begin 
   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
