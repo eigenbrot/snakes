@@ -166,9 +166,8 @@ for i = 0, numfibers - 1 DO BEGIN
       ;;        charsize=0.6, /norm, /t3d
    endfor
    
-   errsmooth = 5
-   oband, restwl[0:*:errsmooth], alog10((smooth(flux-err,smoothkern))[0:*:errsmooth]), $
-          alog10((smooth(flux+err,smoothkern))[0:*:errsmooth]), color=!gray, /t3d, /noclip
+   oband, restwl, alog10(smooth(flux-err,smoothkern*2)),alog10(smooth(flux+err,smoothkern*2)),$
+          color=!gray, /t3d, /noclip
    
 ; Show masked regions in green
    galfit = flux  + 'NaN'
