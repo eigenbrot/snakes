@@ -52,7 +52,6 @@ thick=1.0
 
 for i = 0, numfibers - 1 DO BEGIN
 
-   print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
 
@@ -94,8 +93,8 @@ for i = 0, numfibers - 1 DO BEGIN
    em = [6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8]
    emnam = ['Ha', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
 
-   abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
-   absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
+   abs =    [3933.7, 3968.5, 4304.4,   4341., 5175.3, 5894.0, 4861.,  4102., 3820.4]
+   absnam = ['H',    'K',    'G band', 'HG',  'Mg',   'Na',   'HB',   'HD',  'L band']
 ;sk = [5569., 5882.6]
    HPS = 5914.
    HPS_wid = 230.
@@ -144,7 +143,7 @@ for i = 0, numfibers - 1 DO BEGIN
    xmax = max(restwl) * 1.02
 ;xtitle='Wavelength (Angstroms)'
    plot, restwl, alog10(flux), xtickformat='(A1)', /nodata,$
-         ytitle = 'Log Flux + 17', yrange = [-0.5, 2.6], xrange = [xmin,xmax], $
+         ytitle = 'Log Flux + 17 [erg/s/cm^2/A]', yrange = [-0.5, 2.6], xrange = [xmin,xmax], $
          position = [0.15,0.3,0.95,0.99], charsize=1.0, charthick=1.0, /xs, /ys, /t3d
    
    vline, 5400., color=!gray, linestyle=2
@@ -179,17 +178,26 @@ for i = 0, numfibers - 1 DO BEGIN
    oplot, restwl, alog10(smooth(yfit,smoothkern)), color = !red, thick=thick, /t3d
       
    for s=0, n_elements(sk) - 1 do begin
-      ypos = alog10(interpol(flux, restwl, sk[s]))*1.03
+      tidx = where(restwl ge sk[s] - 10. and restwl le sk[s] + 10.)
+      ypos = alog10(max([max(flux[tidx], /NAN), max(yfit[tidx], /NAN)], /NAN)) + 0.1
+;      ypos = alog10(interpol(flux, restwl, sk[s]))*1.03
       xyouts, sk[s], ypos, sknam[s], alignment=0.5, charsize=0.5, /data
    endfor
-   
+
    for e=0, n_elements(em) - 1 do begin
-      ypos = alog10(interpol(flux, restwl, em[e]))*1.03
+      tidx = where(restwl ge em[e] - 10. and restwl le em[e] + 10.)
+      ypos = alog10(max([max(flux[tidx], /NAN), max(yfit[tidx], /NAN)], /NAN)) + 0.1
+;      ypos = alog10(interpol(flux, restwl, em[e]))*1.03
       xyouts, em[e]*(coefs.vsys/3e5 + 1), ypos, emnam[e], alignment=0.5, charsize=0.5, /data, color=!blue
    endfor
    
+   prevy = 99.
    for a=0, n_elements(abs) - 1 do begin
-      ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
+      tidx = where(restwl ge abs[a] - 10. and restwl le abs[a] + 10.)
+      ypos = alog10(min([min(abs(flux[tidx]), /NAN), min(abs(yfit[tidx]), /NAN)], /NAN)) - 0.1
+      if a eq 3 and abs(ypos - prevy) le 0.05 then ypos -= 0.04
+      prevy = ypos
+;      ypos = alog10(interpol(flux, restwl, abs[a]))*0.9
       xyouts, abs[a]*(coefs.vsys/3e5 + 1), ypos, absnam[a], alignment=0.5, charsize=0.5, /data, color=!red
    endfor
    
@@ -200,33 +208,36 @@ for i = 0, numfibers - 1 DO BEGIN
          yminor=1, yticks=2, charsize=1.0, charthick=1.0, thick=thick, $
          /xs, /ys, /noerase, /t3d;, ytickv=[-200,0,200]
    if keyword_set(plotlabel) then $
-      xyouts, 0.2, 0.955, plotlabel, color = !black, /norm, /t3d
+      xyouts, 0.2, 0.96, plotlabel, color = !black, /norm, /t3d
    
-   xyouts, 0.2, 0.90, 'Tau V = ' + string(coefs.tauv, format = '(F5.2)'), $
+   xyouts, 0.2, 0.94, 'SNR = ' + string(coefs.SNR, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.2, 0.88, 'V_disp = ' + string(vd, format = '(F8.2)'), $
+   xyouts, 0.2, 0.92, 'V = ' + string(coefs.vsys, format = '(F8.2)') + ' km/s', $
            /norm, /t3d
-   xyouts, 0.2, 0.86, 'MLWA = ' + string(coefs.MLWA, format = '(F8.2)'), $
+   xyouts, 0.2, 0.90, 'V_disp = ' + string(vd, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.2, 0.84, 'MMWA = ' + string(coefs.MMWA, format = '(F8.2)'), $
+   xyouts, 0.2, 0.88, 'Tau V = ' + string(coefs.tauv, format = '(F5.2)'), $
            /norm, /t3d
-   xyouts, 0.2, 0.82, 'SNR = ' + string(coefs.SNR, format = '(F8.2)'), $
+
+   xyouts, 0.4, 0.94, 'MLWA = ' + string(coefs.MLWA, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.2, 0.8, 'V = ' + string(coefs.vsys, format = '(F8.2)') + ' km/s', $
+   xyouts, 0.4, 0.92, 'MMWA = ' + string(coefs.MMWA, format = '(F8.2)'), $
            /norm, /t3d
-   
-   xyouts, 0.4, 0.90, 'Chisq = ' + string(coefs.chisq, format = '(F8.2)'), $
+   xyouts, 0.4, 0.90, 'MLWZ = ' + string(coefs.MLWZ, format = '(F8.2)') + '(Z/Z_sol)', $
            /norm, /t3d
-   xyouts, 0.4, 0.88, 'redChi = ' + string(coefs.redchi, format = '(F8.2)'), $
+   xyouts, 0.4, 0.88, 'MMWZ = ' + string(coefs.MMWZ, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.4, 0.86, 'bluChi = ' + string(coefs.bluechi, format = '(F8.2)'), $
+
+   xyouts, 0.6, 0.94, 'Chisq = ' + string(coefs.chisq, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.4, 0.84, 'HK_Chi = ' + string(coefs.hkchi, format = '(F8.2)'), $
+   xyouts, 0.6, 0.92, 'redChi = ' + string(coefs.redchi, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.4, 0.82, 'MLWZ = ' + string(coefs.MLWZ, format = '(F8.2)') + '(Z/Z_sol)', $
+   xyouts, 0.6, 0.90, 'bluChi = ' + string(coefs.bluechi, format = '(F8.2)'), $
            /norm, /t3d
-   xyouts, 0.4, 0.8, 'MMWZ = ' + string(coefs.MMWZ, format = '(F8.2)'), $
+   xyouts, 0.6, 0.88, 'HK_Chi = ' + string(coefs.hkchi, format = '(F8.2)'), $
            /norm, /t3d
+
+   xyouts, 0.5, 0.05, systime(), alignment=0.5, /norm, /t3d
    
 
 ENDFOR
