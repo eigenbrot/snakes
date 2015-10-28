@@ -1,7 +1,9 @@
-pro bc_plot, coeffile, fitfile, datafile, errorfile, model, location=location
+pro bc_plot, coeffile, fitfile, datafile, errorfile, model,$
+             plotfile=plotfile, $
+             location=location, wavemin=wavemin, wavemax=wavemax
 
-wavemin=3800.
-wavemax=6800.
+if n_elements(wavemin) eq 0 then wavemin=3800.
+if n_elements(wavemax) eq 0 then wavemax=6800.
 flux_factor=1d17
 
 data = MRDFITS(datafile,0,header)
@@ -29,7 +31,8 @@ endif
 m = mrdfits(model,1)
 nmodels = (size(m.flux,/dimensions))[1]
 
-plotfile = (strsplit(fitfile,'.',/extract))[0] + '.ps'
+if n_elements(plotfile) eq 0 then $
+   plotfile = (strsplit(fitfile,'.',/extract))[0] + '.ps'
 dfpsplot, plotfile, /color, /times, /landscape
 
 coef_arr = mrdfits(coeffile,1)
