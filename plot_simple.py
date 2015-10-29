@@ -181,7 +181,7 @@ def plot_heights(inputfile, outputfile, title=''):
     return
 
 def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibers=False,
-             label='Mean Light Weighted Age [Gyr]', log=False,
+             label='Mean Light Weighted Age [Gyr]', log=False, plotbins=False,
              minval = None, maxval = None, exclude = None, binned=False):
 
     pp = PDF(output)
@@ -245,7 +245,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
         ax = GPP.plot(data,
                       ax=ax,
                       binheader=binhead,
-                      plotbins=False,
+                      plotbins=plotbins,
                       figsize=(8,4),
                       fitsfile=\
                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
