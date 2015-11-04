@@ -271,3 +271,40 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
     pp.close()
     return 
+
+def parse_input(inputlist):
+    
+    coeffile = inputlist[0]
+    fitfile = inputlist[1]
+    datafile = inputlist[2]
+    errorfile = inputlist[3]
+    modelfile = inputlist[4]
+
+    kwar = {}
+
+    i = 5
+    while i < len(inputlist):
+        
+        if inputlist[i] == '-o':
+            kwar['output'] = inputlist[i+1]
+            i += 1
+            
+        if inputlist[i] == '-l':
+            kwar['location'] = inputlist[i+1]
+            i += 1
+            
+        if inputlist[i] == '-w':
+            kwar['wavemin'] = inputlist[i+1]
+            kwar['wavemax'] = inputlist[i+2]
+            i += 2
+
+        i += 1
+
+    return [coeffile, fitfile, datafile, errorfile, modelfile], kwar
+
+if __name__ == '__main__':
+    
+    args, kwargs = parse_input(sys.argv[1:])
+    print args
+    print kwargs
+    plot_bc(*args, **kwargs)
