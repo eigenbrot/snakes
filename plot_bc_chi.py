@@ -126,6 +126,10 @@ def parse_input(inputlist):
             kwar['wavemax'] = inputlist[i+2]
             i += 2
 
+        if inputlist[i] == '-n':
+            import nice_plots
+            nice_plots.format_plots(False)
+
         i += 1
 
     return chifile, datafile, kwar

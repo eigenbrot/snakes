@@ -177,7 +177,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                          np.log10(plotgal +
                                   spnd.filters.gaussian_filter1d(
                                       err,smoothkern*2)),
-                         color='k', alpha=0.5)
+                         color='k', alpha=0.2)
 
         ###################################
         ###################################
@@ -297,6 +297,10 @@ def parse_input(inputlist):
             kwar['wavemin'] = inputlist[i+1]
             kwar['wavemax'] = inputlist[i+2]
             i += 2
+
+        if inputlist[i] == '-n':
+            import nice_plots
+            nice_plots.format_plots(False)
 
         i += 1
 
