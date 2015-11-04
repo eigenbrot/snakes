@@ -237,12 +237,12 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     
         fs = 10
 
-        fig.text(0.15, 0.91, plotlabel, fontsize=fs)
+        fig.text(0.15, 0.92, plotlabel, fontsize=fs)
 
         fig.text(0.15, 0.89, 'SNR = {:8.2f}'.format(coefs['SNR']), fontsize=fs)
         fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(coefs['VSYS']), 
                  fontsize=fs)
-        fig.text(0.15, 0.85, 'V_disp = {:8.2f}'.format(vd), fontsize=fs)
+        fig.text(0.15, 0.85, 'V_disp = {:8.2f} km/s'.format(vd), fontsize=fs)
         fig.text(0.15, 0.83, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
                  fontsize=fs)
         
