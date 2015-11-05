@@ -182,7 +182,7 @@ def plot_heights(inputfile, outputfile, title=''):
 
 def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibers=False,
              label='Mean Light Weighted Age [Gyr]', log=False, plotbins=False,
-             minval = None, maxval = None, exclude = None, binned=False):
+             minval = None, maxval = None, exclude = None, binned=False, cmap='gnuplot2'):
 
     pp = PDF(output)
     centers = [
@@ -254,7 +254,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
                       pa=295.787,
                       center = centers[i],
                       clabel=label,
-                      cmap='gnuplot2',
+                      cmap=cmap,
                       labelfibers=labelfibers,
                       exclude=exclude[i],
                       sky=False,
