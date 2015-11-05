@@ -676,7 +676,8 @@ def plot_img(values,
 def plot_rows(values, binheader = None,
               ylabel='', label='',
               ax = None, fullout = False,
-              weights=None, kpc_scale=None, err=False,
+              weights=None, err=False,
+              kpc_scale=None, zcorr=0,
               **plot_kwargs):
     '''
     Bin values by GradPak row and produce a plot of the results.  Each row's
@@ -767,6 +768,7 @@ def plot_rows(values, binheader = None,
 
     if kpc_scale is not None:
         abcissa *= kpc_scale
+        abcissa += zcorr
         xlabel = 'Height [kpc]'
     else:
         xlabel = 'Height [arcsec]'
