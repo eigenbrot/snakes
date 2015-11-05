@@ -9,7 +9,7 @@ idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P$1_bin30.ms.fits','NGC_891_P$1_bin30
 
 plotcmd="python ~/snakes/plot_bc.py NGC_891_P$1_bin30_allz2.coef.fits NGC_891_P$1_bin30_allz2.fit.fits NGC_891_P$1_bin30.ms.fits NGC_891_P$1_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits -l NGC_891_P$1_bin30_locations.dat -n"
 
-chicmd="python ~/snakes/bc_plot_chi.py NGC_891_P$1_bin30_allz2.chi.fits NGC_891_P$1_bin30.ms.fits -n"
+chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P$1_bin30_allz2.chi.fits NGC_891_P$1_bin30.ms.fits -n"
 
 scrfile="P$1.sh"
 
