@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo "Need pointing number (1 - 6)"
+    exit
+fi
+
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P$1_bin30.ms.fits','NGC_891_P$1_bin30.me.fits','NGC_891_P$1_bin30_allz2.dat',location='NGC_891_P$1_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits', wavemin=3800., wavemax=6800., velstart=300.\""
+
+plotcmd="python ~/snakes/plot_bc.py NGC_891_P$1_bin30_allz2.coef.fits NGC_891_P$1_bin30_allz2.fit.fits NGC_891_P$1_bin30.ms.fits NGC_891_P$1_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits -l NGC_891_P$1_bin30_locations.dat -n"
+
+chicmd="python ~/snakes/bc_plot_chi.py NGC_891_P$1_bin30_allz2.chi.fits NGC_891_P$1_bin30.ms.fits -n"
+
+scrfile="P$1.sh"
+
+echo '#!/bin/bash' > $scrfile
+echo $idlcmd >> $scrfile
+echo $plotcmd >> $scrfile
+echo $chicmd >> $scrfile
+
+chmod +x $scrfile
+
+exit

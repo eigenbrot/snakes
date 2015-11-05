@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for i in `seq 1 6`; do
+    if [ ! -x "P$i.sh" ]; then
+	echo "P$i.sh is either non-existent or non-executable"
+	continue
+    fi
+    
+    echo "Starting screen for P$i run"
+    screen -S P$i -d -m ./P$i.sh
+
+done
+exit
