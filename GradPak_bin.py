@@ -125,7 +125,7 @@ def compute_SN(signal, noise, idx=None):
 
 def create_locations(binfile, galcenter=[35.637962,42.347629], 
                      ifucenter=[35.637962,42.347629], reffiber=105,
-                     pa=295.787, kpc_scale=0.0485):
+                     pa=293.3, kpc_scale=0.0485):
 
     hdu = pyfits.open(binfile)[0]
     numaps = hdu.data.shape[0]
