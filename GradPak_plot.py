@@ -178,7 +178,7 @@ def get_binned_patches(header):
 
 def fill_fibers_with_bins(header, values):
 
-    newvalues = np.zeros(109)
+    newvalues = np.zeros(109) + np.nan
     for i in range(109):
         
         try:
