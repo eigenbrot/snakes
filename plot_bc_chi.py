@@ -92,6 +92,8 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             ypos = np.max(mchi[tidx]) + 3
         except ValueError:
             pass
+        if not np.isfinite(ypos):
+            ypos = 9
         rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
 
     prevy = 99
@@ -118,6 +120,8 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             ypos = np.max(mchi[tidx]) + 3
         except ValueError:
             pass
+        if not np.isfinite(ypos):
+            ypos = 9
         rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
 
     fig.subplots_adjust(hspace=0.0001)
