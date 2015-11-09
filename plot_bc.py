@@ -101,8 +101,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         em = [6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8]
         emnam = [r'H$\alpha$', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
         
-        ab =    [3933.7, 3968.5, 4304.4,   4341., 5175.3, 5894.0, 4861.,  4102., 3820.4]
-        absnam = ['K',    'H',    'G', r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
+        ab =    [3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4]
+        absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
         dz = 1500. / 3e5
         dzsk = 1600. / 3e5
@@ -216,10 +216,12 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 ypos = np.log10(np.nanmin(np.r_[flux[tidx],yfit[tidx]])) - 0.1
             except ValueError:
                 pass
-            if an == r'H$\gamma$' and np.abs(ypos - prevy) <= 0.04:
-                ypos -= 0.04
+            if (an == r'H$\gamma$' or 
+                an == r'H$\eta$' or
+                an == r'H$\epsilon$') and np.abs(ypos - prevy) <= 0.04:
+                ypos += 0.06
             prevy = ypos
-            if np.isnan(ypos):
+            if np.isnan(ypos) or ypos < -0.4:
                 ypos = -0.4
             fax.text(a, ypos, an, color='r', fontsize=8, 
                      ha='center', va='center')

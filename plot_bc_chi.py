@@ -81,8 +81,8 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
     em = [6563.8,  6716.0]
     emnam = [r'H$\alpha$', 'S2']
 
-    ab =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
-    absnam = ['K',    'H',    'G band', 'Mg',   'Na',   r'H$\beta$',  r'H$\gamma$',  r'H$\delta$']
+    ab =    [3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4]
+    absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
 
     ypos = 1
     for s, sn in zip(sk, sknam):
@@ -94,6 +94,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             pass
         rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
 
+    prevy = 99
     for a, an in zip(ab, absnam):
         if a > 5500. and plotblue: continue
         tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
@@ -101,6 +102,13 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             ypos = np.min(mchi[tidx]) - 2
         except ValueError:
             pass
+        if (an == r'H$\gamma$' or 
+            an == r'H$\eta$' or
+            an == r'H$\epsilon$') and np.abs(ypos - prevy) <= 0.5:
+            ypos -= 1
+        prevy = ypos
+        if np.isnan(ypos) or ypos < -5:
+            ypos = -5
         rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
 
     for e, en in zip(em, emnam):
