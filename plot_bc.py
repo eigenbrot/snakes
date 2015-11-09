@@ -45,9 +45,9 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
     if output is None:
         if plotblue:
-            output = fitfile.split('.')[0]+'.blue.pdf'
+            output = fitfile.split('.')[0]+'.fit.blue.pdf'
         else:
-            output = fitfile.split('.')[0]+'.pdf'
+            output = fitfile.split('.')[0]+'.fit.pdf'
 
     pp = PDF(output)
 
