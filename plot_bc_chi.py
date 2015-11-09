@@ -6,10 +6,14 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
-def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800):
+def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
+             plotblue = False):
 
     if output == None:
-        output = chifile.split('.')[0]+'.chi.pdf'
+        if plotblue:
+            output = chifile.split('.')[0]+'.chi.blue.pdf'
+        else:
+            output = chifile.split('.')[0]+'.chi.pdf'
 
     hdu = pyfits.open(datafile)[0]
     numfibers, wavesize = hdu.data.shape
@@ -49,22 +53,28 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800):
     # stdchi = spnd.filters.gaussian_filter(rms,5)
 
 
+    if plotblue:
+        pidx = np.where(restwl < 4500.)
+    else:
+        pidx = np.where(restwl == restwl)
+
     fig = plt.figure(figsize=(11,8))
     rmax = fig.add_subplot(211)
     rmax.set_ylabel('<Chi> - Med(<Chi>)')
-    rmax.set_xlim(wavemin,wavemax)
+    rmax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
     rmax.set_xticklabels([])
     medax = fig.add_subplot(212)
     medax.set_xlabel('Wavelength [$\AA$]')
     medax.set_ylabel('Median smoothed Chi')
-    medax.set_xlim(wavemin, wavemax)
+    medax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
     medax.set_ylim(-5,5)
     
-    rmax.plot(restwl, medchi - mschi, 'k')
+    rmax.plot(restwl[pidx], (medchi - mschi)[pidx], 'k')
 
-    medax.plot(restwl,mchi,'k')
-    medax.fill_between(restwl, mchi - stdchi, mchi + stdchi,
-                    color='k', alpha=0.2, edgecolor=None)
+    medax.plot(restwl[pidx],mchi[pidx],'k')
+    medax.fill_between(restwl[pidx], (mchi - stdchi)[pidx],
+                       (mchi + stdchi)[pidx],
+                       color='k', alpha=0.2, edgecolor=None)
 
     sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
     sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
@@ -76,6 +86,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800):
 
     ypos = 1
     for s, sn in zip(sk, sknam):
+        if s > 5500. and plotblue: continue
         tidx = np.where((restwl >= s - 10) & (restwl <= s + 10.))
         try:
             ypos = np.max(mchi[tidx]) + 3
@@ -84,6 +95,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800):
         rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
 
     for a, an in zip(ab, absnam):
+        if a > 5500. and plotblue: continue
         tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
         try:
             ypos = np.min(mchi[tidx]) - 2
@@ -92,6 +104,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800):
         rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
 
     for e, en in zip(em, emnam):
+        if e > 5500. and plotblue: continue
         tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
         try:
             ypos = np.max(mchi[tidx]) + 3
@@ -126,6 +139,9 @@ def parse_input(inputlist):
             kwar['wavemax'] = inputlist[i+2]
             i += 2
 
+        if inputlist[i] == '-b':
+            kwar['plotblue'] = True
+            
         if inputlist[i] == '-n':
             import nice_plots
             nice_plots.format_plots(False)

@@ -8,7 +8,8 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model,
-            output=None, location=None, wavemin=3800., wavemax=6800.):
+            output=None, location=None, wavemin=3800., wavemax=6800.,
+            plotblue = False):
 
     flux_factor = 1e17
     smoothkern = 2
@@ -43,7 +44,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     nmodels = m['FLUX'].shape[0]
 
     if output is None:
-        output = fitfile.split('.')[0]+'.pdf'
+        if plotblue:
+            output = fitfile.split('.')[0]+'.blue.pdf'
+        else:
+            output = fitfile.split('.')[0]+'.pdf'
 
     pp = PDF(output)
 
@@ -134,9 +138,20 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         yfit = yfits[i,:] * flux_factor
         coefs = coef_arr[i]
 
-        xmin = restwl.min() * 0.98
-        xmax = restwl.max() * 1.02
     
+        ############################
+        ############################
+        
+        if plotblue:
+            pidx = np.where(restwl < 4500.)
+        else:
+            pidx = np.where(restwl == restwl)
+            
+        pwave = restwl[pidx]
+
+        xmin = pwave.min() * 0.98
+        xmax = pwave.max() * 1.02
+        
         fig = plt.figure(figsize=(11,8))
         fax = fig.add_axes([0.1,0.25,0.85,0.69])
         fax.set_xticklabels([])
@@ -153,8 +168,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             yi = coefs['LIGHT_FRAC'][j] * custom_lib[j,:] *\
                  np.exp(-1 * coefs['TAUV']*(restwl/5500.)**(-0.7))
             yi = np.interp(restwl, xred, yi)
-            fax.plot(restwl,
-                     np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern)),
+            fax.plot(pwave,
+                     np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[pidx],
                      color='b',alpha=0.4)
 
         galfit = np.zeros(flux.size) + yfit
@@ -166,17 +181,17 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         masked[ok] = np.NAN
         plotfit = spnd.filters.gaussian_filter1d(yfit,smoothkern)
 
-        fax.plot(restwl,np.log10(plotgal),color='k')
-        fax.plot(restwl,np.log10(masked),color='c',lw=4)
-        fax.plot(restwl,np.log10(plotfit),color='r')
+        fax.plot(pwave,np.log10(plotgal)[pidx],color='k')
+        fax.plot(pwave,np.log10(masked)[pidx],color='c',lw=4)
+        fax.plot(pwave,np.log10(plotfit)[pidx],color='r')
 
-        fax.fill_between(restwl,
+        fax.fill_between(pwave,
                          np.log10(plotgal - 
                                   spnd.filters.gaussian_filter1d(
-                                      err,smoothkern*2)),
+                                      err,smoothkern*2))[pidx],
                          np.log10(plotgal +
                                   spnd.filters.gaussian_filter1d(
-                                      err,smoothkern*2)),
+                                      err,smoothkern*2))[pidx],
                          color='k', alpha=0.2)
 
         ###################################
@@ -184,6 +199,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         ypos = 1
         for s, sn in zip(sk, sknam):
+            if s > 5500. and plotblue: continue
             tidx = np.where((restwl >= s - 10) & (restwl <= s + 10.))
             try:
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
@@ -194,6 +210,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         
         prevy = 99
         for a, an in zip(ab, absnam):
+            if a > 5500. and plotblue: continue
             tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
             try:
                 ypos = np.log10(np.nanmin(np.r_[flux[tidx],yfit[tidx]])) - 0.1
@@ -208,6 +225,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                      ha='center', va='center')
 
         for e, en in zip(em, emnam):
+            if e > 5500. and plotblue: continue
             tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
             try:
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
@@ -230,7 +248,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         eax.set_xlim(fax.get_xlim())
         eax.set_ylim(-6,6)
         eax.set_yticks([-5,0,5])
-        eax.plot(restwl, plotchi, color='k')
+        eax.plot(pwave, plotchi[pidx], color='k')
 
         ###########################################
         ###########################################
@@ -297,6 +315,9 @@ def parse_input(inputlist):
             kwar['wavemin'] = inputlist[i+1]
             kwar['wavemax'] = inputlist[i+2]
             i += 2
+
+        if inputlist[i] == '-b':
+            kwar['plotblue'] = True
 
         if inputlist[i] == '-n':
             import nice_plots
