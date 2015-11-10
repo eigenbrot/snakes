@@ -207,7 +207,12 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 pass
             fax.text(s, ypos, sn, fontsize=8, 
                      ha='center', va='center')
-        
+            if plotblue:
+                fax.axvline(s, color='k', ls=':', alpha=0.7)
+            else:
+                fax.plot((s,s), (ypos-0.04,ypos-0.1), color='k', alpha=0.8)
+
+            
         prevy = 99
         for a, an in zip(ab, absnam):
             if a > 5500. and plotblue: continue
@@ -225,6 +230,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 ypos = -0.4
             fax.text(a, ypos, an, color='r', fontsize=8, 
                      ha='center', va='center')
+            if plotblue:
+                fax.axvline(a, color='r', ls=':', alpha=0.7)
+            else:
+                fax.plot((a,a), (ypos+0.04,ypos+0.1), color='r', alpha=0.8)
 
         for e, en in zip(em, emnam):
             if e > 5500. and plotblue: continue
@@ -235,7 +244,11 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 pass
             fax.text(e, ypos, en, color='b', fontsize=8, 
                      ha='center', va='center')
-    
+            if plotblue:
+                fax.axvline(e, color='b', ls=':', alpha=0.7)
+            else:
+                fax.plot((e,e), (ypos-0.04,ypos-0.1), color='b', alpha=0.8)
+
 
         ############################################
         ############################################

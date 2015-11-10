@@ -95,6 +95,10 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
         if not np.isfinite(ypos):
             ypos = 9
         rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
+        if plotblue:
+            rmax.axvline(s, color='k', ls=':', alpha=0.7)
+        else:
+            rmax.plot((s,s), (ypos - 0.5, ypos - 1), alpha=0.8, color='k')
 
     prevy = 99
     for a, an in zip(ab, absnam):
@@ -109,9 +113,13 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             an == r'H$\epsilon$') and np.abs(ypos - prevy) <= 0.5:
             ypos -= 1
         prevy = ypos
-        if np.isnan(ypos) or ypos < -5:
-            ypos = -5
+        if np.isnan(ypos) or ypos < rmax.get_ylim()[0]:
+            ypos = rmax.get_ylim()[0] + 0.5
         rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
+        if plotblue:
+            rmax.axvline(a, color='r', ls=':', alpha=0.7)
+        else:
+            rmax.plot((a,a), (ypos + 0.5, ypos + 1), color='r', alpha=0.8) 
 
     for e, en in zip(em, emnam):
         if e > 5500. and plotblue: continue
@@ -123,6 +131,10 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
         if not np.isfinite(ypos):
             ypos = 9
         rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
+        if plotblue:
+            rmax.axvline(e, color='b', ls=':', alpha=0.7)
+        else:
+            rmax.plot((e,e), (ypos - 0.5, ypos - 1), color='b', alpha=0.8)
 
     fig.subplots_adjust(hspace=0.0001)
 
