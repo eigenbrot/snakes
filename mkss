@@ -13,7 +13,7 @@ else
     echo "The request was made but it was not good"
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits', wavemin=3800., wavemax=6800., velstart=300.\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits', wavemin=3800., wavemax=6800., velstart=528.\""
 
 plotcmd="python ~/snakes/plot_bc.py NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits -l NGC_891_P${P}_bin30_locations.dat -n"
 
