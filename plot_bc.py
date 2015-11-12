@@ -82,7 +82,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     hkidx = np.where((restwl > hklow) & (restwl < hkhigh))
     npix = restwl.size
 
-    for i in [4,5]:#range(numfibers):
+    for i in range(numfibers):
         
         flux = data[i,idx]*flux_factor
         err = error[i,idx]*flux_factor
