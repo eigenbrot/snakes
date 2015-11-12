@@ -48,13 +48,26 @@
 ;-
 ;------------------------------------------------------------------------------
 
+function mconv, y, sig
+  d1 = n_elements(y)
+  x = findgen(d1)
+  yp = dblarr(d1)
+  norm = sqrt(2.*!DPI)*sig
+
+  for i = 0, d1 - 1 do begin
+     div = ((x-i)/sig)^2.
+     close = where(div lt 50.)
+     kern = exp(-0.5*div[close])/norm[close]
+     yp[i] = total(y[close]*kern)/total(kern)
+  endfor
+  
+  return, yp
+end
 
 function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
                              yfit = yfit, bluefit = bluefit, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
-
-print, vdisp
 
 light_factor = 100.
 vel_factor = 100.
@@ -157,13 +170,18 @@ bc03_pix = 70.0 ; size of 1 model pixel in km/s
 bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
  
 ;Deconvolve template instrumental resolution
-if vdisp lt bc03_vdisp then vdisp_add = 0 $
-else vdisp_add = sqrt(vdisp^2 - bc03_vdisp^2)  
+vdisp_add = sqrt(vdisp^2 - bc03_vdisp^2)  
 sigma_pix = vdisp_add / bc03_pix
-  
+
 custom_lib = dblarr(npix, nmodels)
+print, "Convolving..."
 for ii = 0, nmodels - 1 do begin
-   cflux = gconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
+   print, ii
+   if n_elements(vdisp) eq 1 then begin
+      cflux = gconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
+   endif else begin
+      cflux = mconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
+   endelse
    custom_lib[*,ii] = interpol(cflux, model.wave, restwl)
 endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0

@@ -1,8 +1,9 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                    model=model, bluefit=bluefit, velstart=velstart, $
-                    wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-                    lightmax=lightmax, multimodel=multimodel, savestep=savestep
+                     model=model, bluefit=bluefit, velstart=velstart, $
+                     dispdata=dispdata, $
+                     wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
+                     lightmax=lightmax, multimodel=multimodel, savestep=savestep
 ;defplotcolors
 ; read in models
 if not n_elements(model) then model=$
@@ -31,7 +32,24 @@ if keyword_set(location) then begin
    sizeidx = [0.937,1.406,1.875,2.344,2.812]
 endif
 
-vdisp = [493., 589., 691., 796., 966.]/2.355
+if n_elements(dispdata) eq 0 then begin
+   vdisp = [493., 589., 691., 796., 966.]/2.355
+endif else begin
+   v_data = MRDFITS(dispdata,0,v_header)
+   numdisp = n_elements(v_data[0,*])
+   v_wavesize = n_elements(v_data[*,0])
+   v_cdelt = float(sxpar(v_header,'CDELT1'))
+   v_crval = float(sxpar(v_header,'CRVAL1'))
+   v_crpix = float(sxpar(v_header,'CRPIX1'))
+   print, 'V_CDELT1 = ',v_cdelt
+   print, 'V_CRVAL1 = ',v_crval
+   print, 'V_CRPIX1 = ',v_crpix
+   v_wave = (FINDGEN(v_wavesize) - v_crpix) * v_cdelt + v_crval
+   vdisp_vec = dblarr(n_elements(m.wave),numdisp)
+   for dd = 0, numdisp - 1 do $
+      vdisp_vec[*,dd] = interpol(v_data[*,dd],v_wave,m.wave)
+endelse
+
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
@@ -91,7 +109,7 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1 DO BEGIN
+for i = 4, 5 DO BEGIN
    
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -99,15 +117,19 @@ for i = 0, numfibers - 1 DO BEGIN
    
    if keyword_set(location) then begin
       lidx = where(sizeidx eq fiber_radii[i])
-      vd = vdisp[lidx]
-
+      if n_elements(dispdata) eq 0 then begin
+         vd = vdisp[lidx]
+      endif else vd = vdisp_vec[*,lidx]
+    
    endif else begin
       print, i, size_borders
       if i eq size_borders[0] then begin
          size_switch += 1
          size_borders = size_borders[1:*]
       endif
-      vd = vdisp[size_switch]
+      if n_elements(dispdata) eq 0 then begin
+         vd = vdisp[size_switch]
+      endif else vd = vdisp_vec[*,size_switch]
    endelse
 
    if keyword_set(savestep) then begin
@@ -128,7 +150,6 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
 ; fit continuum
-   print, vd
    coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
                              bluefit=bluefit, $
                              yfit=yfit, velstart=velstart, $
