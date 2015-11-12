@@ -355,6 +355,10 @@ def parse_input(inputlist):
             kwar['wavemax'] = inputlist[i+2]
             i += 2
 
+        if inputlist[i] == '-d':
+            kwar['dispdata'] = inputlist[i+1]
+            i += 1
+
         if inputlist[i] == '-b':
             kwar['plotblue'] = True
 
