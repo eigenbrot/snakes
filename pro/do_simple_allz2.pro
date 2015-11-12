@@ -5,15 +5,10 @@ pro do_simple_allZ2, datafile, errorfile, output, location=location, $
                     lightmax=lightmax, multimodel=multimodel, savestep=savestep
 ;defplotcolors
 ; read in models
-if keyword_set(multimodel) then begin
-   readcol, model, metals, models, format='F,A'
-   m = mrdfits(models[0], 1)
-endif else begin
-   if not n_elements(model) then model=$
-      '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits'
-   m = mrdfits(model, 1)
-   metal = -99.9
-endelse
+if not n_elements(model) then model=$
+   '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits'
+
+m = mrdfits(model, 1)
 
 ; read in data
 data = MRDFITS(datafile,0,header)
@@ -114,12 +109,6 @@ for i = 0, numfibers - 1 DO BEGIN
       endif
       vd = vdisp[size_switch]
    endelse
-
-   if keyword_set(multimodel) then begin
-      m = mrdfits(models[i], 1)
-      metal = metals[i]
-      print, 'Using mode '+models[i]
-   endif
 
    if keyword_set(savestep) then begin
       savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i,format='(I02)') + '_steps.dat'
