@@ -9,7 +9,7 @@ plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             output=None, location=None, wavemin=3800., wavemax=6800.,
-            plotblue = False, dispdata=None):
+            plotblue = False):
 
     flux_factor = 1e17
     smoothkern = 2
@@ -54,24 +54,6 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     coef_arr = pyfits.open(coeffile)[1].data
     yfits = pyfits.open(fitfile)[0].data
 
-    if dispdata is None:
-        vdisp = np.array([493., 589., 691., 796., 966.])/2.355
-    else:
-        vh = pyfits.open(dispdata)[0]
-        v_head = vh.header
-        v_data = vh.data
-        numdisp, v_wavesize = v_data.shape
-        v_cdelt = v_head['CDELT1']
-        v_crval = v_head['CRVAL1']
-        v_crpix = v_head['CRPIX1']
-        print 'V_CDELT1 = ', v_cdelt
-        print 'V_CRVAL1 = ', v_crval
-        print 'V_CRPIX1 = ', v_crpix
-        v_wave = (np.arange(v_wavesize) - v_crpix) * v_cdelt + v_crval
-        vdisp = np.zeros((numdisp,m['WAVE'].size))
-        for dd in range(numdisp):
-            vdisp[dd,:] = np.interp(m['WAVE'],v_wave,v_data[dd,:])
-
     size_borders = [19, 43, 62, 87, 109] # The last one is needed to prevent indexing errors
     size_switch = 0
     
@@ -88,15 +70,14 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         err = error[i,idx]*flux_factor
 
         if location is not None:
-            lidx = np.where(sizeidx == fiber_radii[i])[0][0]
-            vd = vdisp[lidx]
+            vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
             plotlabel = 'Aperture {:n}, r={:6.2f}, z={:5.2f}'.\
                         format(i+1,rkpc[i],zkpc[i])
         else:
             if i == size_borders[0]:
                 size_switch += 1
                 size_borders = size_borders[1:]
-            vd = vdisp[size_switch]
+            vdidx = size_switch
             plotlabel = 'Fiber {:n}'.format(i+1)
     
         print plotlabel
@@ -136,22 +117,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         # Convolve models to velocity dispersion of data and interpolate
     
-        bc03_pix = 70.
-        bc03_vdisp = 75.
-        
-        vdisp_add = np.sqrt(vd**2 - bc03_vdisp**2)
-        sigma_pix = vdisp_add / bc03_pix
-
         custom_lib = np.zeros((nmodels, npix))
-        print "Convolving..."
         for ii in range(nmodels):
-            if dispdata is None:
-                cflux = spnd.filters.gaussian_filter1d(m['FLUX'][ii,:],
-                                                       sigma_pix)
-            else:
-                print ii
-                cflux = mconv(m['FLUX'][ii,:],sigma_pix)
-            custom_lib[ii,:] = np.interp(restwl, m['WAVE'], cflux)
+            custom_lib[ii,:] = np.interp(restwl, 
+                                         m['WAVE'], m['FLUX'][ii,:,vdidx])
         custom_lib[:,outside_model] = 0
 
         yfit = yfits[i,:] * flux_factor
@@ -294,12 +263,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fig.text(0.15, 0.89, 'SNR = {:8.2f}'.format(coefs['SNR']), fontsize=fs)
         fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(coefs['VSYS']), 
                  fontsize=fs)
-        if dispdata is None:
-            fig.text(0.15, 0.85, 'V_disp = {:8.2f} km/s'.format(vd),
-                     fontsize=fs)
-        else:
-            fig.text(0.15, 0.85, 'V_disp = {}'' fiber'.format(lidx+2),
-                     fontsize=fs)
+        fig.text(0.15, 0.85, 'V_disp = {}'' fiber'.format(vdidx+2),
+                 fontsize=fs)
         fig.text(0.15, 0.83, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
                  fontsize=fs)
         
@@ -355,10 +320,6 @@ def parse_input(inputlist):
             kwar['wavemax'] = inputlist[i+2]
             i += 2
 
-        if inputlist[i] == '-d':
-            kwar['dispdata'] = inputlist[i+1]
-            i += 1
-
         if inputlist[i] == '-b':
             kwar['plotblue'] = True
 
@@ -369,21 +330,6 @@ def parse_input(inputlist):
         i += 1
 
     return [coeffile, fitfile, datafile, errorfile, modelfile], kwar
-
-def mconv(y,sig):
-
-    d1 = y.size
-    x = np.arange(d1)
-    yp = np.zeros(d1)
-    norm = np.sqrt(2*np.pi)*sig
-    
-    for i in range(d1):
-        div = ((x - i)/sig)**2
-        close = np.where(div < 50.)
-        kern = np.exp(-0.5*div[close])/norm[close]
-        yp[i] = np.sum(y[close]*kern)/np.sum(kern)
-
-    return yp
 
 if __name__ == '__main__':
     

@@ -32,24 +32,6 @@ if keyword_set(location) then begin
    sizeidx = [0.937,1.406,1.875,2.344,2.812]
 endif
 
-if n_elements(dispdata) eq 0 then begin
-   vdisp = [493., 589., 691., 796., 966.]/2.355
-endif else begin
-   v_data = MRDFITS(dispdata,0,v_header)
-   numdisp = n_elements(v_data[0,*])
-   v_wavesize = n_elements(v_data[*,0])
-   v_cdelt = float(sxpar(v_header,'CDELT1'))
-   v_crval = float(sxpar(v_header,'CRVAL1'))
-   v_crpix = float(sxpar(v_header,'CRPIX1'))
-   print, 'V_CDELT1 = ',v_cdelt
-   print, 'V_CRVAL1 = ',v_crval
-   print, 'V_CRPIX1 = ',v_crpix
-   v_wave = (FINDGEN(v_wavesize) - v_crpix) * v_cdelt + v_crval
-   vdisp_vec = dblarr(n_elements(m.wave),numdisp)
-   for dd = 0, numdisp - 1 do $
-      vdisp_vec[*,dd] = interpol(v_data[*,dd],v_wave,m.wave)
-endelse
-
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
@@ -68,7 +50,7 @@ if n_elements(lightmax) eq 0 then $
 
 lightidx = where(wave ge lightmin and wave le lightmax)
 
-agearr = m.age/1e9
+agearr = m.age[0,*]/1e9
 numages = N_ELEMENTS(agearr)
 colarr = STRARR(numages)
 
@@ -116,20 +98,14 @@ for i = 0, numfibers - 1 DO BEGIN
    err = error[idx,i]*flux_factor
    
    if keyword_set(location) then begin
-      lidx = where(sizeidx eq fiber_radii[i])
-      if n_elements(dispdata) eq 0 then begin
-         vd = vdisp[lidx]
-      endif else vd = vdisp_vec[*,lidx]
-    
+      vdidx = where(sizeidx eq fiber_radii[i])
    endif else begin
       print, i, size_borders
       if i eq size_borders[0] then begin
          size_switch += 1
          size_borders = size_borders[1:*]
       endif
-      if n_elements(dispdata) eq 0 then begin
-         vd = vdisp[size_switch]
-      endif else vd = vdisp_vec[*,size_switch]
+      vdidx = size_switch
    endelse
 
    if keyword_set(savestep) then begin
@@ -150,7 +126,7 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
 ; fit continuum
-   coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
+   coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
                              bluefit=bluefit, $
                              yfit=yfit, velstart=velstart, $
                              savestep=savestep, lun=savelun, $

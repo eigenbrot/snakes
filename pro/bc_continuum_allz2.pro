@@ -48,23 +48,7 @@
 ;-
 ;------------------------------------------------------------------------------
 
-function mconv, y, sig
-  d1 = n_elements(y)
-  x = findgen(d1)
-  yp = dblarr(d1)
-  norm = sqrt(2.*!DPI)*sig
-
-  for i = 0, d1 - 1 do begin
-     div = ((x-i)/sig)^2.
-     close = where(div lt 50.)
-     kern = exp(-0.5*div[close])/norm[close]
-     yp[i] = total(y[close]*kern)/total(kern)
-  endfor
-  
-  return, yp
-end
-
-function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
+function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
                              yfit = yfit, bluefit = bluefit, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
@@ -80,7 +64,7 @@ if not keyword_set(emmaskw) then emmaskw = 1500.0
 
 dims = size(model.flux, /dimensions)
 npix = n_elements(restwl)
-nmodels = dims[1]
+nmodels = dims[2]
 
 ;-----------------------------------------------------------------------------
 ; Constrain model fit coefs to be positive, let TauV be pos or neg
@@ -163,26 +147,11 @@ endfor
 ok = where(quality eq 1)
 
 ;-----------------------------------------------------------------------------
-; Convolve models to velocity dispersion of data and interpolate to
-; match data
-
-bc03_pix = 70.0 ; size of 1 model pixel in km/s 
-bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
- 
-;Deconvolve template instrumental resolution
-vdisp_add = sqrt(vdisp^2 - bc03_vdisp^2)  
-sigma_pix = vdisp_add / bc03_pix
+; Interpolate to match data
 
 custom_lib = dblarr(npix, nmodels)
-print, "Convolving..."
 for ii = 0, nmodels - 1 do begin
-   print, ii
-   if n_elements(vdisp) eq 1 then begin
-      cflux = gconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
-   endif else begin
-      cflux = mconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
-   endelse
-   custom_lib[*,ii] = interpol(cflux, model.wave, restwl)
+   custom_lib[*,ii] = interpol(model.flux[vdidx,*,ii], model.wave, restwl)
 endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
@@ -203,9 +172,9 @@ endelse
 if savestep eq 1 then begin
    savedata = {flux: fitflux,$
                err: fiterr, $
-               agearr: model.age/1e9, $
-               Z: model.Z, $
-               norm: model.norm, $
+               agearr: model.age[vdidx,*]/1e9, $
+               Z: model.Z[vdidx,*], $
+               norm: model.norm[vdidx,*], $
                lightidx: lightidx, $
                lun: lun, $
                wave: fitwave, $
@@ -229,7 +198,7 @@ coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          tauv: fitcoefs[1], tauv_err: perror[1], $
          light_frac: fitcoefs[2:*]*light_factor, $
          light_frac_err: perror[2:*]*light_factor, $
-         model_age: model.age, chisq: 0.0D, $
+         model_age: model.age[vdidx,*], chisq: 0.0D, $
          redchi: 0.0D, bluechi: 0.0D, hkchi: 0.0D, $
          bluefree: 0L, MMWA: 0.0D, MLWA: 0.0D, $
          MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
@@ -257,18 +226,18 @@ coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
 
 coefs.SNR = mean(flux[lightidx]/err[lightidx])
 
-coefs.MMWA = total(model.age/1e9*coefs.light_frac/model.norm) $
-          / total(coefs.light_frac/model.norm)
+coefs.MMWA = total(model.age[vdidx,*]/1e9*coefs.light_frac/model.norm[vdidx,*]) $
+          / total(coefs.light_frac/model.norm[vdidx,*])
 
 redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
-light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
-                                                   n_elements(model.age)), $
+light_weight = mean(model.flux[vdidx,lightidx,*] * rebin(redd,n_elements(lightidx),$
+                                                   n_elements(model.age[vdidx,*])), $
                     dimension=1) * coefs.light_frac
-coefs.MLWA = total(light_weight * model.age/1e9) / total(light_weight)
+coefs.MLWA = total(light_weight * model.age[vdidx,*]/1e9) / total(light_weight)
 
-coefs.MMWZ = total(model.Z*coefs.light_frac/model.norm) $
-          / total(coefs.light_frac/model.norm)
-coefs.MLWZ = total(light_weight * model.Z) / total(light_weight)
+coefs.MMWZ = total(model.Z[vdidx,*]*coefs.light_frac/model.norm[vdidx,*]) $
+          / total(coefs.light_frac/model.norm[vdidx,*])
+coefs.MLWZ = total(light_weight * model.Z[vdidx,*]) / total(light_weight)
 
 galfit = flux  + 'NaN'
 galfit[ok] = flux[ok]
