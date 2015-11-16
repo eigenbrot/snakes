@@ -90,16 +90,16 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                                  (restwl > m['WAVE'].max()))
         quality[outside_model] = 0
 
-        sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
+        sk =    np.array([6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0])
         sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
         
-        sk2 = [6300., 5890., 5577.]
+        sk2 = np.array([6300., 5890., 5577.])
         em2 = [6563.8,  6716.0, 6583.41, 6548.04]
         
-        em = [6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8]
+        em = np.array([6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8])
         emnam = [r'H$\alpha$', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
         
-        ab =    [3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4]
+        ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
         dz = 1500. / 3e5
@@ -115,7 +115,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         ok = quality == 1
 
-        # Convolve models to velocity dispersion of data and interpolate
+        # Interpolate models to data wavelength grid
     
         custom_lib = np.zeros((nmodels, npix))
         for ii in range(nmodels):
@@ -184,6 +184,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         ###################################
         ###################################
+        Z = coefs['VSYS']/3e5 + 1
 
         ypos = 1
         for s, sn in zip(sk, sknam):
@@ -202,7 +203,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
             
         prevy = 99
-        for a, an in zip(ab, absnam):
+        for a, an in zip(ab*Z, absnam):
             if a > 5500. and plotblue: continue
             tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
             try:
@@ -223,7 +224,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             else:
                 fax.plot((a,a), (ypos+0.04,ypos+0.1), color='r', alpha=0.8)
 
-        for e, en in zip(em, emnam):
+        for e, en in zip(em*Z, emnam):
             if e > 5500. and plotblue: continue
             tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
             try:

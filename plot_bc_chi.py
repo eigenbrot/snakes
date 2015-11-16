@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
-def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
+def plot_chi(chifile, datafile, coeffile,
+             output=None, wavemin=3800, wavemax=6800,
              plotblue = False):
 
     if output == None:
@@ -33,6 +34,9 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
     restwl = wave[idx]
 
     chiarray = pyfits.open(chifile)[0].data
+
+    coeff = pyfits.open(coeffile)[1].data
+    Z = np.mean(coeff['VSYS'])/3e5 + 1
 
     pp = PDF(output)
 
@@ -76,13 +80,15 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
                        (mchi + stdchi)[pidx],
                        color='k', alpha=0.2, edgecolor=None)
 
-    sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
+    sk = np.array([6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0])
     sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
-    em = [6563.8,  6716.0]
+    em = np.array([6563.8,  6716.0])
     emnam = [r'H$\alpha$', 'S2']
 
-    ab =    [3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4]
+    ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
     absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
+
+    
 
     ypos = 1
     for s, sn in zip(sk, sknam):
@@ -101,7 +107,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
             rmax.plot((s,s), (ypos - 0.5, ypos - 1), alpha=0.8, color='k')
 
     prevy = 99
-    for a, an in zip(ab, absnam):
+    for a, an in zip(ab*Z, absnam):
         if a > 5500. and plotblue: continue
         tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
         try:
@@ -121,7 +127,7 @@ def plot_chi(chifile, datafile, output=None, wavemin=3800, wavemax=6800,
         else:
             rmax.plot((a,a), (ypos + 0.5, ypos + 1), color='r', alpha=0.8) 
 
-    for e, en in zip(em, emnam):
+    for e, en in zip(em*Z, emnam):
         if e > 5500. and plotblue: continue
         tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
         try:
@@ -148,10 +154,11 @@ def parse_input(inputlist):
     
     chifile = inputlist[0]
     datafile = inputlist[1]
+    coeffile = inputlist[2]
 
     kwar = {}
 
-    i = 2
+    i = 3
     while i < len(inputlist):
         
         if inputlist[i] == '-o':
@@ -172,9 +179,9 @@ def parse_input(inputlist):
 
         i += 1
 
-    return chifile, datafile, kwar
+    return chifile, datafile, coeffile, kwar
 
 if __name__ == '__main__':
 
-    chi, dat, kw = parse_input(sys.argv[1:])
-    plot_chi(chi,dat, **kw)
+    chi, dat, coef, kw = parse_input(sys.argv[1:])
+    plot_chi(chi,dat,coef, **kw)
