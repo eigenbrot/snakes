@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
-def plot_chi(chifile, datafile, coeffile,
+def plot_chi(chifile, coeffile, datafile,
              output=None, wavemin=3800, wavemax=6800,
              plotblue = False):
 
@@ -183,8 +183,8 @@ def plot_chi(chifile, datafile, coeffile,
 def parse_input(inputlist):
     
     chifile = inputlist[0]
-    datafile = inputlist[1]
-    coeffile = inputlist[2]
+    coeffile = inputlist[1]
+    datafile = inputlist[2]
 
     kwar = {}
 
@@ -209,9 +209,9 @@ def parse_input(inputlist):
 
         i += 1
 
-    return chifile, datafile, coeffile, kwar
+    return chifile, coeffile, datafile, kwar
 
 if __name__ == '__main__':
 
-    chi, dat, coef, kw = parse_input(sys.argv[1:])
-    plot_chi(chi,dat,coef, **kw)
+    chi,coef,dat,kw = parse_input(sys.argv[1:])
+    plot_chi(chi,coef,dat, **kw)

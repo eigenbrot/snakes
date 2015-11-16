@@ -17,7 +17,7 @@ idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_b
 
 plotcmd="python ~/snakes/plot_bc.py NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models.fits -l NGC_891_P${P}_bin30_locations.dat -n"
 
-chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30_allz2.coef.fits -n"
+chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30.ms.fits -n"
 
 scrfile="P${P}.sh"
 echo '#!/bin/bash' > $scrfile
