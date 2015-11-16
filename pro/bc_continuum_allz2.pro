@@ -242,7 +242,7 @@ coefs.MLWZ = total(light_weight * model.Z[vdidx,*]) / total(light_weight)
 galfit = flux  + 'NaN'
 galfit[ok] = flux[ok]
 
-chivec = (galfit - yfit)/err
+chivec = (flux - yfit)/err
 
 print, fitcoefs, format = '(15F6.1)'
 print, coefs.vsys

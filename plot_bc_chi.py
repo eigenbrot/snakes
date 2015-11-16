@@ -56,6 +56,21 @@ def plot_chi(chifile, datafile, coeffile,
     # mchi = spnd.filters.gaussian_filter(medchi,5)
     # stdchi = spnd.filters.gaussian_filter(rms,5)
 
+    sk2 = np.array([6300., 5890., 5577.])
+    em2 = [6563.8,  6716.0, 6583.41, 6548.04]
+    dz = 1500. / 3e5
+    dzsk = 1600. / 3e5
+    
+    quality = np.ones(restwl.size)
+    for ee in em2:
+        maskout = np.where((restwl > ee*(1-dz)) & (restwl < ee*(1+dz)))
+        quality[maskout] = 0
+        
+    for ss in sk2:
+        maskout = np.where((restwl > ss*(1-dzsk)) & (restwl < ss*(1+dzsk)))
+        quality[maskout] = 0
+        
+    ok = quality == 1
 
     if plotblue:
         pidx = np.where(restwl < 4500.)
@@ -73,9 +88,24 @@ def plot_chi(chifile, datafile, coeffile,
     medax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
     medax.set_ylim(-5,5)
     
-    rmax.plot(restwl[pidx], (medchi - mschi)[pidx], 'k')
+    prms = medchi - mschi
+    mrms = np.copy(prms)
+    mrms[ok] = np.NAN
+    prms[~ok] = np.NAN
 
-    medax.plot(restwl[pidx],mchi[pidx],'k')
+    rmax.plot(restwl[pidx], prms[pidx], 'k')
+    rmax.plot(restwl[pidx], mrms[pidx], 'c', lw=3)
+    ymin = np.nanmin(prms)*0.9
+    ymax = np.nanmax(prms)*1.1
+    rmax.set_ylim(ymin, ymax)
+
+    pmchi = np.copy(mchi)
+    mmchi = np.copy(mchi)
+    mmchi[ok] = np.NAN
+    pmchi[~ok] = np.NAN
+    
+    medax.plot(restwl[pidx],pmchi[pidx],'k')
+    medax.plot(restwl[pidx],mmchi[pidx],'c',lw=3)
     medax.fill_between(restwl[pidx], (mchi - stdchi)[pidx],
                        (mchi + stdchi)[pidx],
                        color='k', alpha=0.2, edgecolor=None)
