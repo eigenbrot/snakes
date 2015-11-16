@@ -57,7 +57,7 @@ def plot_chi(chifile, coeffile, datafile,
     # stdchi = spnd.filters.gaussian_filter(rms,5)
 
     sk2 = np.array([6300., 5890., 5577.])
-    em2 = [6563.8,  6716.0, 6583.41, 6548.04]
+    em2 = np.array([6563.8,  4861., 4959., 5006.8, 6716.0, 6583.41, 6548.04])
     dz = 1500. / 3e5
     dzsk = 1600. / 3e5
     

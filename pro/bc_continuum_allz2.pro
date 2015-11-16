@@ -95,24 +95,6 @@ if outside_model[0] ne -1 then quality[outside_model] = 0
 bad = where(finite(flux) ne 1 or finite(err) ne 1 or err eq 0)
 if bad[0] ne -1 then quality[bad] = 0
 
-;; Old
-;; ;------------------------------------------------------------------------------
-;; ; Mask out emission lines
-
-;; ;     OII       OII     H8       NeIII     Hg        Hd      Hb      OIII 
-;; em= [3726.03, 3728.82, 3889.05, 3869.06, 4101.73, 4340.46, 4861.33, 4959.91, $
-;; ;    OIII     He I     OI        NII      Ha       NII      SII      SII 
-;;     5006.84, 5875.67, 6300.30, 6548.04, 6562.82, 6583.41, 6716.44, 6730.81]
-;; ; bad sky lines
-;; sk = [5569., 5882.6]
-
-;; dz = emmaskw / 3e5 ; clipping interval
-;; dzsk = 1000. / 3e5
-
-;; for ii = 0, n_elements(em) - 1 do begin 
-;;   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))
-;;   if maskout[0] ne -1 then quality[maskout] = 0
-;; endfor
 
 sk =    [6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0]
 sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
@@ -122,8 +104,8 @@ sk2 = [6300., 5890., 5577.]
 ;; em=     [3727.3,  4959.,    5006.8,   6563.8, 6716.0]
 ;; emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
 
-em = [6563.8,  6716.0, 6583.41, 6548.04]
-emnam = ['Ha', 'S2', 'NII', 'NII']
+em = [6563.8, 4861.,    4959., 5006.8, 6716.0, 6583.41, 6548.04]
+emnam = ['Ha', 'Hb', '[OIII]','[OIII]','S2', 'NII', 'NII']
 
 abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
 absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
