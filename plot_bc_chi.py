@@ -82,6 +82,7 @@ def plot_chi(chifile, coeffile, datafile,
     rmax.set_ylabel('<Chi> - Med(<Chi>)')
     rmax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
     rmax.set_xticklabels([])
+    rmax.set_ylim(-5,5)
     medax = fig.add_subplot(212)
     medax.set_xlabel('Wavelength [$\AA$]')
     medax.set_ylabel('Median smoothed Chi')
@@ -95,9 +96,6 @@ def plot_chi(chifile, coeffile, datafile,
 
     rmax.plot(restwl[pidx], prms[pidx], 'k')
     rmax.plot(restwl[pidx], mrms[pidx], 'c', lw=3)
-    ymin = np.nanmin(prms)*0.9
-    ymax = np.nanmax(prms)*1.1
-    rmax.set_ylim(ymin, ymax)
 
     pmchi = np.copy(mchi)
     mmchi = np.copy(mchi)
