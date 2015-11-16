@@ -231,6 +231,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
             except ValueError:
                 pass
+            if en == '[OIII]': ypos += 0.2
             fax.text(e, ypos, en, color='b', fontsize=8, 
                      ha='center', va='center')
             if plotblue:
