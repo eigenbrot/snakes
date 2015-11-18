@@ -31,12 +31,19 @@ def plot_chi(chifile, coeffile, datafile,
     wave = (np.arange(wavesize) - crpix) * cdelt + crval
 
     idx = np.where((wave >= wavemin) & (wave <= wavemax))
-    restwl = wave[idx]
-
-    chiarray = pyfits.open(chifile)[0].data
+    redwl = wave[idx]
+    
+    redchiarray = pyfits.open(chifile)[0].data
 
     coeff = pyfits.open(coeffile)[1].data
-    Z = np.mean(coeff['VSYS'])/3e5 + 1
+    meanZ = np.mean(coeff['VSYS'])/3e5 + 1
+
+    # Shift all chi's to rest frame
+    restwl = redwl/(meanZ/3e5 + 1)
+    chiarray = np.zeros(redchiarray.shape)
+    for i in range(redchiarray.shape[0]):
+        tl = redwl/(coeff['VSYS'][i]/3e5 + 1)
+        chiarray[i,:] = np.interp(restwl,tl,redchiarray[i,:])        
 
     pp = PDF(output)
 
@@ -119,7 +126,7 @@ def plot_chi(chifile, coeffile, datafile,
     
 
     ypos = 1
-    for s, sn in zip(sk, sknam):
+    for s, sn in zip(sk/meanZ, sknam):
         if s > 5500. and plotblue: continue
         tidx = np.where((restwl >= s - 10) & (restwl <= s + 10.))
         try:
@@ -135,7 +142,7 @@ def plot_chi(chifile, coeffile, datafile,
             rmax.plot((s,s), (ypos - 0.5, ypos - 1), alpha=0.8, color='k')
 
     prevy = 99
-    for a, an in zip(ab*Z, absnam):
+    for a, an in zip(ab, absnam):
         if a > 5500. and plotblue: continue
         tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
         try:
@@ -155,7 +162,7 @@ def plot_chi(chifile, coeffile, datafile,
         else:
             rmax.plot((a,a), (ypos + 0.5, ypos + 1), color='r', alpha=0.8) 
 
-    for e, en in zip(em*Z, emnam):
+    for e, en in zip(em, emnam):
         if e > 5500. and plotblue: continue
         tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
         try:
