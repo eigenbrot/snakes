@@ -114,7 +114,7 @@ HPS = 5914.
 HPS_wid = 230.
 
 dz = emmaskw / 3e5 ; clipping interval
-dzsk = 1600. / 3e5
+dzsk = 1500. / 3e5
 
 for ii = 0, n_elements(em) - 1 do begin 
   maskout = where(restwl gt em[ii]*(1-dz) and restwl lt em[ii]*(1+dz))

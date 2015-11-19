@@ -103,7 +103,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
         dz = 1500. / 3e5
-        dzsk = 1600. / 3e5
+        dzsk = 1500. / 3e5
         
         for ee in em2:
             maskout = np.where((restwl > ee*(1-dz)) & (restwl < ee*(1+dz)))

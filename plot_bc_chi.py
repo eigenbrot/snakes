@@ -66,7 +66,7 @@ def plot_chi(chifile, coeffile, datafile,
     sk2 = np.array([6300., 5890., 5577.])
     em2 = np.array([6563.8,  4861., 4959., 5006.8, 6716.0, 6583.41, 6548.04])
     dz = 1500. / 3e5
-    dzsk = 1600. / 3e5
+    dzsk = 1500. / 3e5
     
     quality = np.ones(restwl.size)
     for ee in em2:
