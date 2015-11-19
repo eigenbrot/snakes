@@ -5,15 +5,27 @@ if [ $# -lt 1 ]; then
     exit
 fi
 
-if [ $# -eq 1 ]; then
-    P=$1
+FMIN="3800."
+FMAX="6800."
+
+if [[ $# -eq 5 && ( "$1" = "-b" || "$1" = "-f" ) ]]; then
+    if [ "$1" = "-f" ]; then
+	FMIN=$2
+	FMAX=$3
+    else
+	FMIN=$3
+	FMAX=$4
+    fi
+    P=$5
 elif [ $# -eq 2 ] && [ "$1" = "-b" ]; then
     P=$2
+elif [ $# -eq 1 ]; then
+    P=$1
 else
     echo "The request was made but it was not good"
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models.fits', wavemin=3800., wavemax=6800., velstart=528.\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models.fits', wavemin=3800., wavemax=6800., velstart=528., fitregion=[${FMIN}, ${FMAX}]\""
 
 plotcmd="python ~/snakes/plot_bc.py NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models.fits -l NGC_891_P${P}_bin30_locations.dat -n"
 
