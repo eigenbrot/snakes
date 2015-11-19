@@ -49,7 +49,7 @@
 ;------------------------------------------------------------------------------
 
 function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
-                             yfit = yfit, bluefit = bluefit, velstart = velstart, $
+                             yfit = yfit, fitregion = fitregion, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
 
@@ -138,8 +138,8 @@ endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
 ;-------------------------------------------------------------------------------
-if keyword_set(bluefit) then begin
-   fitidx = where(restwl[ok] lt 5400)
+if keyword_set(fitregion) then begin
+   fitidx = where(restwl[ok] ge fitregion[0] and restwl[ok] le fitregion[1])
    fitflux = flux[ok[fitidx]]
    fiterr = err[ok[fitidx]]
    fitwave = restwl[ok[fitidx]]

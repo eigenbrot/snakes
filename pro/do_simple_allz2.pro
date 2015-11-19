@@ -1,6 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                     model=model, bluefit=bluefit, velstart=velstart, $
+                     model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
 ;defplotcolors
@@ -126,7 +126,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
 ; fit continuum
    coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
-                             bluefit=bluefit, $
+                             fitregion=fitregion, $
                              yfit=yfit, velstart=velstart, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
