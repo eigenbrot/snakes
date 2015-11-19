@@ -1,7 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
                      model=model, bluefit=bluefit, velstart=velstart, $
-                     dispdata=dispdata, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
 ;defplotcolors
