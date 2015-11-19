@@ -265,7 +265,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fig.text(0.15, 0.89, 'SNR = {:8.2f}'.format(coefs['SNR']), fontsize=fs)
         fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(coefs['VSYS']), 
                  fontsize=fs)
-        fig.text(0.15, 0.85, 'V_disp = {}'' fiber'.format(vdidx+2),
+        fig.text(0.15, 0.85, "V_disp = {}'' fiber".format(vdidx+2),
                  fontsize=fs)
         fig.text(0.15, 0.83, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
                  fontsize=fs)
