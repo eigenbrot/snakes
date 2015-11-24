@@ -288,6 +288,20 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fig.text(0.55, 0.83, r'$\chi^2_\mathrm{{HK}}$ = {:8.2f}'.\
                  format(coefs['hkchi']), fontsize=fs)
         
+
+        ######################
+        ######################
+        
+        wax = fig.add_axes([0.70,0.83,0.2,0.1])
+        numZ = np.unique(m['Z'][:,0]).size
+        numAge = np.unique(m['AGE'][:,0]).size
+        wdata = coefs['LIGHT_FRAC'].reshape(numZ,numAge)
+        wax.imshow(wdata,origin='lower',cmap='Blues',interpolation='none')
+        wax.set_xticks(range(numAge))
+        wax.set_xticklabels(m['AGE'][:numAge,0]/1e9, rotation=90, fontsize=7)
+        wax.set_yticks(range(numZ))
+        wax.set_yticklabels(m['Z'][::numAge,0],fontsize=7)
+
         fig.suptitle(time.asctime())
 
         pp.savefig(fig)
