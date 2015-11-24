@@ -42,6 +42,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
     m = pyfits.open(model)[1].data[0]
     nmodels = m['FLUX'].shape[0]
+    numZ = np.unique(m['Z'][:,0]).size
+    numAge = np.unique(m['AGE'][:,0]).size
+
+    big_w = np.zeros((numZ,numAge))
 
     if output is None:
         if plotblue:
@@ -293,8 +297,6 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         ######################
         
         wax = fig.add_axes([0.70,0.83,0.2,0.1])
-        numZ = np.unique(m['Z'][:,0]).size
-        numAge = np.unique(m['AGE'][:,0]).size
         wdata = coefs['LIGHT_FRAC'].reshape(numZ,numAge)
         wax.imshow(wdata,origin='lower',cmap='Blues',interpolation='none')
         wax.set_xticks(range(numAge))
@@ -302,11 +304,24 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         wax.set_yticks(range(numZ))
         wax.set_yticklabels(m['Z'][::numAge,0],fontsize=7)
 
+        big_w += wdata/np.max(wdata)
+
         fig.suptitle(time.asctime())
 
         pp.savefig(fig)
         plt.close(fig)
 
+    bwax = plt.figure().add_subplot(111)
+    bwax.imshow(big_w,origin='lower',cmap='Blues',interpolation='none')
+    bwax.set_xlabel('SSP Age [Gyr]')
+    bwax.set_xticks(range(numAge))
+    bwax.set_xticklabels(m['AGE'][:numAge,0]/1e9)
+    bwax.set_ylabel(r'$Z/Z_{\odot}$')
+    bwax.set_yticks(range(numZ))
+    bwax.set_yticklabels(m['Z'][::numAge,0])
+    
+    pp.savefig(bwax.figure)
+    plt.close(bwax.figure)
     pp.close()
     return 
 
