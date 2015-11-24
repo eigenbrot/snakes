@@ -81,32 +81,33 @@ parinfo[0].fixed = 0
 parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]
 parinfo[1].limits = [0.,20.]
-parinfo[2:*].value = 0
-parinfo[2:*].fixed = 1
 parinfo[2:*].limited = [1,0]
 parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
-;
-; t > 8 Gyr: Z_sol = 0.02 - 0.4
-id8 = where(model.age[0,*] gt 8d9 and model.Z[0,*] ge 0.02 and model.Z[0,*] le 0.41)
-parinfo[id8+2].fixed = 0
-parinfo[id8+2].value = 1.D
+; default: don't fit
+;; parinfo[2:*].value = 0
+;; parinfo[2:*].fixed = 1
+;; ;
+;; ; t > 8 Gyr: Z_sol = 0.02 - 0.4
+;; id8 = where(model.age[0,*] gt 8d9 and model.Z[0,*] ge 0.02 and model.Z[0,*] le 0.41)
+;; parinfo[id8+2].fixed = 0
+;; parinfo[id8+2].value = 1.D
 
-; 3 < t < 8: Z_sol = 0.02 - 0.4
-id3 = where(model.age[0,*] le 8d9 and model.age[0,*] gt 3d9 and model.Z[0,*] ge 0.02 and model.Z[0,*] le 0.41)
-parinfo[id3+2].fixed = 0
-parinfo[id3+2].value = 1.D
+;; ; 3 < t < 8: Z_sol = 0.02 - 0.4
+;; id3 = where(model.age[0,*] le 8d9 and model.age[0,*] gt 3d9 and model.Z[0,*] ge 0.02 and model.Z[0,*] le 0.41)
+;; parinfo[id3+2].fixed = 0
+;; parinfo[id3+2].value = 1.D
 
-; 1 < t < 3 Gyr; Z_sol = 0.2 - 1
-id1 = where(model.age[0,*] le 3d9 and model.age[0,*] gt 1d9 and model.Z[0,*] ge 0.2 and model.Z[0,*] le 1.1)
-parinfo[id1+2].fixed = 0
-parinfo[id1+2].value = 1.D
+;; ; 1 < t < 3 Gyr; Z_sol = 0.2 - 1
+;; id1 = where(model.age[0,*] le 3d9 and model.age[0,*] gt 1d9 and model.Z[0,*] ge 0.2 and model.Z[0,*] le 1.1)
+;; parinfo[id1+2].fixed = 0
+;; parinfo[id1+2].value = 1.D
 
-; t < 1 Gyr: Z_sol = 0.4 - 2.5
-id0 = where(model.age[0,*] le 1d9 and model.Z[0,*] ge 0.4 and model.Z[0,*] le 2.51)
-parinfo[id0+2].fixed = 0
-parinfo[id0+2].value = 1.D
+;; ; t < 1 Gyr: Z_sol = 0.4 - 2.5
+;; id0 = where(model.age[0,*] le 1d9 and model.Z[0,*] ge 0.4 and model.Z[0,*] le 2.51)
+;; parinfo[id0+2].fixed = 0
+;; parinfo[id0+2].value = 1.D
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 
