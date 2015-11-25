@@ -10,7 +10,7 @@ FMAX="6800."
 B=0
 V="528."
 PYPLOT="~/snakes/plot_bc.py"
-MODNAM="allZ2/allz2_test.fits"
+MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits"
 
 while [[ $# > 1 ]]
 do
@@ -35,7 +35,13 @@ do
 	-d)
 	    echo "Plotting with vardisp"
 	    PYPLOT="~/snakes/plot_bc_vardisp.py"
-	    MODNAM="allZ2_vardisp/allz2_vardisp_models_sp.fits"
+	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models_sp.fits"
+	    ;;
+
+	-m)
+	    MODNAM=$2
+	    echo "Using model ${MODNAM}"
+	    shift
 	    ;;
 	*)
 	    
@@ -46,9 +52,9 @@ done
 
 P=$1
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='/d/monk/eigenbrot/WIYN/14B-0456/anal/models/${MODNAM}', wavemin=3800., wavemax=6800., velstart=${V}, fitregion=[${FMIN}, ${FMAX}]\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='${MODNAM}', wavemin=3800., wavemax=6800., velstart=${V}, fitregion=[${FMIN}, ${FMAX}]\""
 
-plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits /d/monk/eigenbrot/WIYN/14B-0456/anal/models/${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
+plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
 
 chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30.ms.fits -n"
 
