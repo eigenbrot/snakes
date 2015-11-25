@@ -16,7 +16,7 @@ function mconv, y, sig
   return, yp
 end
 
-pro bc_simple_models_allz2_vardisp, output, dispdata, plot=plot, age=age
+pro bc_simple_models_allz2_vardisp, output, dispdata, plot=plot, age=age, constdisp=constdisp
 
 if keyword_set(plot) then begin
    plotfile = (strsplit(output,'.',/extract))[0] + '.ps'
@@ -52,19 +52,21 @@ m = {wave: 10.0^logwl, flux: fltarr(5, npix, n_elements(age) * 6), $
 nwl = where(m.wave gt 5450 and m.wave lt 5550)
 
 ; Get dispersion information
-v_data = MRDFITS(dispdata,0,v_header)
-numdisp = n_elements(v_data[0,*])
-v_wavesize = n_elements(v_data[*,0])
-v_cdelt = float(sxpar(v_header,'CDELT1'))
-v_crval = float(sxpar(v_header,'CRVAL1'))
-v_crpix = float(sxpar(v_header,'CRPIX1'))
-print, 'V_CDELT1 = ',v_cdelt
-print, 'V_CRVAL1 = ',v_crval
-print, 'V_CRPIX1 = ',v_crpix
-v_wave = (FINDGEN(v_wavesize) - v_crpix) * v_cdelt + v_crval
-vdisp_vec = dblarr(n_elements(m.wave),numdisp)
-for dd = 0, numdisp - 1 do $
-   vdisp_vec[*,dd] = interpol(v_data[*,dd],v_wave,m.wave)/2.355
+if n_elements(constdisp) eq 0 then begin
+   v_data = MRDFITS(dispdata,0,v_header)
+   numdisp = n_elements(v_data[0,*])
+   v_wavesize = n_elements(v_data[*,0])
+   v_cdelt = float(sxpar(v_header,'CDELT1'))
+   v_crval = float(sxpar(v_header,'CRVAL1'))
+   v_crpix = float(sxpar(v_header,'CRPIX1'))
+   print, 'V_CDELT1 = ',v_cdelt
+   print, 'V_CRVAL1 = ',v_crval
+   print, 'V_CRPIX1 = ',v_crpix
+   v_wave = (FINDGEN(v_wavesize) - v_crpix) * v_cdelt + v_crval
+   vdisp_vec = dblarr(n_elements(m.wave),numdisp)
+   for dd = 0, numdisp - 1 do $
+      vdisp_vec[*,dd] = interpol(v_data[*,dd],v_wave,m.wave)/2.355
+endif
 
 bc03_pix = 70.0 ; size of 1 model pixel in km/s 
 bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
@@ -82,10 +84,16 @@ for ff = 0, 4 do begin
          linterp, bc03.wave, bc03.flux[*,ii], m.wave, tspec
       
          ;Deconvolve template instrumental resolution
-         vdisp_add = sqrt(vdisp_vec[*,ff]^2 - bc03_vdisp^2)  
-         sigma_pix = vdisp_add / bc03_pix
          print, 'Convolving...'
-         spec = mconv(tspec,sigma_pix)
+         if n_elements(constdisp) eq 0 then begin
+            vdisp_add = sqrt(vdisp_vec[*,ff]^2 - bc03_vdisp^2)  
+            sigma_pix = vdisp_add / bc03_pix
+            spec = mconv(tspec,sigma_pix)
+         endif else begin
+            vdisp_add = sqrt((constdisp[ff]/2.355)^2 - bc03_vdisp^2)
+            sigma_pix = vdisp_add / bc03_pix
+            spec = gconv(tspec, sigma_pix)
+         endelse
 
          print, min(spec), max(spec), mean(spec), age[ii]
          plot, m.wave, spec, xtitle='Wavelength ( '+angstrom+' )', $
