@@ -42,6 +42,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
     m = pyfits.open(model)[1].data[0]
     nmodels = m['FLUX'].shape[0]
+    numZ = np.unique(m['Z']).size
+    numAge = np.unique(m['AGE']).size
+
+    big_w = np.zeros((numZ,numAge))
 
     if output is None:
         if plotblue:
@@ -105,7 +109,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
         dz = 1500. / 3e5
-        dzsk = 1600. / 3e5
+        dzsk = 1500. / 3e5
         
         for ee in em2:
             maskout = np.where((restwl > ee*(1-dz)) & (restwl < ee*(1+dz)))
@@ -196,6 +200,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         ###################################
         ###################################
+        Z = coefs['VSYS']/3e5 + 1
 
         ypos = 1
         for s, sn in zip(sk, sknam):
@@ -214,7 +219,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
             
         prevy = 99
-        for a, an in zip(ab, absnam):
+        for a, an in zip(ab*Z, absnam):
             if a > 5500. and plotblue: continue
             tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
             try:
@@ -235,13 +240,14 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             else:
                 fax.plot((a,a), (ypos+0.04,ypos+0.1), color='r', alpha=0.8)
 
-        for e, en in zip(em, emnam):
+        for e, en in zip(em*Z, emnam):
             if e > 5500. and plotblue: continue
             tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
             try:
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
             except ValueError:
                 pass
+            if en == '[OIII]': ypos += 0.2
             fax.text(e, ypos, en, color='b', fontsize=8, 
                      ha='center', va='center')
             if plotblue:
@@ -297,11 +303,35 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fig.text(0.55, 0.83, r'$\chi^2_\mathrm{{HK}}$ = {:8.2f}'.\
                  format(coefs['hkchi']), fontsize=fs)
         
+        ######################
+        ######################
+        
+        wax = fig.add_axes([0.70,0.83,0.2,0.1])
+        wdata = coefs['LIGHT_FRAC'].reshape(numZ,numAge)
+        wax.imshow(wdata,origin='lower',cmap='Blues',interpolation='none')
+        wax.set_xticks(range(numAge))
+        wax.set_xticklabels(m['AGE'][:numAge]/1e9, rotation=90, fontsize=7)
+        wax.set_yticks(range(numZ))
+        wax.set_yticklabels(m['Z'][::numAge],fontsize=7)
+
+        big_w += wdata/np.max(wdata)
+        
         fig.suptitle(time.asctime())
 
         pp.savefig(fig)
         plt.close(fig)
 
+    bwax = plt.figure().add_subplot(111)
+    bwax.imshow(big_w,origin='lower',cmap='Blues',interpolation='none')
+    bwax.set_xlabel('SSP Age [Gyr]')
+    bwax.set_xticks(range(numAge))
+    bwax.set_xticklabels(m['AGE'][:numAge]/1e9)
+    bwax.set_ylabel(r'$Z/Z_{\odot}$')
+    bwax.set_yticks(range(numZ))
+    bwax.set_yticklabels(m['Z'][::numAge])
+    
+    pp.savefig(bwax.figure)
+    plt.close(bwax.figure)
     pp.close()
     return 
 
