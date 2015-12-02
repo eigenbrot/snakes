@@ -65,7 +65,8 @@ if not keyword_set(emmaskw) then emmaskw = 1500.0
 dims = size(model.flux, /dimensions)
 npix = n_elements(restwl)
 nmodels = dims[2]
-
+print, '~', nmodels, npix
+print, '`', size(model.wave,/dimensions)
 ;-----------------------------------------------------------------------------
 ; Constrain model fit coefs to be positive, let TauV be pos or neg
 ; (fitcoefs = [TauV, model_coefs[*]])
@@ -158,10 +159,28 @@ ok = where(quality eq 1)
 
 ;-----------------------------------------------------------------------------
 ; Interpolate to match data
+bc03_pix = 70.0 ; size of 1 model pixel in km/s 
+bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
+ 
+vdisp_add = sqrt((966./2.355)^2 - bc03_vdisp^2)
+sigma_pix = vdisp_add / bc03_pix
 
 custom_lib = dblarr(npix, nmodels)
+print, '!', size(model.flux[vdidx,*,ii], /dimensions)
+print, '@', size(transpose(model.flux[vdidx,*,ii]), /dimensions)
+print, '#', size(reform(model.flux[vdidx,*,ii]), /dimensions)
+print, '%', sigma_pix, size(sigma_pix, /dimensions)
+stop
 for ii = 0, nmodels - 1 do begin
-   custom_lib[*,ii] = interpol(model.flux[vdidx,*,ii], model.wave, restwl)
+   cflux = gconv(reform(model.flux[vdidx,*,ii]), sigma_pix)
+   custom_lib[*,ii] = interpol(cflux,  model.wave, restwl)
+   if ii eq 0 then begin
+      print, '^', size(cflux, /dimensions)
+      print, '&', size(interpol(cflux,  model.wave, restwl), /dimensions)
+      print, '*', size(custom_lib[*,ii], /dimensions), npix
+      stop
+   endif
+;   custom_lib[*,ii] = interpol(model.flux[vdidx,*,ii], model.wave, restwl)
 endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0
 
@@ -240,10 +259,28 @@ coefs.MMWA = total(model.age[vdidx,*]/1e9*coefs.light_frac/model.norm[vdidx,*]) 
           / total(coefs.light_frac/model.norm[vdidx,*])
 
 redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
-light_weight = mean(model.flux[vdidx,lightidx,*] * rebin(redd,n_elements(lightidx),$
-                                                   n_elements(model.age[vdidx,*])), $
+light_weight = mean(reform(model.flux[vdidx,lightidx,*])*rebin(redd,n_elements(lightidx),$
+                                                               n_elements(reform(model.age[vdidx,*]))),$
                     dimension=1) * coefs.light_frac
-coefs.MLWA = total(light_weight * model.age[vdidx,*]/1e9) / total(light_weight)
+
+coefs.MLWA = total(light_weight * reform(model.age[vdidx,*])/1e9) / total(light_weight)
+
+;print, '!', size(model.flux[vdidx,lightidx,*], /dimensions)
+print, '!!', size(reform(model.flux[vdidx,lightidx,*]), /dimensions)
+;print, '@', size(transpose(model.flux[vdidx,lightidx,*]), /dimensions)
+print, '#', size(rebin(redd,n_elements(lightidx),$
+                  n_elements(model.age[vdidx,*])),$
+            /dimensions)
+print, '##', size(rebin(redd,n_elements(lightidx),$
+                  n_elements(reform(model.age[vdidx,*]))),$
+            /dimensions)
+print, '$', size(reform(model.age[vdidx,*])/1e9, /dimensions)
+print, '^', size(light_weight, /dimensions)
+print, '$$', size(light_weight * reform(model.age[vdidx,*])/1e9, /dimensions)
+print, light_weight
+print, reform(model.age[vdidx,*])/1e9
+print, '%', coefs.MLWA
+stop
 
 coefs.MMWZ = total(model.Z[vdidx,*]*coefs.light_frac/model.norm[vdidx,*]) $
           / total(coefs.light_frac/model.norm[vdidx,*])
@@ -254,12 +291,13 @@ galfit[ok] = flux[ok]
 
 chivec = (flux - yfit)/err
 
-print, fitcoefs, format = '(15F6.1)'
+print, fitcoefs, format = '(60F6.1)'
 print, coefs.vsys
 print, coefs.tauv
 print, coefs.hkchi
 print, coefs.MLWZ
 print, coefs.MMWZ
+print, '$$$$$$$$$$$$$$$$$$$$$', coefs.MLWA
 
 return, coefs
 
