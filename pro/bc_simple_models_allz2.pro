@@ -44,7 +44,7 @@ for zz = 0, 5 do begin
 ; Interpolate to log-lambda & normalize
    for ii = 0, n_elements(age) - 1 do begin
       linterp, bc03.wave, bc03.flux[*,ii], m.wave, spec
-      
+
       print, min(spec), max(spec), mean(spec), age[ii]
       plot, m.wave, spec, xtitle='Wavelength ( '+angstrom+' )', $
             ytitle = string('F!D!X',lambda,'!N (L',sunsymbol(),$

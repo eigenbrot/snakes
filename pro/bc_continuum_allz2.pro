@@ -54,7 +54,7 @@ function bc_continuum_allZ2, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
                              chivec=chivec
 
-print, vdisp
+print, vdisp, vdisp*2.355
 
 light_factor = 100.
 vel_factor = 100.
@@ -160,10 +160,15 @@ bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
 if vdisp lt bc03_vdisp then vdisp_add = 0 $
 else vdisp_add = sqrt(vdisp^2 - bc03_vdisp^2)  
 sigma_pix = vdisp_add / bc03_pix
-  
+
 custom_lib = dblarr(npix, nmodels)
 for ii = 0, nmodels - 1 do begin
-   cflux = gconv(model.flux[*,ii], sigma_pix) ; convolve with gaussian
+   tmp = model.flux[*,ii]
+   if sigma_pix gt 0 then begin
+      cflux = gconv(tmp, sigma_pix) ; convolve with gaussian
+   endif else begin
+      cflux = tmp
+   endelse
    custom_lib[*,ii] = interpol(cflux, model.wave, restwl)
 endfor
 if outside_model[0] ne -1 then custom_lib[outside_model, *] = 0.0

@@ -1,8 +1,9 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                    model=model, bluefit=bluefit, velstart=velstart, $
-                    wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
-                    lightmax=lightmax, multimodel=multimodel, savestep=savestep
+                     model=model, bluefit=bluefit, velstart=velstart, $
+                     wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
+                     lightmax=lightmax, multimodel=multimodel, savestep=savestep, $
+                     vdisp=vdisp
 ;defplotcolors
 ; read in models
 if not n_elements(model) then model=$
@@ -31,7 +32,8 @@ if keyword_set(location) then begin
    sizeidx = [0.937,1.406,1.875,2.344,2.812]
 endif
 
-vdisp = [493., 589., 691., 796., 966.]/2.355
+if n_elements(vdisp) eq 0 then vdisp = [493., 589., 691., 796., 966.]/2.355
+
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
 size_switch = 0
 
