@@ -243,7 +243,7 @@ coefs.MMWA = total(model.age/1e9*coefs.light_frac/model.norm) $
           / total(coefs.light_frac/model.norm)
 
 redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
-light_weight = mean(model.flux[lightidx,*] * rebin(redd,n_elements(lightidx),$
+light_weight = mean(custom_lib[lightidx,*] * rebin(redd,n_elements(lightidx),$
                                                    n_elements(model.age)), $
                     dimension=1) * coefs.light_frac
 coefs.MLWA = total(light_weight * model.age/1e9) / total(light_weight)
