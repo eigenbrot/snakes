@@ -129,7 +129,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
 ; fit continuum
    print, vd
-   coef = bc_continuum_allZ2(m, wave, flux, err, vd, $
+   coef = bc_continuum_allZ2(m, wave, flux, err, vd[0], $
                              bluefit=bluefit, $
                              yfit=yfit, velstart=velstart, $
                              savestep=savestep, lun=savelun, $
