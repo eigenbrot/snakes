@@ -40,7 +40,7 @@ npix = round((alog10(8500) - alog10(3400)) / 1e-4)
 logwl = findgen(npix) * 1e-4 + alog10(3400)
 
 tmp = im_read_bc03(isedpath=isedpath, metallicity=0, age=age,$
-                   minwave=3700, maxwave=7000, bc03_extras=ssp_extras)
+                   minwave=3400, maxwave=8500, bc03_extras=ssp_extras)
 
 ; Define output structure
 m = {wave: 10.0^logwl, flux: fltarr(5, npix, n_elements(age) * 6), $
