@@ -35,7 +35,7 @@ do
 	-d)
 	    echo "Plotting with vardisp"
 	    PYPLOT="~/snakes/plot_bc_vardisp.py"
-	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_models_sp.fits"
+	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_1212.fits"
 	    ;;
 
 	-m)
