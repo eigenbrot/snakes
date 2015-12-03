@@ -86,8 +86,14 @@ parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
 ; default: don't fit
-;; parinfo[2:*].value = 0
-;; parinfo[2:*].fixed = 1
+parinfo[2:*].value = 0
+parinfo[2:*].fixed = 1
+
+; Only fit solar metallicity
+ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
+parinfo[ids+2].fixed = 0
+parinfo[ids+2].value = 1.D
+
 ;; ;
 ;; ; t > 8 Gyr: Z_sol = 0.02 - 0.4
 ;; id8 = where(model.age[0,*] gt 8d9 and model.Z[0,*] ge 0.02 and model.Z[0,*] le 0.41)
