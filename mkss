@@ -7,6 +7,8 @@ fi
 
 FMIN="3800."
 FMAX="6800."
+LMIN="5450."
+LMAX="5550."
 B=0
 V="528."
 PYPLOT="~/snakes/plot_bc.py"
@@ -32,6 +34,13 @@ do
 	    shift
 	    shift
 	    ;;
+	-l)
+	    LMIN=$2
+	    LMAX=$3
+	    echo "Setting L=[${LMIN}, ${LMAX}]"
+	    shift
+	    shift
+	    ;;
 	-d)
 	    echo "Plotting with vardisp"
 	    PYPLOT="~/snakes/plot_bc_vardisp.py"
@@ -52,7 +61,7 @@ done
 
 P=$1
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='${MODNAM}', wavemin=3800., wavemax=6800., velstart=${V}, fitregion=[${FMIN}, ${FMAX}]\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',model='${MODNAM}', wavemin=3800., wavemax=6800., velstart=${V}, fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
 
 plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
 
