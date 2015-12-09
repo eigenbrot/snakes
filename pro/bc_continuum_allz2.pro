@@ -242,8 +242,8 @@ coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
 
 coefs.SNR = mean(flux[lightidx]/err[lightidx])
 
-coefs.MMWA = total(model.age[vdidx,*]/1e9*coefs.light_frac/model.norm[vdidx,*]) $
-          / total(coefs.light_frac/model.norm[vdidx,*])
+coefs.MMWA = total(reform(model.age[vdidx,*])/1e9*coefs.light_frac/reform(model.norm[vdidx,*])) $
+          / total(coefs.light_frac/reform(model.norm[vdidx,*]))
 
 redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
 light_weight = mean(custom_lib[lightidx,*]*rebin(redd,n_elements(lightidx),$
