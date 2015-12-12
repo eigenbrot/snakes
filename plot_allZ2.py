@@ -1,5 +1,7 @@
 import numpy as np
+import bottleneck as bn
 import GradPak_plot as GPP
+import scipy.ndimage as spnd
 #import model_A as mA
 import matplotlib.pyplot as plt
 import pyfits
@@ -196,9 +198,8 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=5, ylims=None):
+                col=62, order=4, ylims=None):
 
-    rr = np.array([])
     zz = np.array([])
     dd = np.array([])
     
@@ -214,11 +215,23 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         loc = glob('*P{}*locations.dat'.format(i+1))[0]
         print loc
     
-        d = np.loadtxt(dat, usecols=(col,), unpack=True)
-        r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+        td = np.loadtxt(dat, usecols=(col,), unpack=True)
+        r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
         
-        ax.plot(z, d, '.', label='P{}'.format(i+1))
-        rr = np.r_[rr,r]
+        z = np.array([])
+        d = np.array([])
+        e = np.array([])
+        while tz.size > 0:
+            zi = tz[0]
+            idx = np.where(np.abs(tz - zi) < 0.05)
+            d = np.r_[d,np.mean(td[idx])]
+            e = np.r_[e,np.std(td[idx])]
+            z = np.r_[z,np.abs(zi)]
+            tz = np.delete(tz, idx)
+            td = np.delete(td, idx)
+
+        ax.errorbar(z, d, yerr=e, fmt='.', label='P{}'.format(i+1))
+        #ax.plot(z,d,'.',label='P{}'.format(i+1))
         zz = np.r_[zz,z]
         dd = np.r_[dd,d]
 
@@ -230,22 +243,31 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     gidx = sd == sd
 
-    fit = np.poly1d(np.polyfit(sz[gidx],sd[gidx],order))
-    ax.plot(sz,fit(sz),lw=1.5)
+    mean = bn.move_mean(sd[gidx],order)
+    std = bn.move_std(sd[gidx],order)
+    
+    # mean = spnd.filters.gaussian_filter1d(mean,1)
+    # std = spnd.filters.gaussian_filter1d(std,1)
+
+    ax.plot(sz[gidx], mean)
+    ax.fill_between(sz[gidx], mean-std, mean+std, alpha=0.1)
+
+    #fit = np.poly1d(np.polyfit(sz[gidx],sd[gidx],order))
+    #ax.plot(sz,fit(sz),lw=1.5)
 
     if ylims is not None:
         ax.set_ylim(*ylims)
 
     return fig
 
-def simple_batch(output):
+def simple_batch(output, order=5):
 
     pp = PDF(output)
     
-    pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',ylims=[0,11]))
-    pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',ylims=[0,11]))
-    pp.savefig(simple_plot(col=66,label=r'$\tau_V$',ylims=[-1,6]))
-    pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',ylims=[0,3]))
+    pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',ylims=[0,11],order=order))
+    pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',ylims=[0,11],order=order))
+    pp.savefig(simple_plot(col=66,label=r'$\tau_V$',ylims=[-1,6],order=order))
+    pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',ylims=[0,3],order=order))
 
     pp.close()
     plt.close('all')
