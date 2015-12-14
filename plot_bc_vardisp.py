@@ -68,6 +68,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     hkidx = np.where((restwl > hklow) & (restwl < hkhigh))
     npix = restwl.size
 
+    TT_chi = np.zeros((numfibers, npix))
+
     for i in range(numfibers):
         
         flux = data[i,idx]*flux_factor
@@ -166,6 +168,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             fax.plot(pwave,
                      np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[pidx],
                      color='b',alpha=0.4)
+
+        TT_chi[i,:] = (flux - yfit)/err
 
         galfit = np.zeros(flux.size) + yfit
         galfit[ok] = flux[ok]
@@ -326,6 +330,9 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     pp.savefig(bwax.figure)
     plt.close(bwax.figure)
     pp.close()
+
+#    pyfits.PrimaryHDU(TT_chi).writeto(output.split('.pdf')[0]+'_tmpchi.fits')
+
     return 
 
 def parse_input(inputlist):
