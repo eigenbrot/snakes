@@ -1,4 +1,5 @@
 import sys
+import time
 import numpy as np
 import pyfits
 import scipy.ndimage as spnd
@@ -82,39 +83,89 @@ def plot_chi(chifile, coeffile, datafile,
 
     if plotblue:
         pidx = np.where(restwl < 4500.)
+        bidx = np.where((restwl > 5000.) & (restwl < 5330.))
+        bwave = restwl[bidx]
+        bxmin = bwave.min() - 20.
+        bxmax = bwave.max() + 20.
+        fbox = [0.1,0.5,0.56,0.4]
+        bbox = [0.67,0.5,0.28,0.4]
     else:
         pidx = np.where(restwl == restwl)
+        fbox = [0.1,0.5,0.85,0.4]
 
+    pwave = restwl[pidx]
+    xmin = pwave.min() - 20.
+    xmax = pwave.max() + 20.
+    
     fig = plt.figure(figsize=(11,8))
-    rmax = fig.add_subplot(211)
+    rmax = fig.add_axes(fbox)
     rmax.set_ylabel('<Chi> - Med(<Chi>)')
-    rmax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
+    rmax.set_xlim(xmin,xmax)
     rmax.set_xticklabels([])
     rmax.set_ylim(-5,5)
-    medax = fig.add_subplot(212)
+
+    medax = fig.add_axes([fbox[0],0.1,fbox[2],0.4])
     medax.set_xlabel('Wavelength [$\AA$]')
     medax.set_ylabel('Median smoothed Chi')
-    medax.set_xlim(restwl[pidx].min(),restwl[pidx].max())
+    medax.set_xlim(*rmax.get_xlim())
     medax.set_ylim(-5,5)
     
+    if plotblue:
+        brmax = fig.add_axes(bbox)
+        brmax.set_xticks([5000,5100,5200,5300])
+        brmax.set_xticklabels([])
+        brmax.set_yticklabels([])
+        brmax.set_xlim(bxmin,bxmax)
+        brmax.set_ylim(*rmax.get_ylim())
+        brmax.spines['left'].set_visible(False)
+        brmax.yaxis.tick_right()
+        
+        rmax.spines['right'].set_visible(False)
+        rmax.yaxis.tick_left()
+
+        bmedax = fig.add_axes([bbox[0],0.1,bbox[2],0.4])
+        bmedax.set_xticks([5000,5100,5200,5300])
+        bmedax.set_yticklabels([])
+        bmedax.set_xlim(bxmin,bxmax)
+        bmedax.set_ylim(*medax.get_ylim())
+        bmedax.spines['left'].set_visible(False)
+        bmedax.yaxis.tick_right()
+        
+        medax.spines['right'].set_visible(False)
+        medax.yaxis.tick_left()
+
+        medax.set_xlabel('')
+        medax.text(0.76, -0.3, 'Wavelength [$\AA$]', ha='center', va='center', transform=medax.transAxes)
+
     prms = medchi - mschi
     mrms = np.copy(prms)
     mrms[ok] = np.NAN
     prms[~ok] = np.NAN
 
-    rmax.plot(restwl[pidx], prms[pidx], 'k')
-    rmax.plot(restwl[pidx], mrms[pidx], 'c', lw=3)
+    rmax.plot(pwave, prms[pidx], 'k')
+    rmax.plot(pwave, mrms[pidx], 'c', lw=1)
 
+    if plotblue:
+        brmax.plot(bwave, prms[bidx], 'k')
+        brmax.plot(bwave, mrms[bidx], 'c', lw=1)
+        
     pmchi = np.copy(mchi)
     mmchi = np.copy(mchi)
     mmchi[ok] = np.NAN
     pmchi[~ok] = np.NAN
     
-    medax.plot(restwl[pidx],pmchi[pidx],'k')
-    medax.plot(restwl[pidx],mmchi[pidx],'c',lw=3)
-    medax.fill_between(restwl[pidx], (mchi - stdchi)[pidx],
+    medax.plot(pwave,pmchi[pidx],'k')
+    medax.plot(pwave,mmchi[pidx],'c',lw=3)
+    medax.fill_between(pwave, (mchi - stdchi)[pidx],
                        (mchi + stdchi)[pidx],
                        color='k', alpha=0.2, edgecolor=None)
+
+    if plotblue:
+        bmedax.plot(bwave,pmchi[bidx],'k')
+        bmedax.plot(bwave,mmchi[bidx],'c',lw=3)
+        bmedax.fill_between(bwave, (mchi - stdchi)[bidx],
+                           (mchi + stdchi)[bidx],
+                           color='k', alpha=0.2, edgecolor=None)        
 
     sk = np.array([6300.,        5890., 5683.8, 5577.,      5461., 5199.,      4983., 4827.32, 4665.69, 4420.23, 4358., 4165.68, 4047.0])
     sknam = ['[OI] (atm)', 'NaD', 'NaI',  'OI (atm)', 'HgI', 'NI (atm)', 'NaI', 'HgI',   'NaI',   'NaI',   'HgI', 'NaI',   'HgI']
@@ -125,10 +176,17 @@ def plot_chi(chifile, coeffile, datafile,
     absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
 
     
+    #######################
+    #######################
+    tlim1 = xmin + 20
+    tlim2 = xmax - 20
+    if plotblue:
+        btlim1 = bxmin + 20
+        btlim2 = bxmax - 20
 
     ypos = 1
+
     for s, sn in zip(sk/meanZ, sknam):
-        if s > 5500. and plotblue: continue
         tidx = np.where((restwl >= s - 10) & (restwl <= s + 10.))
         try:
             ypos = np.max(mchi[tidx]) + 3
@@ -136,15 +194,19 @@ def plot_chi(chifile, coeffile, datafile,
             pass
         if not np.isfinite(ypos):
             ypos = 9
-        rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
+        if s < tlim2 and s > tlim1:
+            rmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
         if plotblue:
-            rmax.axvline(s, color='k', ls=':', alpha=0.7)
+            if s < tlim2 and s > tlim1:
+                rmax.axvline(s, color='k', ls=':', alpha=0.7)
+            if s > btlim1 and s < btlim2:
+                brmax.text(s, ypos, sn, fontsize=8, ha='center', va='center')
+                brmax.axvline(s, color='k', ls=':', alpha=0.7)
         else:
             rmax.plot((s,s), (ypos - 0.5, ypos - 1), alpha=0.8, color='k')
 
     prevy = 99
     for a, an in zip(ab, absnam):
-        if a > 5500. and plotblue: continue
         tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
         try:
             ypos = np.min(mchi[tidx]) - 2
@@ -157,14 +219,18 @@ def plot_chi(chifile, coeffile, datafile,
         prevy = ypos
         if np.isnan(ypos) or ypos < rmax.get_ylim()[0]:
             ypos = rmax.get_ylim()[0] + 0.5
-        rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
+        if a > tlim1 and a < tlim2:
+            rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
         if plotblue:
-            rmax.axvline(a, color='r', ls=':', alpha=0.7)
+            if a > tlim1 and a < tlim2:
+                rmax.axvline(a, color='r', ls=':', alpha=0.7)
+            if a > btlim1 and a < btlim2:
+                rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
+                rmax.axvline(a, color='r', ls=':', alpha=0.7)
         else:
             rmax.plot((a,a), (ypos + 0.5, ypos + 1), color='r', alpha=0.8) 
 
     for e, en in zip(em, emnam):
-        if e > 5500. and plotblue: continue
         tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
         try:
             ypos = np.max(mchi[tidx]) + 3
@@ -172,13 +238,19 @@ def plot_chi(chifile, coeffile, datafile,
             pass
         if not np.isfinite(ypos):
             ypos = 9
-        rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
+        if e > tlim1 and e < tlim2:
+            rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
         if plotblue:
-            rmax.axvline(e, color='b', ls=':', alpha=0.7)
+            if e > tlim1 and e < tlim2:
+                rmax.axvline(e, color='b', ls=':', alpha=0.7)
+            if e > btlim1 and e < btlim2:
+                rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
+                rmax.axvline(e, color='b', ls=':', alpha=0.7)
         else:
             rmax.plot((e,e), (ypos - 0.5, ypos - 1), color='b', alpha=0.8)
 
-    fig.subplots_adjust(hspace=0.0001)
+
+    fig.suptitle(time.asctime())
 
     pp.savefig(fig)
     pp.close()
