@@ -89,14 +89,15 @@ def size_look(output, plotblue=False):
         fib5.append(plist[3])
         fib6.append(plist[4])
 
+    if plotblue:
+        outname = '{}_sizechi.blue.pdf'.format(output)
+    else:
+        outname = '{}_sizechi.pdf'.format(output)
+    pp = PDF(outname)
+
     for s in range(5):
 
-        if plotblue:
-            outname = '{}_size{}.blue.pdf'.format(output,s+2)
-        else:
-            outname = '{}_size{}.pdf'.format(output,s+2)
-        pp = PDF(outname)
-        print outname
+        print s+2
 
         chiarray = np.vstack(plist[s])
         medchi = np.median(chiarray, axis=0)
@@ -227,7 +228,8 @@ def size_look(output, plotblue=False):
         fig.subplots_adjust(hspace=0.0001)
 
         pp.savefig(fig)
-        pp.close()
         plt.close(fig)
 
+    pp.close()
     return
+
