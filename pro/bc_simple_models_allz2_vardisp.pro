@@ -90,9 +90,9 @@ for ff = 0, 4 do begin
             sigma_pix = vdisp_add / bc03_pix
             spec = mconv(tspec,sigma_pix)
          endif else begin
-            dispdiff = (constdisp[ff]/2.355)^2 - bc03_vdisp^2
+            dispdiff = (constdisp[ff])^2 - bc03_vdisp^2
             if dispdiff gt 0 then begin
-               vdisp_add = sqrt((constdisp[ff]/2.355)^2 - bc03_vdisp^2)
+               vdisp_add = sqrt((constdisp[ff])^2 - bc03_vdisp^2)
                sigma_pix = vdisp_add / bc03_pix
                spec = gconv(tspec, sigma_pix)
             endif else begin
