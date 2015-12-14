@@ -139,16 +139,23 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         
         if plotblue:
             pidx = np.where(restwl < 4500.)
+            bidx = np.where((restwl > 5000.) & (restwl < 5330.))
+            bwave = restwl[bidx]
+            bxmin = bwave.min() - 20.
+            bxmax = bwave.max() + 20.
+            fbox = [0.1,0.25,0.56,0.69]
+            bbox = [0.67,0.25,0.28,0.69]
         else:
             pidx = np.where(restwl == restwl)
-            
+            fbox = [0.1,0.25,0.85,0.69]
+
         pwave = restwl[pidx]
 
-        xmin = pwave.min() * 0.98
-        xmax = pwave.max() * 1.02
+        xmin = pwave.min() - 20.
+        xmax = pwave.max() + 20.
         
         fig = plt.figure(figsize=(11,8))
-        fax = fig.add_axes([0.1,0.25,0.85,0.69])
+        fax = fig.add_axes(fbox)
         fax.set_xticklabels([])
         fax.set_ylabel('Log Flux + 17 [erg/s/cm$^2$/$\AA$]')
         fax.set_xlim(xmin,xmax)
@@ -157,6 +164,19 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fax.axvline(x=5400, color='k', ls=':', alpha=0.3)
         fax.axvline(x=hklow, color='k', ls=':', alpha=0.3)
         fax.axvline(x=hkhigh, color='k', ls=':', alpha=0.3)
+
+        if plotblue:
+            bax = fig.add_axes(bbox)
+            bax.set_xticks([5000,5100,5200,5300])
+            bax.set_xticklabels([])
+            bax.set_yticklabels([])
+            bax.set_xlim(bxmin,bxmax)
+            bax.set_ylim(*fax.get_ylim())
+            bax.spines['left'].set_visible(False)
+            bax.yaxis.tick_right()
+
+            fax.spines['right'].set_visible(False)
+            fax.yaxis.tick_left()
         
         yfit *= 0.0
         for j in range(coefs['LIGHT_FRAC'].size):
@@ -168,6 +188,11 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             fax.plot(pwave,
                      np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[pidx],
                      color='b',alpha=0.4)
+            if plotblue:
+                bax.plot(bwave,
+                         np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[bidx],
+                         color='b',alpha=0.4)
+
 
         TT_chi[i,:] = (flux - yfit)/err
 
@@ -193,29 +218,53 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                                       err,smoothkern*2))[pidx],
                          color='k', alpha=0.2)
 
+        if plotblue:
+            bax.plot(bwave,np.log10(plotgal)[bidx],color='k')
+            bax.plot(bwave,np.log10(masked)[bidx],color='c',lw=1)
+            bax.plot(bwave,np.log10(plotfit)[bidx],color='r')
+
+            bax.fill_between(bwave,
+                             np.log10(plotgal - 
+                                      spnd.filters.gaussian_filter1d(
+                                          err,smoothkern*2))[bidx],
+                             np.log10(plotgal +
+                                      spnd.filters.gaussian_filter1d(
+                                          err,smoothkern*2))[bidx],
+                             color='k', alpha=0.2)
+
         ###################################
         ###################################
         Z = coefs['VSYS']/3e5 + 1
+        
+        tlim1 = xmin + 20
+        tlim2 = xmax - 20
+        if plotblue:
+            btlim1 = bxmin + 20
+            btlim2 = bxmax - 20
 
         ypos = 1
         for s, sn in zip(sk, sknam):
-            if s > 5500. and plotblue: continue
             tidx = np.where((restwl >= s - 10) & (restwl <= s + 10.))
             try:
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
             except ValueError:
                 pass
-            fax.text(s, ypos, sn, fontsize=8, 
+            if s < tlim2 and s > tlim1:
+                fax.text(s, ypos, sn, fontsize=8, 
                      ha='center', va='center')
             if plotblue:
-                fax.axvline(s, color='k', ls=':', alpha=0.7)
+                if s < tlim2 and s > tlim1:
+                    fax.axvline(s, color='k', ls=':', alpha=0.7)
+                if s < btlim2 and s > btlim1:
+                    bax.text(s, ypos, sn, fontsize=8, 
+                             ha='center', va='center')
+                    bax.axvline(s, color='k', ls=':', alpha=0.7)
             else:
                 fax.plot((s,s), (ypos-0.04,ypos-0.1), color='k', alpha=0.8)
 
             
         prevy = 99
         for a, an in zip(ab*Z, absnam):
-            if a > 5500. and plotblue: continue
             tidx = np.where((restwl >= a - 10) & (restwl <= a + 10.))
             try:
                 ypos = np.log10(np.nanmin(np.r_[flux[tidx],yfit[tidx]])) - 0.1
@@ -228,25 +277,36 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             prevy = ypos
             if np.isnan(ypos) or ypos < -0.4:
                 ypos = -0.4
-            fax.text(a, ypos, an, color='r', fontsize=8, 
-                     ha='center', va='center')
+            if a > tlim1 and a < tlim2:
+                fax.text(a, ypos, an, color='r', fontsize=8, 
+                         ha='center', va='center')
             if plotblue:
-                fax.axvline(a, color='r', ls=':', alpha=0.7)
+                if a > tlim1 and a < tlim2:
+                    fax.axvline(a, color='r', ls=':', alpha=0.7)
+                if a > btlim1 and a < btlim2:
+                    bax.text(a, ypos, an, color='r', fontsize=8, 
+                             ha='center', va='center')
+                    bax.axvline(a, color='r', ls=':', alpha=0.7)                
             else:
                 fax.plot((a,a), (ypos+0.04,ypos+0.1), color='r', alpha=0.8)
 
         for e, en in zip(em*Z, emnam):
-            if e > 5500. and plotblue: continue
             tidx = np.where((restwl >= e - 10) & (restwl <= e + 10.))
             try:
                 ypos = np.log10(np.nanmax(np.r_[flux[tidx],yfit[tidx]])) + 0.1
             except ValueError:
                 pass
             if en == '[OIII]': ypos += 0.2
-            fax.text(e, ypos, en, color='b', fontsize=8, 
-                     ha='center', va='center')
+            if e > tlim1 and e < tlim2:
+                fax.text(e, ypos, en, color='b', fontsize=8, 
+                         ha='center', va='center')
             if plotblue:
-                fax.axvline(e, color='b', ls=':', alpha=0.7)
+                if e > tlim1 and e < tlim2:
+                    fax.axvline(e, color='b', ls=':', alpha=0.7)
+                if e > btlim1 and e < btlim2:
+                    bax.text(e, ypos, en, color='b', fontsize=8, 
+                             ha='center', va='center')
+                    bax.axvline(e, color='b', ls=':', alpha=0.7)
             else:
                 fax.plot((e,e), (ypos-0.04,ypos-0.1), color='b', alpha=0.8)
 
@@ -256,13 +316,30 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         chivec = (flux - yfit)/err
         plotchi = spnd.filters.gaussian_filter1d(chivec,smoothkern)
-        eax = fig.add_axes([0.1,0.1,0.85,0.15])
+        eax = fig.add_axes([0.1,0.1,fbox[2],0.15])
         eax.set_xlabel('Wavelength [$\AA$]')
         eax.set_ylabel('Residuals/error')
         eax.set_xlim(fax.get_xlim())
         eax.set_ylim(-6,6)
         eax.set_yticks([-5,0,5])
         eax.plot(pwave, plotchi[pidx], color='k')
+
+        if plotblue:
+            beax = fig.add_axes([bbox[0],0.1,bbox[2],0.15])
+            beax.set_yticklabels([])
+            beax.set_xlim(bax.get_xlim())
+            beax.set_ylim(eax.get_ylim())
+            beax.set_yticks([-5,0,5])
+            beax.set_xticks([5000,5100,5200,5300])
+            beax.plot(bwave, plotchi[bidx], color='k')
+            beax.spines['left'].set_visible(False)
+            beax.yaxis.tick_right()
+            eax.spines['right'].set_visible(False)
+            eax.yaxis.tick_left()
+
+            eax.set_xlabel('')
+            eax.text(0.76, -0.3, 'Wavelength [$\AA$]', 
+                     ha='center', va='center', transform=eax.transAxes)
 
         ###########################################
         ###########################################
