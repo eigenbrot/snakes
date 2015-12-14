@@ -156,11 +156,13 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fax.axvline(x=hklow, color='k', ls=':', alpha=0.3)
         fax.axvline(x=hkhigh, color='k', ls=':', alpha=0.3)
         
+        yfit *= 0.0
         for j in range(coefs['LIGHT_FRAC'].size):
             xred = restwl * (coefs['VSYS']/3e5 + 1)
             yi = coefs['LIGHT_FRAC'][j] * custom_lib[j,:] *\
                  np.exp(-1 * coefs['TAUV']*(restwl/5500.)**(-0.7))
             yi = np.interp(restwl, xred, yi)
+            yfit += yi
             fax.plot(pwave,
                      np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[pidx],
                      color='b',alpha=0.4)
