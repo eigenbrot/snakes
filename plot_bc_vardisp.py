@@ -12,7 +12,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             plotblue = False):
 
     flux_factor = 1e17
-    smoothkern = 2
+    smoothkern = 0
     
     dhdu = pyfits.open(datafile)[0]
     data = dhdu.data
@@ -181,7 +181,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         plotfit = spnd.filters.gaussian_filter1d(yfit,smoothkern)
 
         fax.plot(pwave,np.log10(plotgal)[pidx],color='k')
-        fax.plot(pwave,np.log10(masked)[pidx],color='c',lw=4)
+        fax.plot(pwave,np.log10(masked)[pidx],color='c',lw=1)
         fax.plot(pwave,np.log10(plotfit)[pidx],color='r')
 
         fax.fill_between(pwave,
@@ -254,10 +254,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         ############################################
         ############################################
 
-        chivec = (galfit - yfit)/err
-        chivec[~ok] = np.nanmean(chivec)
+        chivec = (flux - yfit)/err
         plotchi = spnd.filters.gaussian_filter1d(chivec,smoothkern)
-        plotchi[~ok] = np.NAN
         eax = fig.add_axes([0.1,0.1,0.85,0.15])
         eax.set_xlabel('Wavelength [$\AA$]')
         eax.set_ylabel('Residuals/error')
