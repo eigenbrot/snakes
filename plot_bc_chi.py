@@ -173,7 +173,7 @@ def plot_chi(chifile, coeffile, datafile,
     emnam = [r'H$\alpha$', 'S2']
 
     ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
-    absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
+    absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'MgI',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
 
     
     #######################
@@ -225,8 +225,8 @@ def plot_chi(chifile, coeffile, datafile,
             if a > tlim1 and a < tlim2:
                 rmax.axvline(a, color='r', ls=':', alpha=0.7)
             if a > btlim1 and a < btlim2:
-                rmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
-                rmax.axvline(a, color='r', ls=':', alpha=0.7)
+                brmax.text(a, ypos, an, color='r', fontsize=8, ha='center', va='center')
+                brmax.axvline(a, color='r', ls=':', alpha=0.7)
         else:
             rmax.plot((a,a), (ypos + 0.5, ypos + 1), color='r', alpha=0.8) 
 
@@ -244,8 +244,8 @@ def plot_chi(chifile, coeffile, datafile,
             if e > tlim1 and e < tlim2:
                 rmax.axvline(e, color='b', ls=':', alpha=0.7)
             if e > btlim1 and e < btlim2:
-                rmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
-                rmax.axvline(e, color='b', ls=':', alpha=0.7)
+                brmax.text(e, ypos, en, color='b', fontsize=8, ha='center', va='center')
+                brmax.axvline(e, color='b', ls=':', alpha=0.7)
         else:
             rmax.plot((e,e), (ypos - 0.5, ypos - 1), color='b', alpha=0.8)
 
