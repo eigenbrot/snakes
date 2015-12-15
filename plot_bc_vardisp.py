@@ -316,6 +316,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         chivec = (flux - yfit)/err
         plotchi = spnd.filters.gaussian_filter1d(chivec,smoothkern)
+        maskedchi = plotchi * 1.0
+        maskedchi[ok] = np.NAN
         eax = fig.add_axes([0.1,0.1,fbox[2],0.15])
         eax.set_xlabel('Wavelength [$\AA$]')
         eax.set_ylabel('Residuals/error')
@@ -323,6 +325,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         eax.set_ylim(-6,6)
         eax.set_yticks([-5,0,5])
         eax.plot(pwave, plotchi[pidx], color='k')
+        eax.plot(pwave, maskedchi[pidx], color='c', lw=1)
 
         if plotblue:
             beax = fig.add_axes([bbox[0],0.1,bbox[2],0.15])
@@ -332,6 +335,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             beax.set_yticks([-5,0,5])
             beax.set_xticks([5000,5100,5200,5300])
             beax.plot(bwave, plotchi[bidx], color='k')
+            beax.plot(bwave, maskedchi[bidx], color='c', lw=1)
             beax.spines['left'].set_visible(False)
             beax.yaxis.tick_right()
             eax.spines['right'].set_visible(False)
@@ -406,7 +410,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     plt.close(bwax.figure)
     pp.close()
 
-#    pyfits.PrimaryHDU(TT_chi).writeto(output.split('.pdf')[0]+'_tmpchi.fits')
+    #pyfits.PrimaryHDU(TT_chi).writeto(output.split('.pdf')[0]+'_tmpchi.fits')
 
     return 
 
