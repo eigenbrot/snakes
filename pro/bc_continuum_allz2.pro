@@ -60,7 +60,7 @@ if n_elements(savestep) eq 0 then savestep = 0
 if n_elements(velstart) eq 0 then velstart = 10.
 
 ; width of emission line masks in km/s
-if not keyword_set(emmaskw) then emmaskw = 1500.0
+if not keyword_set(emmaskw) then emmaskw = 1000.0
 
 dims = size(model.flux, /dimensions)
 npix = n_elements(restwl)
@@ -134,7 +134,7 @@ sk2 = [6300., 5890., 5577.]
 ;; emnam = ['[OII]', '[OIII]', '[OIII]', 'Ha',   'S2']
 
 em = [6563.8, 4861.,    4959., 5006.8, 6716.0, 6583.41, 6548.04]
-emnam = ['Ha', 'Hb', '[OIII]','[OIII]','S2', 'NII', 'NII']
+emnam = ['Ha', 'Hb', '[OIII]','[OIII]',   'S2',   'NII',  'NII']
 
 ;; em = [6563.8, 6716.0, 6583.41, 6548.04]
 ;; emnam = ['Ha', 'S2', 'NII', 'NII']
@@ -144,6 +144,9 @@ absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
 ;sk = [5569., 5882.6]
 HPS = 5914.
 HPS_wid = 230.
+
+;shift emission to velocity guess. The mask width allows for slop
+em *= (velstart/3e5 + 1)
 
 dz = emmaskw / 3e5 ; clipping interval
 dzsk = 1500. / 3e5
@@ -210,6 +213,7 @@ print, 'CONTINUUM_FIT ERRMSG: ', errmsg
 ; structure containing fit coefs
 coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          tauv: fitcoefs[1], tauv_err: perror[1], $
+         velstart: velstart, $
          light_frac: fitcoefs[2:*]*light_factor, $
          light_frac_err: perror[2:*]*light_factor, $
          model_age: model.age[vdidx,*], chisq: 0.0D, $

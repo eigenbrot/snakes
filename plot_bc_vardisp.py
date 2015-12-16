@@ -74,6 +74,8 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         
         flux = data[i,idx]*flux_factor
         err = error[i,idx]*flux_factor
+        yfit = yfits[i,:] * flux_factor
+        coefs = coef_arr[i]
 
         if location is not None:
             vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
@@ -109,7 +111,12 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
-        dz = 1500. / 3e5
+        try:
+            em2 *= (coefs['VELSTART']/3e5 + 1.)
+        except KeyError:
+            pass
+        
+        dz = 1000. / 3e5
         dzsk = 1500. / 3e5
         
         for ee in em2:
@@ -129,10 +136,6 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
             custom_lib[ii,:] = np.interp(restwl, 
                                          m['WAVE'], m['FLUX'][ii,:,vdidx])
         custom_lib[:,outside_model] = 0
-
-        yfit = yfits[i,:] * flux_factor
-        coefs = coef_arr[i]
-
     
         ############################
         ############################
@@ -422,7 +425,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
     plt.close(bwax.figure)
     pp.close()
 
-    #pyfits.PrimaryHDU(TT_chi).writeto(output.split('.pdf')[0]+'_tmpchi.fits')
+    #pyfits.PrimaryHDU(TT_chi).writeto(output.split('.pdf')[0]+'_tmpchi.fits', clobber=True)
 
     return 
 
