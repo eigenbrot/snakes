@@ -192,7 +192,15 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
                 bax.plot(bwave,
                          np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[bidx],
                          color='b',alpha=0.4)
-
+                textloc = np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[bidx][-1]
+                if np.isfinite(textloc):
+                    bax.text(bwave[-1] + 30, textloc, j+1, color='b',
+                             va='center', ha='center', fontsize=8)
+            else:
+                textloc = np.log10(spnd.filters.gaussian_filter1d(yi,smoothkern))[pidx][-1]
+                if np.isfinite(textloc):
+                    fax.text(pwave[-1] + 50, textloc, j+1, color='b',
+                             va='center', ha='center', fontsize=8)
 
         TT_chi[i,:] = (flux - yfit)/err
 
@@ -389,7 +397,11 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         wax.set_xticklabels(m['AGE'][:numAge,0]/1e9, rotation=90, fontsize=7)
         wax.set_yticks(range(numZ))
         wax.set_yticklabels(m['Z'][::numAge,0],fontsize=7)
-
+        
+        for l in range(numZ):
+            wax.text(wax.get_xlim()[1]+1, l, numAge*(l + 1), va='center',
+                     ha='center', fontsize=7, color='b')
+        
         big_w += wdata/np.max(wdata)
 
         fig.suptitle(time.asctime())
