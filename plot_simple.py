@@ -196,6 +196,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
     ax = None
     if exclude is None:
         exclude = [[],[],[],[],[],[]]
+    figlist = []
     for i in range(6):
         print i
         try:
@@ -260,7 +261,30 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
                       sky=False,
                       minval=minval,
                       maxval=maxval)
-        
+
+        #Do it again, for the single-pointing figure
+        sax = GPP.plot(data,
+                       ax=None,
+                       binheader=binhead,
+                       plotbins=plotbins,
+                       figsize=(8,4),
+                       fitsfile=\
+                       '/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits',
+                       wcsax=False,
+                       imrot=67,#64.213,
+                       pa=295.787,
+                       center = centers[i],
+                       clabel=label,
+                       cmap=cmap,
+                       labelfibers=labelfibers,
+                       exclude=exclude[i],
+                       sky=False,
+                       minval=minval,
+                       maxval=maxval)
+        sax.text(0.5, 0.8, 'P{}'.format(i+1), color='r', fontsize=20,
+                 transform=sax.transAxes, ha='center', va='center')
+        figlist.append(sax.figure)
+
     ax.set_xlim(160,755)
     ax.set_ylim(350,600)
     header = pyfits.open('/d/monk/eigenbrot/WIYN/14B-0456/NGC_891.fits')[0].header
@@ -277,8 +301,10 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
     ax.set_xlabel('arcsec')
     ax.set_ylabel('arcsec')
     pp.savefig(ax.figure)
+    for f in figlist:
+        pp.savefig(f)
     pp.close()
-    plt.close(ax.figure)
+    plt.close('all')
     return ax
 
 def all_heights(output,inputprefix='NGC_891',err=True,binned=False,reg=True):
