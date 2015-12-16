@@ -74,9 +74,7 @@ parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [-10.,30.]
-;parinfo[0].step = 0.1
-;parinfo[0].relstep = 1.5
+parinfo[0].limits = [1.5,10.]
 parinfo[0].fixed = 0
 parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]
@@ -86,13 +84,13 @@ parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
 ; default: don't fit
-parinfo[2:*].value = 0
-parinfo[2:*].fixed = 1
+;; parinfo[2:*].value = 0
+;; parinfo[2:*].fixed = 1
 
-; Only fit solar metallicity
-ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
-parinfo[ids+2].fixed = 0
-parinfo[ids+2].value = 1.D
+;; ; Only fit solar metallicity
+;; ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
+;; parinfo[ids+2].fixed = 0
+;; parinfo[ids+2].value = 1.D
 
 ;; ;
 ;; ; t > 8 Gyr: Z_sol = 0.02 - 0.4
