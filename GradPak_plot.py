@@ -26,7 +26,7 @@ import pyfits
 import scipy.interpolate as spi
 import scipy.ndimage.interpolation as spndi
 from mpl_toolkits.axes_grid1 import ImageGrid
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Polygon
 from matplotlib.collections import PatchCollection
 
 plt.ioff() #Fuck you, new versions of pyplot
@@ -190,6 +190,51 @@ def fill_fibers_with_bins(header, values):
             newvalues[int(f)-1] = values[i]
 
     return newvalues
+
+def get_bin_boxes(header, patches, pval):
+    
+    boxlist = []
+    bval = np.array([])
+    for i in range(109):
+        try:
+            fibers = header['BIN{:03}F'.format(i+1)]
+        except KeyError:
+            break
+
+        fiblist = fibers.split(' ')
+        if len(fiblist) == 1: continue
+
+        idx1 = np.where(patches[:,0] == int(fiblist[0]))[0][0]
+        
+        # A special case becase 108 and 105 are out of order.
+        # 105 is on the edge and should therefore always be x2, y2
+        if '105' in fiblist:
+            idx2 = np.where(patches[:,0] == 105)[0][0]
+        else:
+            idx2 = np.where(patches[:,0] == int(fiblist[-1]))[0][0]
+
+        bval = np.r_[bval, pval[idx1]]
+
+        x1, y1 = patches[idx1,1].center
+        x2, y2 = patches[idx2,1].center
+        r = patches[idx1,1].get_radius()
+        theta = np.arctan((y2 - y1)/(x2 - x1))
+        ex = np.cos(theta)*r
+        ey = np.sin(theta)*r
+        dx = np.sin(theta)*r
+        dy = np.cos(theta)*r
+
+        ex = 0
+        ey = 0
+
+        p1 = [x1 - ex + dx, y1 - ey - dy]
+        p2 = [x2 + ex + dx, y2 + ey - dy]
+        p3 = [x2 + ex - dx, y2 + ey + dy]
+        p4 = [x1 - ex - dx, y1 - ey + dy]
+        
+        boxlist.append(Polygon(np.array([p1,p2,p3,p4]), closed=True))
+    
+    return boxlist, bval
 
 def transform_patches(patches, pa=0, center=[0,0], reffiber=105, scale=1.,
                       refpatches=None):
@@ -533,12 +578,23 @@ def plot(values, binheader = None, plotbins = False,
     collection = PatchCollection(patches[:,1],
                                  cmap=plt.get_cmap(cmap),
                                  norm=matplotlib.colors.Normalize(
-                                     vmin=minval,vmax=maxval))
+                                     vmin=minval,vmax=maxval),
+                                 edgecolor = 'none')
     collection.set_array(pval)
     ax.add_collection(collection)
 
     cbar = ax.cax.colorbar(collection)
     cbar.set_label_text(clabel)
+
+    if not plotbins:
+        boxes, bval = get_bin_boxes(binheader, patches, pval)
+        boxColl = PatchCollection(boxes, 
+                                  cmap=plt.get_cmap(cmap),
+                                  norm=matplotlib.colors.Normalize(
+                                      vmin=minval,vmax=maxval),
+                                  edgecolor = 'none')
+        boxColl.set_array(bval)
+        ax.add_collection(boxColl)
 
     return ax
 
