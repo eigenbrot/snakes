@@ -419,7 +419,7 @@ def prep_patches(values,
         patches = get_binned_patches(binheader)
         refpatches = GradPak_patches()
 
-    skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108] 
+    skyidx = [0,1,17,18,19,30,31,42,43,52,53,61,62,70,78,86,87,94,101,108]
     if hdu:
         scale = 2./((np.abs(hdu.header['CDELT1']) + \
                      np.abs(hdu.header['CDELT2']))*
@@ -557,8 +557,8 @@ def plot(values, binheader = None, plotbins = False,
                                             sky = sky, exclude = exclude)
 
     if hdu is not None:
-        xdelt = 2./(60. * hdu.header['CDELT1'])
-        ydelt = 2./(60. * hdu.header['CDELT2'])
+        xdelt = 1.5/(60. * hdu.header['CDELT1'])
+        ydelt = 1.5/(60. * hdu.header['CDELT2'])
         ax.set_xlim(refcenter[0] + xdelt, refcenter[0] - xdelt)
         ax.set_ylim(refcenter[1] - ydelt, refcenter[1] + ydelt)
     else:
