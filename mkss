@@ -5,14 +5,14 @@ if [ $# -lt 1 ]; then
     exit
 fi
 
-FMIN="3800."
-FMAX="6800."
+FMIN="3850."
+FMAX="6650."
 LMIN="5450."
 LMAX="5550."
 B=0
 V="528."
-PYPLOT="~/snakes/plot_bc.py"
-MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits"
+PYPLOT="~/snakes/plot_bc_vardisp.py"
+MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits"
 
 while [[ $# > 1 ]]
 do
@@ -42,9 +42,9 @@ do
 	    shift
 	    ;;
 	-d)
-	    echo "Plotting with vardisp"
-	    PYPLOT="~/snakes/plot_bc_vardisp.py"
-	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_1212.fits"
+	    echo "Plotting withOUT vardisp"
+	    PYPLOT="~/snakes/plot_bc.py"
+	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits"
 	    ;;
 
 	-m)
