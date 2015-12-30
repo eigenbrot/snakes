@@ -3,7 +3,7 @@
 PRE=""
 
 if [ $# -eq 1 ]; then
-    PRE=$1
+    PRE="$1_"
 fi
 
 for i in `seq 1 6`; do
@@ -12,8 +12,8 @@ for i in `seq 1 6`; do
 	continue
     fi
     
-    echo "Starting screen ${PRE}_P$i"
-    screen -S ${PRE}_P$i -d -m ./P$i.sh
+    echo "Starting screen ${PRE}P$i"
+    screen -S ${PRE}P$i -d -m ./P$i.sh
 
 done
 exit
