@@ -57,7 +57,7 @@ light_factor = 100.
 vel_factor = 100.
 
 if n_elements(savestep) eq 0 then savestep = 0
-if n_elements(velstart) eq 0 then velstart = 10.
+if n_elements(velstart) eq 0 then velstart = 528.
 
 ; width of emission line masks in km/s
 if not keyword_set(emmaskw) then emmaskw = 1000.0
@@ -74,7 +74,7 @@ parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [1.5,10.]
+parinfo[0].limits = [(velstart - 100.)/vel_factor, (velstart + 100.)/vel_factor]
 parinfo[0].fixed = 0
 parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]

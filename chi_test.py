@@ -69,7 +69,7 @@ def size_look(output, plotblue=False):
     intwave = None
 
     for p in range(6):
-        
+
         base = 'NGC_891_P{}_bin30_allz2'.format(p+1)
         chifile = '{}.chi.fits'.format(base)
         coeffile = '{}.coef.fits'.format(base)
