@@ -74,7 +74,7 @@ parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [(velstart - 100.)/vel_factor, (velstart + 100.)/vel_factor]
+parinfo[0].limits = [(velstart - 200.)/vel_factor, (velstart + 200.)/vel_factor]
 parinfo[0].fixed = 0
 parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]
