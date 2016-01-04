@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
-def plot_bc(coeffile, fitfile, datafile, errorfile, model,
-            output=None, location=None, wavemin=3800., wavemax=6800.,
-            plotblue = False):
+def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
+            location=None, xcorV=None, wavemin=3800., wavemax=6800., 
+            plotblue=False):
 
     flux_factor = 1e17
     smoothkern = 0
@@ -55,6 +55,9 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
     pp = PDF(output)
 
+    if xcorV is not None:
+        xcorVd = np.loadtxt(xcorV,usecols=(1,),unpack=True)
+
     coef_arr = pyfits.open(coeffile)[1].data
     yfits = pyfits.open(fitfile)[0].data
 
@@ -77,6 +80,11 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         yfit = yfits[i,:] * flux_factor
         coefs = coef_arr[i]
 
+        if xcorV is None:
+            VSYS = coefs['VSYS']
+        else:
+            VSYS = xcorVd[i]
+        
         if location is not None:
             vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
             plotlabel = 'Aperture {:n}, r={:6.2f}, z={:5.2f}'.\
@@ -183,7 +191,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         
         yfit *= 0.0
         for j in range(coefs['LIGHT_FRAC'].size):
-            xred = restwl * (coefs['VSYS']/3e5 + 1)
+            xred = restwl * (VSYS/3e5 + 1)
             yi = coefs['LIGHT_FRAC'][j] * custom_lib[j,:] *\
                  np.exp(-1 * coefs['TAUV']*(restwl/5500.)**(-0.7))
             yi = np.interp(restwl, xred, yi)
@@ -245,7 +253,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
 
         ###################################
         ###################################
-        Z = coefs['VSYS']/3e5 + 1
+        Z = VSYS/3e5 + 1
         
         tlim1 = xmin + 20
         tlim2 = xmax - 20
@@ -364,7 +372,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model,
         fig.text(0.15, 0.92, plotlabel, fontsize=fs)
 
         fig.text(0.15, 0.89, 'SNR = {:8.2f}'.format(coefs['SNR']), fontsize=fs)
-        fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(coefs['VSYS']), 
+        fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(VSYS), 
                  fontsize=fs)
         fig.text(0.15, 0.85, "V_disp = {}'' fiber".format(vdidx+2),
                  fontsize=fs)
@@ -454,6 +462,10 @@ def parse_input(inputlist):
             kwar['wavemin'] = inputlist[i+1]
             kwar['wavemax'] = inputlist[i+2]
             i += 2
+            
+        if inputlist[i] == '-x':
+            kwar['xcorV'] = inputlist[i+1]
+            i += 1
 
         if inputlist[i] == '-b':
             kwar['plotblue'] = True

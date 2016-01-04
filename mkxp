@@ -1,0 +1,53 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+    echo "Need pointing number (1 - 6)"
+    exit
+fi
+
+B=0
+PYPLOT="~/snakes/plot_bc_vardisp.py"
+MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits"
+XCORNAM="NGC"
+
+while [ $# -gt 1 ]
+do
+    key=$1
+    case $key in
+	-b)
+	    echo "Setting B"
+	    B=1
+	    ;;
+
+	-m)
+	    MODNAM=$2
+	    echo "Using model ${MODNAM}"
+	    shift
+	    ;;
+	-x)
+	    XCORNAM=$2
+	    echo "Using xcor prefix ${XCORNAM}"
+	    shift
+	    ;;
+	*)
+
+	    ;;
+    esac
+    shift
+done
+P=$1
+
+plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -x ${XCORNAM}_P${P}_V.dat -o NGC_891_P${P}_bin30_allz2.fit.xcor.pdf -n"
+
+scrfile="P${P}_xp.sh"
+
+echo '#!/bin/bash' > $scrfile
+echo $plotcmd >> $scrfile
+
+if [ $B -eq 1 ]; then
+    sed -n -e '$ s/xcor/blue\.xcor/' -e '$ s/-n/-n -b/p' < $scrfile >> $scrfile
+fi
+
+chmod +x $scrfile
+
+exit
