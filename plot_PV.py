@@ -17,7 +17,7 @@ def plot_PV(prefix='',
     vv = np.array([])
 
     for i in range(6):
-        
+
         dat = glob('{}*P{}*allz2.dat'.format(prefix,i+1))[0]
         print dat
         loc = glob('{}*P{}*locations.dat'.format(prefix,i+1))[0]
@@ -45,7 +45,7 @@ def plot_PV(prefix='',
     im = imread(swatfig)
     ax.axvline(0,ls=':',alpha=0.7)
     ax.axhline(528,ls=':',alpha=0.7)
-    ax.plot(rr/60.,vv,'.',zorder=1)
+    s = ax.scatter(rr/60.,vv,c=zz,cmap='CMRmap',edgecolors='none',s=15,zorder=1)
     ymin = 215
     ymax = 860
     xmin = -8.33
@@ -53,6 +53,8 @@ def plot_PV(prefix='',
     ax.imshow(im,zorder=0, extent=[xmin,xmax,ymin,ymax], aspect='auto')
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(ymin,ymax)
+    cb = fig.colorbar(s)
+    cb.set_label('Height [kpc]')
     kax = ax.twiny()
     kax.set_xlim(ax.get_xlim()*np.array([2.91,2.91]))
     kax.set_xlabel('Radius [kpc]')

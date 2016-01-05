@@ -74,7 +74,7 @@ parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
 parinfo[0].limited = [1,1]
-parinfo[0].limits = [(velstart - 200.)/vel_factor, (velstart + 200.)/vel_factor]
+parinfo[0].limits = [(velstart - 100.)/vel_factor, (velstart + 100.)/vel_factor]
 parinfo[0].fixed = 0
 parinfo[0].value = velstart/vel_factor
 parinfo[1].limited = [1,1]
@@ -84,8 +84,13 @@ parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
 ; default: don't fit
-;; parinfo[2:*].value = 0
-;; parinfo[2:*].fixed = 1
+parinfo[2:*].value = 0
+parinfo[2:*].fixed = 1
+
+;Let's use only the middle range of metallicity
+ids = where(model.Z[0,*] gt 0.1 and model.Z[0,*] lt 1.1)
+parinfo[ids+2].fixed = 0
+parinfo[ids+2].value = 1
 
 ;; ; Only fit solar metallicity
 ;; ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
