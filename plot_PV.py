@@ -8,12 +8,13 @@ from scipy.misc import imread
 plt.ioff()
 
 def plot_PV(prefix='',
-            output='Swat_comp.png', col=65):
+            output='Swat_comp.png', col=65,
+            colorcol=None, colorlabel='Height [kpc]'):
 
     swatfig = '/d/monk/eigenbrot/WIYN/14B-0456/anal/Swat.png'
 
     rr = np.array([])
-    zz = np.array([])
+    cc = np.array([])
     vv = np.array([])
 
     for i in range(6):
@@ -28,10 +29,13 @@ def plot_PV(prefix='',
             loc = loc.split('/')[1]
         except IndexError:
             pass
-        r, z = np.loadtxt(loc,usecols=(2,5),unpack=True)
+        r, c = np.loadtxt(loc,usecols=(2,5),unpack=True)
         
+        if colorcol is not None:
+            c = np.loadtxt(dat,usecols=(colorcol,),unpack=True)
+
         rr = np.r_[rr,r]
-        zz = np.r_[zz,z]
+        cc = np.r_[cc,c]
         vv = np.r_[vv,v]
 
     fig = plt.figure()
@@ -45,7 +49,7 @@ def plot_PV(prefix='',
     im = imread(swatfig)
     ax.axvline(0,ls=':',alpha=0.7)
     ax.axhline(528,ls=':',alpha=0.7)
-    s = ax.scatter(rr/60.,vv,c=zz,cmap='CMRmap',edgecolors='none',s=15,zorder=1)
+    s = ax.scatter(rr/60.,vv,c=cc,cmap='CMRmap',edgecolors='none',s=15,zorder=1)
     ymin = 215
     ymax = 860
     xmin = -8.33
@@ -54,7 +58,7 @@ def plot_PV(prefix='',
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(ymin,ymax)
     cb = fig.colorbar(s)
-    cb.set_label('Height [kpc]')
+    cb.set_label(colorlabel)
     kax = ax.twiny()
     kax.set_xlim(ax.get_xlim()*np.array([2.91,2.91]))
     kax.set_xlabel('Radius [kpc]')
