@@ -9,10 +9,9 @@ plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
             location=None, xcorV=None, wavemin=3800., wavemax=6800., 
-            plotblue=False):
+            plotblue=False,smoothkern=0):
 
     flux_factor = 1e17
-    smoothkern = 0
     
     dhdu = pyfits.open(datafile)[0]
     data = dhdu.data
@@ -49,9 +48,15 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
 
     if output is None:
         if plotblue:
-            output = fitfile.split('.')[0]+'.fit.blue.pdf'
+            if smoothkern > 0:
+                output = fitfile.split('.')[0]+'.fit.blue.smooth.pdf'
+            else:
+                output = fitfile.split('.')[0]+'.fit.blue.pdf'
         else:
-            output = fitfile.split('.')[0]+'.fit.pdf'
+            if smoothkern > 0:
+                output = fitfile.split('.')[0]+'.fit.smooth.pdf'
+            else:
+                output = fitfile.split('.')[0]+'.fit.pdf'
 
     pp = PDF(output)
 
@@ -465,6 +470,10 @@ def parse_input(inputlist):
             
         if inputlist[i] == '-x':
             kwar['xcorV'] = inputlist[i+1]
+            i += 1
+
+        if inputlist[i] == '-s':
+            kwar['smoothkern'] = int(inputlist[i+1])
             i += 1
 
         if inputlist[i] == '-b':
