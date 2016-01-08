@@ -1,6 +1,6 @@
 
 pro do_simple_alldust, datafile, errorfile, output, location=location, $
-                       model=model, plot=plot, bluefit=bluefit,$
+                       model=model, plot=plot, fitregion=fitregion, velstart=velstart,$
                        wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                        lightmax=lightmax, multimodel=multimodel, savefiber=savefiber
 
@@ -66,15 +66,15 @@ FOR k=0, numages - 1 DO BEGIN
 ENDFOR
 
 t3d, /reset;, translate=[-1,-1,0], rotate=[0,0,180]
-fmt = '(I11,'+string(numages*2 + 4)+'E13.3,F12.3,4F12.3,F10.3)'
+fmt = '(I11,'+string(numages*2 + 4)+'E13.3,F12.3,4F12.3,2F10.3)'
 openw, lun, output, /get_lun
 printf, lun, '# Generated on ',systime()
 printf, lun, '# Data file: ',datafile
 printf, lun, '# Error file: ',errorfile
 printf, lun, '# Model file: ',model,format='(A14,A90)'
 printf, lun, '# Fiber Num',colarr,tauarr,'MMWA [Gyr]','MLWA [Gyr]',$
-        'MMWT','MLWT','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol',$
-        format='(A-11,'+string(numages*2 + 4)+'A13,5A12,A10)'
+        'MMWT','MLWT','S/N','Chisq','redChi','blueChi','HKChi','Z/Z_sol','VSYS',$
+        format='(A-11,'+string(numages*2 + 4)+'A13,5A12,A10,A10)'
 printf, lun, '#'
 
 if n_elements(savefiber) ne 0 then begin
@@ -98,12 +98,19 @@ if keyword_set(plot) then begin
    dfpsplot, plotfile, /color, /times, /landscape
 endif
 
-fitsfile = (strsplit(output,'.',/extract))[0] + '.fits'
-outputarray = {TAUV: dblarr(10), TAUV_ERR: dblarr(10), LIGHT_FRAC: dblarr(10),$
-               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: dblarr(10),$
+fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
+outputarray = {VSYS: 0.0D, VSYS_error: 0.0D, $
+               TAUV: dblarr(10), TAUV_ERR: dblarr(10), LIGHT_FRAC: dblarr(10),$
+               LIGHT_FRAC_ERR: dblarr(10), MODEL_AGE: fltarr(10),$
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
                MMWA: 0.0D, MLWA: 0.0D, MMWT: 0.0D, MLWT: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
+
+hifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
+chiarray = fltarr(numfibers, n_elements(wave))
+
+yfitfile = (strsplit(output,'.',/extract))[0] + '.fit.fits'
+yfitarray = fltarr(n_elements(wave), numfibers)
 
 L_sun = 3.826e33 ;ergs s^-1
 dist_mpc = 10.062
@@ -117,8 +124,7 @@ for i = 0, numfibers - 1 DO BEGIN
    err = error[idx,i]*flux_factor
    
    if keyword_set(location) then begin
-      lidx = where(sizeidx eq fiber_radii[i])
-      vd = vdisp[lidx]
+      vdidx = where(sizeidx eq fiber_radii[i])
       plotlabel = string('Aperture',i+1,'r=',rkpc[i],'z=',zkpc[i],$
                          format='(A8,I4,A3,F6.2,A3,F5.2)')
       print, plotlabel
@@ -148,13 +154,13 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
 ; fit continuum
-   print, vd
-   coef = bc_continuum_alldust(m, wave, flux, err, vd, $
+   coef = bc_continuum_alldust(m, wave, flux, err, vdidx, $
                                plotlabel=plotlabel, $
-                               bluefit=bluefit, $
-                               yfit=continuum, $
+                               fitregion=fitregion, $
+                               velstart=velstart, $
+                               yfit=yfit, $
                                savestep=savestep, lun=savelun, $
-                               lightidx=lightidx, fmt=fmt)
+                               lightidx=lightidx, fmt=fmt, chivec=chivec)
 
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
@@ -167,7 +173,25 @@ for i = 0, numfibers - 1 DO BEGIN
 ;;    s = create_struct(coef, icoef, mcoef, lcoef)
 ;mwrfits, s, 'NGC_test.fits', /create
 
+   ;; print, '1', size(outputarray[i].vsys, /type), size(coef.vsys, /type)
+   ;; print, '2', size(outputarray[i].tauv, /type), size(coef.tauv, /type)
+   ;; print, '3', size(outputarray[i].light_frac, /type), size(coef.light_frac, /type)
+   ;; print, '4', size(outputarray[i].light_frac, /dimensions), size(coef.light_frac, /dimensions)
+   ;; print, '5', size(outputarray[i].light_frac_err, /dimensions), size(coef.light_frac_err, /dimensions)
+   ;; print, '6', size(outputarray[i].model_age, /type), size(coef.model_age, /type)
+   ;; print, '7', size(outputarray[i].model_age, /dimensions), size(coef.model_age, /dimensions)
+   ;; print, '8', size(outputarray[i].chisq, /type), size(coef.chisq, /type)
+   ;; print, '9', size(outputarray[i].MLWA, /type), size(coef.MLWA, /type)
+   ;; print, '10', size(outputarray[i].MMWA, /type), size(coef.MMWA, /type)
+   ;; print, '11', size(outputarray[i].MLWT, /type), size(coef.MLWT, /type)
+   ;; print, '12', size(outputarray[i].MMWT, /type), size(coef.MMWT, /type)
+   ;; print, '13', size(outputarray[i].SNR, /type), size(coef.SNR, /type)
+   ;; print, '14', size(outputarray[i].redchi, /type), size(coef.redchi, /type)
+   ;; print, '15', size(outputarray[i].bluechi, /type), size(coef.bluechi, /type)
+
    outputarray[i] = coef
+   chiarray[i,*] = chivec
+   yfitarray[*,i] = yfit/flux_factor
 
    ;SNR = sqrt(total((flux[lightidx]/err[lightidx])^2)/n_elements(lightidx))
    ;; SNR = mean(flux[lightidx]/err[lightidx])
@@ -183,7 +207,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
    printf, lun, i+1, coef.light_frac/m.norm, coef.tauv, coef.MMWA, coef.MLWA,$
            coef.MMWT, coef.MLWT, coef.SNR, coef.chisq, coef.redchi, $
-           coef.bluechi, coef.hkchi, metal, format=fmt
+           coef.bluechi, coef.hkchi, metal, coef.vsys, format=fmt
 
 ENDFOR
 
@@ -191,6 +215,7 @@ if keyword_set(plot) then dfpsclose
 
 free_lun, lun
 mwrfits, outputarray, fitsfile, /create
-print, m.norm
+mwrfits, transpose(chiarray), chifile, /create
+mwrfits, yfitarray, yfitfile, /create
 
 end

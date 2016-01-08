@@ -32,13 +32,20 @@ function bc_mcombine_alldust, x, a, mlib=mlib, savestep=savestep
 ; Redden using the Charlot & Fall law 
 ; F_obs = F_int * exp(-Tau_V * (lambda / 5500 A)^-0.7)
 
-klam = (x / 5500.0)^(-0.7)
-e_tau_lam = exp(klam # (-1*a[0:9]))
+light_factor = 100.
+vel_factor = 100.
+
+;Redshift
+xred = x * (a[0]*vel_factor / 3e5 + 1)
+
+klam = (xred / 5500.0)^(-0.7)
+e_tau_lam = exp(klam # (-1*a[1:10]))
 
 ; Create a linear combination of the templates
 
-y = (mlib * e_tau_lam) # (a[10:*] * 100.)
+y = (mlib * e_tau_lam) # (a[11:*] * light_factor)
 
+y = interpol(y,xred,x)
 
 if n_elements(savestep) eq 0 then savestep = 0
 
