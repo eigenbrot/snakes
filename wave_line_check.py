@@ -30,19 +30,19 @@ def do_fitprof(datafile):
 
 def get_results(output):
 
-    for l, n in zip(llist,numlist):
+    for l, n, c in zip(llist,numlist,centlist):
         proffile = '{}.fitp'.format(l)
         print proffile
         d = i2p.parse_fitprofs(proffile,n)
         median = np.median(d[1],axis=0)
         rms = np.sqrt(np.mean((d[1] - median)**2,axis=0))
     
-        print '{:}:\n\t{:>7}: {:}\n\t{:>7}: {:}\n'.\
-            format(l,'median',median,'rms',rms)
+        print '{:} ({:}):\n\t{:>7}: {:}\n\t{:>7}: {:}\n'.\
+            format(l,c,'median',median,'rms',rms)
 
         with open(output,'a') as f:
-            f.write('{:}:\n\t{:>7}: {:}\n\t{:>7}: {:}\n'.\
-                    format(l,'median',median,'rms',rms))
+            f.write('{:} ({:}):\n\t{:>7}: {:}\n\t{:>7}: {:}\n'.\
+                    format(l,c,'median',median,'rms',rms))
 
     return
 
