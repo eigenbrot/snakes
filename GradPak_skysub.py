@@ -101,12 +101,17 @@ def main():
     sizes. Then combine everything back into the output file name.
     '''
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
         #We don't want to overwhelm the user with verbosity
         return "The request was made, but it was not good"
 
     imagename = sys.argv[1]
-    outputname = sys.argv[2]
+    
+    try:
+        outputname = sys.argv[2]
+    except IndexError:
+        outputname = '{}.ms_s_lin.fits'.format(imagename.split('.ms_lin')[0])
+        print "Using default output "+outputname
 
     #We do this check now because scombine doesn't have a clobber option
     if os.path.exists(outputname):
