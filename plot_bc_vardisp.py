@@ -85,6 +85,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         yfit = yfits[i,:] * flux_factor
         coefs = coef_arr[i]
 
+        if np.mean(yfit) == 0.0:
+            print "No data in aperture", i+1
+            continue
+
         if xcorV is None:
             VSYS = coefs['VSYS']
         else:

@@ -3,6 +3,25 @@ pro do_simple_allZ2, datafile, errorfile, output, location=location, $
                      model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
+
+;;;Here are the aperture subset assignments we will use. This is only
+;;;temporary. 1.19.16
+;
+P1subset = [6,8,10,26,32] - 1
+P2subset = [5,8,17,22,23,36] - 1
+P3subset = [5,8,15] - 1
+P4subset = [6,38,43] - 1
+
+Pnum = fix((stregex(datafile, '_P([1-9])_', /subexpr, /extract))[1])
+
+case Pnum of
+   1: subidx = P1subset
+   2: subidx = P2subset
+   3: subidx = P3subset
+   4: subidx = P4subset
+   else: stop
+endcase   
+
 ;defplotcolors
 ; read in models
 if not n_elements(model) then model=$
@@ -91,8 +110,9 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-for i = 0, numfibers - 1 DO BEGIN
-   
+;for i = 0, numfibers - 1 DO BEGIN
+foreach i, subidx DO BEGIN
+  
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
@@ -174,7 +194,7 @@ for i = 0, numfibers - 1 DO BEGIN
            coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, format=fmt
    print, i
 
-ENDFOR
+ENDFOREACH
 
 
 free_lun, lun
