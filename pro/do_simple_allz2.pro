@@ -9,8 +9,10 @@ pro do_simple_allZ2, datafile, errorfile, output, location=location, $
 ;
 P1subset = [6,8,10,26,32] - 1
 P2subset = [5,8,17,22,23,36] - 1
-P3subset = [5,8,15] - 1
+P3subset = [5,8,13,15,20,25] - 1
 P4subset = [6,38,43] - 1
+P5subset = [14,16] - 1
+P6subset = [8,17] - 1
 
 Pnum = fix((stregex(datafile, '_P([1-9])_', /subexpr, /extract))[1])
 
@@ -19,6 +21,8 @@ case Pnum of
    2: subidx = P2subset
    3: subidx = P3subset
    4: subidx = P4subset
+   5: subidx = P5subset
+   6: subidx = P6subset
    else: stop
 endcase   
 
