@@ -17,6 +17,23 @@ centlist = [[4047],[4358],[3933.57,3968.53],[5461]]
 numlist = [1,1,2,1]
 
 def do_fitprof(datafile):
+    """Run IRAF fitprof routine to measure line centers and widths.
+
+    For each line specified in the module header generate the necessary inputs
+    to fitprof and execture the routine. The fitting regions are also
+    specified in the module header.
+
+    Parameters
+    ----------
+    datafile : str
+        Name of a multispec fits file to pass as input to fitprof. Must have a WCS solution in the header.
+
+    Returns
+    -------
+    None
+        Nothing is returned. Instead, IRAF writes the results to a file.
+
+    """
     
     for l, cl, r in zip(llist,centlist,rlist):
         with open('{}.lines'.format(l),'w') as f:
@@ -32,6 +49,27 @@ def do_fitprof(datafile):
     return
 
 def get_results(output, threshold=3.):
+    """Parse fitprof output and display results
+
+    The line centers are taken from the output of fitprof. For each line specified in the module header the average offset and stddev across all fibers in the IFU is computed. Output is a textfile and a plot of accuracy and stochasticity as a function of wavelength.
+
+    Parameters
+    ----------
+    output : str
+        Name of the output text file. This file will contain the mean, offset, stddev, and number of rejected apertures.
+    threshold : float, optional
+        Threshold value for iterative sigma clipping in mean across IFU. The total number of rejected fibers will be recorded in the output file.
+
+    Returns
+    -------
+    None :
+       The result is a text file containing the results and a plot containing the accuracy as a function of wavelength.
+    
+    Notes
+    -----
+    Right now the plot is hardcoded to be writting to WLC.png
+
+    """
 
     fig = plt.figure()
     acax = fig.add_subplot(211)
