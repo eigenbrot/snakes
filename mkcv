@@ -1,0 +1,87 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+    echo "Need pointing number (1 - 6)"
+    exit
+fi
+
+FMIN="3850."
+FMAX="6650."
+LMIN="5450."
+LMAX="5550."
+B=0
+S=0
+V="528."
+PYPLOT="~/snakes/plot_bc_vardisp.py"
+MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits"
+
+while [[ $# > 1 ]]
+do
+    key=$1
+    case $key in
+	-b)
+	    echo "Setting B"
+	    B=1
+	    ;;
+	-s)
+	    S=$2
+	    echo "Setting S=$S"
+	    shift
+	    ;;
+	-f)
+	    FMIN=$2
+	    FMAX=$3
+	    echo "Setting F=[${FMIN}, ${FMAX}]"
+	    shift
+	    shift
+	    ;;
+	-l)
+	    LMIN=$2
+	    LMAX=$3
+	    echo "Setting L=[${LMIN}, ${LMAX}]"
+	    shift
+	    shift
+	    ;;
+	-d)
+	    echo "Plotting withOUT vardisp"
+	    PYPLOT="~/snakes/plot_bc.py"
+	    MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2/allz2_test.fits"
+	    ;;
+
+	-m)
+	    MODNAM=$2
+	    echo "Using model ${MODNAM}"
+	    shift
+	    ;;
+	*)
+	    
+	    ;;
+    esac
+    shift
+done
+
+P=$1
+
+idlcmd="idl -e \"do_simple_allZ2_vel, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.vel.dat',location='NGC_891_P${P}_bin30_locations.dat', fitfile='NGC_891_P${P}_bin30_allz2.fit.fits', wavemin=3800., wavemax=6800., fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
+
+plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.vel.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -c NGC_891_P${P}_bin30_allz2.coef.vel.fits -n"
+
+scrfile="P${P}_chivel.sh"
+echo '#!/bin/bash' > $scrfile
+echo $idlcmd >> $scrfile
+echo $plotcmd >> $scrfile
+
+if [[ $S>1 ]]; then
+    echo $plotcmd "-s $S" >> $scrfile
+fi
+
+if [[ $B==1 ]]; then
+    echo $plotcmd "-b" >> $scrfile
+    if [[ $S>1 ]]; then
+	echo $plotcmd "-b -s $S" >> $scrfile
+    fi
+fi
+
+chmod +x $scrfile
+
+exit

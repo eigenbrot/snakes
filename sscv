@@ -1,0 +1,19 @@
+#!/bin/bash
+
+PRE=""
+
+if [ $# -eq 1 ]; then
+    PRE="$1_"
+fi
+
+for i in `seq 1 6`; do
+    if [ ! -x "P${i}_chivel.sh" ]; then
+	echo "P${i}_chivel.sh is either non-existent or non-executable"
+	continue
+    fi
+    
+    echo "Starting screen ${PRE}P$i"
+    screen -S ${PRE}P$i -d -m ./P${i}_chivel.sh
+
+done
+exit

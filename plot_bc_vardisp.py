@@ -8,7 +8,7 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
-            location=None, xcorV=None, wavemin=3800., wavemax=6800., 
+            location=None, xcorV=None, chivel=None, wavemin=3800., wavemax=6800., 
             plotblue=False,smoothkern=0):
 
     flux_factor = 1e17
@@ -49,19 +49,21 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
     if output is None:
         if plotblue:
             if smoothkern > 0:
-                output = fitfile.split('.')[0]+'.fit.blue.smooth.pdf'
+                output = '.'.join(fitfile.split('.')[0:-1])+'.blue.smooth.pdf'
             else:
-                output = fitfile.split('.')[0]+'.fit.blue.pdf'
+                output = '.'.join(fitfile.split('.')[0:-1])+'.blue.pdf'
         else:
             if smoothkern > 0:
-                output = fitfile.split('.')[0]+'.fit.smooth.pdf'
+                output = '.'.join(fitfile.split('.')[0:-1])+'.smooth.pdf'
             else:
-                output = fitfile.split('.')[0]+'.fit.pdf'
+                output = '.'.join(fitfile.split('.')[0:-1])+'.pdf'
 
     pp = PDF(output)
 
     if xcorV is not None:
         xcorVd = np.loadtxt(xcorV,usecols=(1,),unpack=True)
+    if chivel is not None:
+        vel_arr = pyfits.open(chivel)[1].data
 
     coef_arr = pyfits.open(coeffile)[1].data
     yfits = pyfits.open(fitfile)[0].data
@@ -94,6 +96,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         else:
             VSYS = xcorVd[i]
         
+        if chivel is not None:
+            print 'loading chisq velocity'
+            VSYS += vel_arr[i]['VSYS']
+
         if location is not None:
             vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
             plotlabel = 'Aperture {:n}, r={:6.2f}, z={:5.2f}'.\
@@ -383,11 +389,19 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         fig.text(0.15, 0.89, 'SNR = {:8.2f}'.format(coefs['SNR']), fontsize=fs)
         fig.text(0.15, 0.87, 'V = {:8.2f} km/s'.format(VSYS), 
                  fontsize=fs)
-        fig.text(0.15, 0.85, "V_disp = {}'' fiber".format(vdidx+2),
-                 fontsize=fs)
-        fig.text(0.15, 0.83, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
-                 fontsize=fs)
-        
+        if chivel is not None:
+            fig.text(0.15, 0.85, r'$\Delta$V$_{{fit}}$ = {:8.2f}'.format(vel_arr[i]['VSYS']), 
+                     fontsize=fs)
+            fig.text(0.15, 0.83, "V_disp = {}'' fiber".format(vdidx+2),
+                     fontsize=fs)
+            fig.text(0.15, 0.81, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
+                     fontsize=fs)
+        else: 
+            fig.text(0.15, 0.85, "V_disp = {}'' fiber".format(vdidx+2),
+                     fontsize=fs)
+            fig.text(0.15, 0.83, r'$\tau_V$ = {:8.2f}'.format(coefs['tauv']), 
+                     fontsize=fs)           
+
         fig.text(0.35, 0.89, 'MLWA = {:8.2f}'.format(coefs['MLWA']),
                  fontsize=fs)
         fig.text(0.35, 0.87, 'MMWA = {:8.2f}'.format(coefs['MMWA']),
@@ -474,6 +488,10 @@ def parse_input(inputlist):
             
         if inputlist[i] == '-x':
             kwar['xcorV'] = inputlist[i+1]
+            i += 1
+
+        if inputlist[i] == '-c':
+            kwar['chivel'] = inputlist[i+1]
             i += 1
 
         if inputlist[i] == '-s':
