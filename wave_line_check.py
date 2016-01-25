@@ -48,7 +48,7 @@ def do_fitprof(datafile):
 
     return
 
-def get_results(output, threshold=3.):
+def get_results(output, threshold=3., filename=''):
     """Parse fitprof output and display results
 
     The line centers are taken from the output of fitprof. For each line specified in the module header the average offset and stddev across all fibers in the IFU is computed. Output is a textfile and a plot of accuracy and stochasticity as a function of wavelength.
@@ -82,6 +82,7 @@ def get_results(output, threshold=3.):
 
     with open(output,'a') as f:
         f.write('# {}\n'.format(time.asctime()))
+        f.write('# {}\n'.format(filename))
 
         for l, n, c in zip(llist,numlist,centlist):
             proffile = '{}.fitp'.format(l)
@@ -126,5 +127,5 @@ if __name__ == '__main__':
             os.system('rm '+ proffile)
 
     do_fitprof(sys.argv[1])
-    get_results('WLC.dat')
+    get_results('WLC.dat',filename=sys.argv[1])
 
