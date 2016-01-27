@@ -8,7 +8,7 @@ from scipy.misc import imread
 plt.ioff()
 
 def plot_PV(prefix='',
-            output='Swat_comp.png', col=65,
+            output='Swat_comp.png', col=65, chivel=False,
             colorcol=None, colorlabel='Height [kpc]'):
 
     swatfig = '/d/monk/eigenbrot/WIYN/14B-0456/anal/Swat.png'
@@ -23,8 +23,15 @@ def plot_PV(prefix='',
         print dat
         loc = glob('{}*P{}*locations.dat'.format(prefix,i+1))[0]
         print loc
-
+        
         v = np.loadtxt(dat,usecols=(col,),unpack=True)
+
+        if chivel:
+            vel = glob('{}*P{}*vel.dat'.format(prefix,i+1))[0]
+            print vel
+            cv = np.loadtxt(vel,usecols=(1,),unpack=True)
+            v += cv
+
         try:
             loc = loc.split('/')[1]
         except IndexError:
