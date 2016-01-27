@@ -58,7 +58,7 @@ print, size(restwl, /dimensions)
 print, size(flux, /dimensions)
 print, '##########'
 
-vel_factor = 1.
+vel_factor = 100.
 
 ; width of emission line masks in km/s
 if not keyword_set(emmaskw) then emmaskw = 1000.0
@@ -75,7 +75,7 @@ parinfo = [{value:1.D, fixed:0, limited:[0,0], tied:'', $
 parinfo[0].limited = [0,0]
 parinfo[0].limits = [-200./vel_factor, 200./vel_factor]
 parinfo[0].fixed = 0
-parinfo[0].value = 0.0
+parinfo[0].value = 1.
 
 ;-----------------------------------------------------------------------------
 ; Mask out bad data regions 
@@ -160,7 +160,7 @@ fitcoefs = mpfitfun('bc_mcombine_allz2_vel', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
                     functargs = {y: fitlib, savedata: savedata}, $
                     perror=perror, niter=niter, status=status, $
-                    errmsg=errmsg, maxiter = 50000, xtol=1d-10, ftol=1d-10, /NAN)
+                    errmsg=errmsg, maxiter = 50000, xtol=1d-20, ftol=1d-20, /NAN)
 
 print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)

@@ -29,7 +29,7 @@
 
 function bc_mcombine_allZ2_vel, x, a, y=y, savedata=savedata
 
-vel_factor = 1.
+vel_factor = 100.
 
 ; Redshift
 xred = x * (a[0]*vel_factor / 3e5 + 1)
