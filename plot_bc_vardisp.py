@@ -8,8 +8,9 @@ from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
-            location=None, xcorV=None, chivel=None, wavemin=3800., wavemax=6800., 
-            plotblue=False,smoothkern=0):
+            location=None, xcorV=None, chivel=None, veloffset=0.,
+            wavemin=3800., wavemax=6800., 
+            plotblue=False, smoothkern=0):
 
     flux_factor = 1e17
     
@@ -47,16 +48,13 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
     big_w = np.zeros((numZ,numAge))
 
     if output is None:
+        output = '.'.join(fitfile.split('.')[0:-1])+'.pdf'
         if plotblue:
-            if smoothkern > 0:
-                output = '.'.join(fitfile.split('.')[0:-1])+'.blue.smooth.pdf'
-            else:
-                output = '.'.join(fitfile.split('.')[0:-1])+'.blue.pdf'
-        else:
-            if smoothkern > 0:
-                output = '.'.join(fitfile.split('.')[0:-1])+'.smooth.pdf'
-            else:
-                output = '.'.join(fitfile.split('.')[0:-1])+'.pdf'
+            output = '.'.join(output.split('.')[0:-1])+'.blue.pdf'
+        if veloffset != 0:
+            output = '.'.join(output.split('.')[0:-1])+'.voff.pdf'
+        if smoothkern > 0:
+            output = '.'.join(output.split('.')[0:-1])+'.smooth.pdf'
 
     pp = PDF(output)
 
@@ -99,6 +97,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         if chivel is not None:
             print 'loading chisq velocity'
             VSYS += vel_arr[i]['VSYS']
+            
+        if veloffset != 0:
+            print 'Applying manual velocity offset of {} km/s'.format(veloffset)
+            VSYS += veloffset
 
         if location is not None:
             vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
@@ -476,7 +478,11 @@ def parse_input(inputlist):
         if inputlist[i] == '-o':
             kwar['output'] = inputlist[i+1]
             i += 1
-            
+
+        if inputlist[i] == '-v':
+            kwar['veloffset'] = float(inputlist[i+1])
+            i += 1
+
         if inputlist[i] == '-l':
             kwar['location'] = inputlist[i+1]
             i += 1
