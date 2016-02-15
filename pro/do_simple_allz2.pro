@@ -1,5 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
+                     velocity=velocity,$
                      model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
@@ -52,6 +53,13 @@ wave = (DINDGEN(wavesize) - crpix) * cdelt + crval
 if keyword_set(location) then begin
    readcol, location, apnum, fiber_radii, ra, dec, rkpc, zkpc
    sizeidx = [0.937,1.406,1.875,2.344,2.812]
+endif
+
+if n_elements(velstart) eq 0 then velstart = 528.
+
+if keyword_set(velocity) then begin
+   readcol, velocity, apnum, known_V
+   velstart = 12345.
 endif
 
 size_borders = [19, 43, 62, 87, 109] ; The last one is needed to prevent indexing errors
@@ -114,8 +122,8 @@ dist_mpc = 10.062
 flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
-;for i = 0, numfibers - 1 DO BEGIN
-foreach i, subidx DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
+;foreach i, subidx DO BEGIN
   
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
@@ -151,7 +159,7 @@ foreach i, subidx DO BEGIN
 
 ; fit continuum
    coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
-                             fitregion=fitregion, $
+                             fitregion=fitregion, fixedV=known_V[i],$
                              yfit=yfit, velstart=velstart, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
@@ -198,7 +206,8 @@ foreach i, subidx DO BEGIN
            coef.chisq, coef.redchi, coef.bluechi, coef.hkchi, format=fmt
    print, i
 
-ENDFOREACH
+ENDFOR
+;ENDFOREACH
 
 
 free_lun, lun
