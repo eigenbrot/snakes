@@ -14,9 +14,9 @@ def consolidate(OGcoef_file, velcoef_file, output, offset=74):
         f.write('# Generated on {}\n#\n'.format(time.asctime()))
         f.write('# {}\n# {}\n'.format(OGcoef_file, velcoef_file))
         f.write('# Offset = {} km/s\n#\n'.format(offset))
-        f.write('#{:3}{:8}\n\n'.format('Ap','V [km/s]'))
+        f.write('#{:3}{:10}\n\n'.format('Ap','V [km/s]'))
         for i, v in enumerate(outvel):
-            f.write('{:3n}{:8.3f}\n'.format(i+1,v))
+            f.write('{:3n}{:10.3f}\n'.format(i+1,v))
 
     return
 
