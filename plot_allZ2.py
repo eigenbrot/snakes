@@ -198,14 +198,14 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=4, ylims=None):
+                col=62, order=20, ylims=None):
 
     zz = np.array([])
     dd = np.array([])
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_xlabel('Height [kpc]')
+    ax.set_xlabel('|Height [kpc]|')
     ax.set_ylabel(label)
 
     for i in range(6):
@@ -237,20 +237,20 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     ax.legend(loc=0, numpoints=1, scatterpoints=1)
 
-    sidx = np.argsort(zz)
-    sz = zz[sidx]
-    sd = dd[sidx]
+    # sidx = np.argsort(zz)
+    # sz = zz[sidx]
+    # sd = dd[sidx]
 
-    gidx = sd == sd
+    # gidx = sd == sd
 
-    mean = bn.move_mean(sd[gidx],order)
-    std = bn.move_std(sd[gidx],order)
+    # mean = bn.move_median(sd[gidx],order)
+    # std = bn.move_std(sd[gidx],order)
     
-    # mean = spnd.filters.gaussian_filter1d(mean,1)
-    # std = spnd.filters.gaussian_filter1d(std,1)
+    # # mean = spnd.filters.gaussian_filter1d(mean,1)
+    # # std = spnd.filters.gaussian_filter1d(std,1)
 
-    ax.plot(sz[gidx], mean)
-    ax.fill_between(sz[gidx], mean-std, mean+std, alpha=0.1)
+    # ax.plot(sz[gidx], mean)
+    # ax.fill_between(sz[gidx], mean-std, mean+std, alpha=0.1)
 
     #fit = np.poly1d(np.polyfit(sz[gidx],sd[gidx],order))
     #ax.plot(sz,fit(sz),lw=1.5)
