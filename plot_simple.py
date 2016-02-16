@@ -260,7 +260,8 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
                       exclude=exclude[i],
                       sky=False,
                       minval=minval,
-                      maxval=maxval)
+                      maxval=maxval,
+                      alpha=0.85)
 
         #Do it again, for the single-pointing figure
         sax = GPP.plot(data,
@@ -280,7 +281,8 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
                        exclude=exclude[i],
                        sky=False,
                        minval=minval,
-                       maxval=maxval)
+                       maxval=maxval,
+                       alpha=1)
         sax.text(0.5, 0.8, 'P{}'.format(i+1), color='r', fontsize=20,
                  transform=sax.transAxes, ha='center', va='center')
         figlist.append(sax.figure)
