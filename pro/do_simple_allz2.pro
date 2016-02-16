@@ -103,7 +103,7 @@ printf, lun, '#'
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
 outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
-               VELSTART: velstart, $
+               VELSTART: velstart, FIXEDVBOOL: 0, $
                LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
                MODEL_AGE: fltarr(numages), $

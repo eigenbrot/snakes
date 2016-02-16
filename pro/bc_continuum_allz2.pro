@@ -76,11 +76,13 @@ parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
 if keyword_set(fixedV) then begin 
    parinfo[0].value = fixedV/vel_factor
    parinfo[0].fixed = 1
+   fixedVBool = 1
 endif else begin
    parinfo[0].limited = [1,1]
    parinfo[0].limits = [(velstart - 200.)/vel_factor, (velstart + 200.)/vel_factor]
    parinfo[0].fixed = 0
    parinfo[0].value = velstart/vel_factor
+   fixedVBool = 0
 endelse
 
 parinfo[1].limited = [1,1]
@@ -89,9 +91,9 @@ parinfo[2:*].limited = [1,0]
 parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
-; default: don't fit
-;; parinfo[2:*].value = 0
-;; parinfo[2:*].fixed = 1
+;default: don't fit
+parinfo[2:*].fixed = 1
+parinfo[2:*].value = 0
 
 ;Let's use only the middle range of metallicity
 ;; ids = where(model.Z[0,*] gt 0.01 and model.Z[0,*] lt 0.03)
@@ -103,10 +105,10 @@ parinfo[2:*].limits = [0.,0.]
 ;; parinfo[id4+2].fixed = 1
 ;; parinfo[id4+2].value = 0
 
-;; ; Only fit solar metallicity
-;; ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
-;; parinfo[ids+2].fixed = 0
-;; parinfo[ids+2].value = 1.D
+; Only fit solar metallicity
+ids = where(model.Z[0,*] ge 0.9 and model.Z[0,*] le 1.1)
+parinfo[ids+2].fixed = 0
+parinfo[ids+2].value = 1.D
 
 ;; ;
 ;; ; t > 8 Gyr: Z_sol = 0.02 - 0.4
@@ -162,7 +164,11 @@ HPS = 5914.
 HPS_wid = 230.
 
 ;shift emission to velocity guess. The mask width allows for slop
-em *= (velstart/3e5 + 1)
+if keyword_set(fixedV) then begin 
+   em *= (fixedV/3e5 + 1)
+endif else begin
+   em *= (velstart/3e5 + 1)
+endelse
 
 dz = emmaskw / 3e5 ; clipping interval
 dzsk = 1500. / 3e5
@@ -229,7 +235,7 @@ print, 'CONTINUUM_FIT ERRMSG: ', errmsg
 ; structure containing fit coefs
 coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          tauv: fitcoefs[1], tauv_err: perror[1], $
-         velstart: velstart, $
+         velstart: velstart, fixedvbool: fixedVBool, $
          light_frac: fitcoefs[2:*]*light_factor, $
          light_frac_err: perror[2:*]*light_factor, $
          model_age: model.age[vdidx,*], chisq: 0.0D, $

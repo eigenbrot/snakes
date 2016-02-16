@@ -136,14 +136,18 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
-        try:
-            em2 *= (coefs['VELSTART']/3e5 + 1.)
-        except KeyError:
-            pass
         
         dz = 1000. / 3e5
         dzsk = 1500. / 3e5
         
+        try:
+            if 'FIXEDVBOOL' in coef_arr.names:
+                em2 *= (coefs['VSYS']/3e5 + 1.)
+            else:
+                em2 *= (coefs['VELSTART']/3e5 + 1.)
+        except KeyError:
+            pass
+                
         for ee in em2:
             maskout = np.where((restwl > ee*(1-dz)) & (restwl < ee*(1+dz)))
             quality[maskout] = 0
