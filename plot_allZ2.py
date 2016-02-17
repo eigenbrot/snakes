@@ -198,7 +198,7 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=20, ylims=None):
+                col=62, order=20, ylims=None, exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
     dd = np.array([])
@@ -218,6 +218,11 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         td = np.loadtxt(dat, usecols=(col,), unpack=True)
         r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
         
+        exarr = np.array(exclude[i])-1 #becuase aps are 1-indexed
+        td = np.delete(td,exarr)
+        t = np.delete(r,exarr)
+        tz = np.delete(tz,exarr)
+
         z = np.array([])
         d = np.array([])
         e = np.array([])
@@ -260,14 +265,18 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     return fig
 
-def simple_batch(output, order=5):
+def simple_batch(output, order=5, exclude=[[],[],[],[],[],[]]):
 
     pp = PDF(output)
     
-    pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',ylims=[0,11],order=order))
-    pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',ylims=[0,11],order=order))
-    pp.savefig(simple_plot(col=66,label=r'$\tau_V$',ylims=[-1,6],order=order))
-    pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',ylims=[0,3],order=order))
+    pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',
+                           ylims=[0,11],order=order,exclude=exclude))
+    pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',
+                           ylims=[0,11],order=order,exclude=exclude))
+    pp.savefig(simple_plot(col=66,label=r'$\tau_V$',
+                           ylims=[-1,6],order=order,exclude=exclude))
+    pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',
+                           ylims=[0,3],order=order,exclude=exclude))
 
     pp.close()
     plt.close('all')
