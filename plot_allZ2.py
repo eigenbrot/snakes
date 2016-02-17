@@ -2,6 +2,7 @@ import numpy as np
 import bottleneck as bn
 import GradPak_plot as GPP
 import scipy.ndimage as spnd
+import scipy.interpolate as spi
 #import model_A as mA
 import matplotlib.pyplot as plt
 import pyfits
@@ -12,6 +13,7 @@ from matplotlib import rc
 from matplotlib import colors as mplcolors
 from matplotlib.ticker import ScalarFormatter
 import glob
+import time
 glob = glob.glob
 
 rc('text', usetex=False)
@@ -202,13 +204,18 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     zz = np.array([])
     dd = np.array([])
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_xlabel('|Height [kpc]|')
-    ax.set_ylabel(label)
 
+    axlist = []
+
+    bigax = plt.figure().add_subplot(111)
+    bigax.set_xlabel('|Height [kpc]|')
+    bigax.set_ylabel(label)
+    
     for i in range(6):
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('|Height [kpc]|')
+        ax.set_ylabel(label)
+        ax.set_title('{}\nP{}'.format(time.asctime(),i+1))
 
         dat = glob('*P{}*{}'.format(i+1, inputsuffix))[0]
         print dat
@@ -235,50 +242,66 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
             tz = np.delete(tz, idx)
             td = np.delete(td, idx)
 
-        ax.errorbar(z, d, yerr=e, fmt='.', label='P{}'.format(i+1))
-        #ax.plot(z,d,'.',label='P{}'.format(i+1))
-        zz = np.r_[zz,z]
-        dd = np.r_[dd,d]
+        sidx = np.argsort(z)
+        mean = bn.move_mean(d[sidx],order)
+        std = bn.move_std(d[sidx],order)
+        spl = spi.UnivariateSpline(z[sidx],d[sidx])
+        mean = spl(z[sidx])
+        # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
+        # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
 
-    ax.legend(loc=0, numpoints=1, scatterpoints=1)
+        l = bigax.plot(z[sidx],mean, label='P{}'.format(i+1))[0]
+        bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=l.get_color())
+        
+        ax.plot(z[sidx],mean,color=l.get_color())
+        ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=l.get_color())
 
-    # sidx = np.argsort(zz)
-    # sz = zz[sidx]
-    # sd = dd[sidx]
+        ax.errorbar(z, d, yerr=e, fmt='.', color=l.get_color())
+        ax.set_xlim(-0.1,2.6)
+        
+        if ylims is not None:
+            ax.set_ylim(*ylims)
+        
+        axlist.append(ax)
 
-    # gidx = sd == sd
+    bigax.legend(loc=0, numpoints=1, scatterpoints=1)
 
-    # mean = bn.move_median(sd[gidx],order)
-    # std = bn.move_std(sd[gidx],order)
-    
-    # # mean = spnd.filters.gaussian_filter1d(mean,1)
-    # # std = spnd.filters.gaussian_filter1d(std,1)
-
-    # ax.plot(sz[gidx], mean)
-    # ax.fill_between(sz[gidx], mean-std, mean+std, alpha=0.1)
-
-    #fit = np.poly1d(np.polyfit(sz[gidx],sd[gidx],order))
-    #ax.plot(sz,fit(sz),lw=1.5)
+    bigax.set_title(time.asctime())
+    bigax.set_xlim(-0.1,2.6)
 
     if ylims is not None:
-        ax.set_ylim(*ylims)
+        bigax.set_ylim(*ylims)
 
-    return fig
+    axlist.append(bigax)
 
-def simple_batch(output, order=5, exclude=[[],[],[],[],[],[]]):
+    return axlist
 
-    pp = PDF(output)
-    
-    pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',
-                           ylims=[0,11],order=order,exclude=exclude))
-    pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',
-                           ylims=[0,11],order=order,exclude=exclude))
-    pp.savefig(simple_plot(col=66,label=r'$\tau_V$',
-                           ylims=[-1,6],order=order,exclude=exclude))
-    pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',
-                           ylims=[0,3],order=order,exclude=exclude))
+def simple_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
 
-    pp.close()
+    clist = [62,61,66,63]
+    llist = ['Mean Light Weighted Age [Gyr]',
+             'Mean Mass Weighted Age [Gyr]',
+             r'$\tau_V$',
+             'Mean Light Weighted Metallicity [Z$_{\odot}$]']
+    yllist = [[0,11],[0,11],[-1,6],[0,3]]
+    sllist = ['MLWA','MMWA','TauV','MLWZ']
+
+    for c, l, sl, yl in zip(clist, llist, sllist, yllist):
+        pp = PDF('{}_{}.pdf'.format(sl,suffix))
+        for x in simple_plot(col=c,label=l,ylims=yl,exclude=exclude,order=order):
+            pp.savefig(x.figure)
+
+        pp.close()
+
+        # pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',
+        #                        ylims=[0,11],order=order,exclude=exclude))
+        # pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',
+        #                        ylims=[0,11],order=order,exclude=exclude))
+        # pp.savefig(simple_plot(col=66,label=r'$\tau_V$',
+        #                        ylims=[-1,6],order=order,exclude=exclude))
+        # pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',
+        #                        ylims=[0,3],order=order,exclude=exclude))
+
     plt.close('all')
 
     return
