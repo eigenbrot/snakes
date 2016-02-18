@@ -1,6 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                     velocity=velocity,$
+                     velocity=velocity, emmaskw=emmaskw, $
                      model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
@@ -103,7 +103,7 @@ printf, lun, '#'
 
 fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
 outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
-               VELSTART: velstart, FIXEDVBOOL: 0, $
+               VELSTART: velstart, FIXEDVBOOL: 0, emmaskw: 0.0, $
                LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
                MODEL_AGE: fltarr(numages), $
@@ -160,7 +160,7 @@ for i = 0, numfibers - 1 DO BEGIN
 ; fit continuum
    coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
                              fitregion=fitregion, fixedV=known_V[i],$
-                             yfit=yfit, velstart=velstart, $
+                             yfit=yfit, velstart=velstart, emmaskw=emmaskw, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
                              chivec=chivec)

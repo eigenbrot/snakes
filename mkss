@@ -9,6 +9,7 @@ FMIN="3850."
 FMAX="6650."
 LMIN="5450."
 LMAX="5550."
+EMMW="1000."
 B=0
 S=0
 FV=1
@@ -33,6 +34,11 @@ do
 	    VELSTART=" velstart=$2.,"
 	    FV=0
 	    echo "Setting V=${V} and allowing velocity to be free"
+	    shift
+	    ;;
+	-e)
+	    EMMW=$2
+	    echo "Setting emmaskw=${EMMW}"
 	    shift
 	    ;;
 	-f)
@@ -75,7 +81,7 @@ else
     VELOCITY=""
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}', wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}', emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
 
 plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
 
