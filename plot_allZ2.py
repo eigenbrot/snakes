@@ -200,7 +200,7 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=20, ylims=None, exclude=[[],[],[],[],[],[]]):
+                col=62, order=5, ylims=None, exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
     dd = np.array([])
@@ -242,6 +242,11 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
             tz = np.delete(tz, idx)
             td = np.delete(td, idx)
 
+        gidx = d == d
+        d = d[gidx]
+        z = z[gidx]
+        e = e[gidx]
+        
         sidx = np.argsort(z)
         mean = bn.move_mean(d[sidx],order)
         std = bn.move_std(d[sidx],order)
