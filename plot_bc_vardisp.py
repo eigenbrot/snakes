@@ -29,7 +29,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
     print 'CRVAL1 = ', crval
     print 'CRPIX1 = ', crpix
 
-    wave = (np.arange(wavesize) - crpix) * cdelt + crval
+    wave = (np.arange(wavesize) - crpix-1) * cdelt + crval
 
     idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
     restwl = wave[idx]
