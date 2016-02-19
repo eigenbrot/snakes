@@ -298,14 +298,25 @@ def simple_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
 
         pp.close()
 
-        # pp.savefig(simple_plot(col=62,label='Mean Light Weighted Age [Gyr]',
-        #                        ylims=[0,11],order=order,exclude=exclude))
-        # pp.savefig(simple_plot(col=61,label='Mean Mass Weighted Age [Gyr]',
-        #                        ylims=[0,11],order=order,exclude=exclude))
-        # pp.savefig(simple_plot(col=66,label=r'$\tau_V$',
-        #                        ylims=[-1,6],order=order,exclude=exclude))
-        # pp.savefig(simple_plot(col=63,label='Mean Light Weighted Metallicity [Z$_{\odot}$]',
-        #                        ylims=[0,3],order=order,exclude=exclude))
+    plt.close('all')
+
+    return
+
+def dfk_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
+
+    clist = [6,5,10]
+    llist = ['Mean Light Weighted Age [Gyr]',
+             'Mean Mass Weighted Age [Gyr]',
+             r'$\tau_V$']
+    yllist = [[0,11],[0,11],[-1,6]]
+    sllist = ['MLWA','MMWA','TauV']
+
+    for c, l, sl, yl in zip(clist, llist, sllist, yllist):
+        pp = PDF('{}_{}.pdf'.format(sl,suffix))
+        for x in simple_plot(col=c,label=l,ylims=yl,exclude=exclude,order=order):
+            pp.savefig(x.figure)
+
+        pp.close()
 
     plt.close('all')
 
