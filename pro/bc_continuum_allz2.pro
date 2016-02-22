@@ -60,7 +60,11 @@ if n_elements(savestep) eq 0 then savestep = 0
 if n_elements(velstart) eq 0 then velstart = 528.
 
 ; width of emission line masks in km/s
-if not keyword_set(emmaskw) then emmaskw = 1000.0
+if n_elements(emmaskw) eq 0 then begin
+   emmaskw = 1000.0
+   print, 'EMMASKW NOT SET'
+   stop
+endif
 
 dims = size(model.flux, /dimensions)
 npix = n_elements(restwl)
