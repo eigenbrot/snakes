@@ -211,15 +211,21 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
     bigax.set_xlabel('|Height [kpc]|')
     bigax.set_ylabel(label)
     
+    plist = [6,3,4,2,1,5]
+    color_list = ['red','tomato','yellow','chartreuse','turquoise','blue']
+
     for i in range(6):
+        pointing = plist[i]
+        color = color_list[i]
+
         ax = plt.figure().add_subplot(111)
         ax.set_xlabel('|Height [kpc]|')
         ax.set_ylabel(label)
-        ax.set_title('{}\nP{}'.format(time.asctime(),i+1))
+        ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
 
-        dat = glob('*P{}*{}'.format(i+1, inputsuffix))[0]
+        dat = glob('*P{}*{}'.format(pointing, inputsuffix))[0]
         print dat
-        loc = glob('*P{}*locations.dat'.format(i+1))[0]
+        loc = glob('*P{}*locations.dat'.format(pointing))[0]
         print loc
     
         td = np.loadtxt(dat, usecols=(col,), unpack=True)
@@ -255,13 +261,13 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
         # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
 
-        l = bigax.plot(z[sidx],mean, label='P{}'.format(i+1))[0]
-        bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=l.get_color())
+        bigax.plot(z[sidx],mean, label='P{}'.format(pointing), color=color)
+        bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
         
-        ax.plot(z[sidx],mean,color=l.get_color())
-        ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=l.get_color())
+        ax.plot(z[sidx],mean,color=color)
+        ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
 
-        ax.errorbar(z, d, yerr=e, fmt='.', color=l.get_color())
+        ax.errorbar(z, d, yerr=e, fmt='.', color=color)
         ax.set_xlim(-0.1,2.6)
         
         if ylims is not None:
