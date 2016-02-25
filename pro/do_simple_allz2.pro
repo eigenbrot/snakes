@@ -140,6 +140,12 @@ for i = 0, numfibers - 1 DO BEGIN
       vdidx = size_switch
    endelse
 
+   if keyword_set(velocity) then begin
+      fixedV = known_V[i]
+   endif else begin
+      fixedV = 0
+   endelse
+
    if keyword_set(savestep) then begin
       savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i,format='(I02)') + '_steps.dat'
       openw, savelun, savename, /get_lun
@@ -159,7 +165,7 @@ for i = 0, numfibers - 1 DO BEGIN
 
 ; fit continuum
    coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
-                             fitregion=fitregion, fixedV=known_V[i],$
+                             fitregion=fitregion, fixedV=fixedV, $
                              yfit=yfit, velstart=velstart, emmaskw=emmaskw, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
