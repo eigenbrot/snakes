@@ -11,7 +11,7 @@ endif
 
 angstrom = '!6!sA!r!u!9 %!6!n'
 lambda = 'l'
-lambda = '!4'+string("153B)+'!X'
+;lambda = '!4'+string("153B)+'!X'
 ; Ages in Gyr
 
 Z_arr = [0.0001, 0.0004, 0.004, 0.008, 0.02, 0.05]/0.02

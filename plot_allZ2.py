@@ -212,11 +212,14 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
     bigax.set_ylabel(label)
     
     plist = [6,3,4,2,1,5]
-    color_list = ['red','tomato','yellow','chartreuse','turquoise','blue']
+    #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
+    color_list = ['blue','seagreen','sienna','sienna','seagreen','blue']
+    style_list = ['-','-','-','--','--','--']
 
     for i in range(6):
         pointing = plist[i]
         color = color_list[i]
+        style = style_list[i]
 
         ax = plt.figure().add_subplot(111)
         ax.set_xlabel('|Height [kpc]|')
@@ -261,10 +264,10 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
         # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
 
-        bigax.plot(z[sidx],mean, label='P{}'.format(pointing), color=color)
+        bigax.plot(z[sidx],mean, label='P{}'.format(pointing), color=color, ls=style)
         bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
         
-        ax.plot(z[sidx],mean,color=color)
+        ax.plot(z[sidx],mean,color=color, ls=style)
         ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
 
         ax.errorbar(z, d, yerr=e, fmt='.', color=color)
@@ -308,7 +311,7 @@ def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     return
 
-def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
+def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0):
 
     clist = [6,5,10]
     llist = ['Mean Light Weighted Age [Gyr]',
@@ -319,7 +322,7 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
         pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
-        for x in simple_plot(col=c,label=l,ylims=yl,exclude=exclude,order=order):
+        for x in simple_plot(col=c+offset,label=l,ylims=yl,exclude=exclude,order=order):
             pp.savefig(x.figure)
 
         pp.close()
