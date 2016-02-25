@@ -287,7 +287,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     return axlist
 
-def simple_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
+def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     clist = [62,61,66,63]
     llist = ['Mean Light Weighted Age [Gyr]',
@@ -298,7 +298,7 @@ def simple_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
     sllist = ['MLWA','MMWA','TauV','MLWZ']
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
-        pp = PDF('{}_{}.pdf'.format(sl,suffix))
+        pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
         for x in simple_plot(col=c,label=l,ylims=yl,exclude=exclude,order=order):
             pp.savefig(x.figure)
 
@@ -308,7 +308,7 @@ def simple_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
 
     return
 
-def dfk_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
+def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     clist = [6,5,10]
     llist = ['Mean Light Weighted Age [Gyr]',
@@ -318,7 +318,7 @@ def dfk_batch(suffix, order=5, exclude=[[],[],[],[],[],[]]):
     sllist = ['MLWA','MMWA','TauV']
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
-        pp = PDF('{}_{}.pdf'.format(sl,suffix))
+        pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
         for x in simple_plot(col=c,label=l,ylims=yl,exclude=exclude,order=order):
             pp.savefig(x.figure)
 
