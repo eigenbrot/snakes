@@ -313,12 +313,14 @@ def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
 def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0):
 
-    clist = [6,5,10]
+    clist = [6,5,10,7,8]
     llist = ['Mean Light Weighted Age [Gyr]',
              'Mean Mass Weighted Age [Gyr]',
-             r'$\tau_V$']
-    yllist = [[0,11],[0,11],[-1,6]]
-    sllist = ['MLWA','MMWA','TauV']
+             r'$\tau_V$',
+             'Mean Mass Weighted Metallicity [Z$_{\odot}$]',
+             'Mean Light Weighted Metallicity [Z$_{\odot}$]']
+    yllist = [[0,11],[0,11],[-1,6],[0,1.3],[0,1.3]]
+    sllist = ['MLWA','MMWA','TauV','MMWZ','MLWZ']
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
         pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
