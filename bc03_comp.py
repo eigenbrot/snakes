@@ -1,11 +1,15 @@
 from glob import glob
+import os
 import numpy as np
 import pyfits
 from yanny import yanny
+from pyraf import iraf
 import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
+iraf.noao(_doprint=0)
+iraf.onedspec(_doprint=0)
 
 def bc03_prep():
 
@@ -35,6 +39,66 @@ def bc03_prep():
 
     return
 
+def data_prep(datafile, velocity, output):
+    
+    wavemin=3800.
+    wavemax=6800.
+
+    vel = np.loadtxt(velocity,usecols=(1,),unpack=True)
+
+    hdu = pyfits.open(datafile)[0]
+    data = hdu.data
+    header = hdu.header
+    
+    try:
+        cdelt = header['CDELT1']
+        crpix = header['CRPIX1']
+        crval = header['CRVAL1']
+    except KeyError:
+        #Hacky hack for fit files. These values should not really change, so I think it's OK
+        cdelt = 2.1
+        crpix = 1
+        crval = 3800.
+        header.update('CDELT1',cdelt)
+        header.update('CRPIX',crpix)
+
+    wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
+    idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
+    
+    wave = wave[idx]
+    data = data[:,idx]
+
+    shift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),data[i,:]) for i in range(data.shape[0])])
+
+    header.update('CRVAL1', 3800.)
+    pyfits.PrimaryHDU(shift,header).writeto(output,clobber=True)
+
+    return
+
+def prep_all_data():
+    
+    for i in range(6):
+        
+        output = 'NGC_891_P{}_bin30.msz.fits'.format(i+1)
+        data_prep('NGC_891_P{}_bin30.ms.fits'.format(i+1),
+                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output)
+
+    return
+
+def run_sbands(findstr, bands):
+    
+    inputlist = glob(findstr)
+    
+    for data in inputlist:
+        output = data.split('.fits')[0]+'.bands.dat'
+        print '{} -> {}'.format(data,output)
+        iraf.sbands(data,output,bands,
+                    normali=True,
+                    mag=False,
+                    verbose=True)
+        
+    return
+
 def combine_sbands(output,numaps=10):
 
     numbands = 7
@@ -44,7 +108,7 @@ def combine_sbands(output,numaps=10):
     results = np.zeros((numaps, fraclist.size, numbands))
     for f, frac in enumerate(fraclist):
         
-        fracfile = 'BC03_Z{:04n}.dat'.format(frac*1000)
+        fracfile = 'BC03_Z{:04n}.bands.dat'.format(frac*1000)
         data = np.loadtxt(fracfile,usecols=(0,1,5,6),
                           dtype={'names':('aps','bands','index','eqwidth'),
                                  'formats':('S26','S11','f4','f4')})
@@ -71,6 +135,8 @@ def combine_sbands(output,numaps=10):
     outhdu.header.update('i6','MgFe')
     outhdu.writeto(output,clobber=True)
 
+    return
+
 def bc03_compare(databands, bc03bands, outputprefix):
 
     pp = PDF('{}.pdf'.format(outputprefix))
@@ -90,7 +156,7 @@ def bc03_compare(databands, bc03bands, outputprefix):
 
     galdata = np.loadtxt(databands,usecols=(0,1,5,6),
                          dtype={'names':('aps','bands','index','eqwidth'),
-                         'formats':('S35','S11','f4','f4')})
+                         'formats':('S50','S11','f4','f4')})
 
     aps = np.unique(galdata['aps'])
     sar = [int(s.split('(')[-1].split(')')[0]) for s in aps]
