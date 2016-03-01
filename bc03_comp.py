@@ -1,10 +1,12 @@
 from glob import glob
 import os
+import re
 import numpy as np
 import pyfits
 from yanny import yanny
 from pyraf import iraf
 import time
+import prep_balmer as pb
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -39,7 +41,7 @@ def bc03_prep():
 
     return
 
-def data_prep(datafile, velocity, output):
+def data_prep(datafile, velocity, output, isdata=True):
     
     wavemin=3800.
     wavemax=6800.
@@ -50,11 +52,17 @@ def data_prep(datafile, velocity, output):
     data = hdu.data
     header = hdu.header
     
-    try:
+    if isdata:
         cdelt = header['CDELT1']
         crpix = header['CRPIX1']
         crval = header['CRVAL1']
-    except KeyError:
+        pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
+        fitfile = '{}_allz2.fit.fits'.format(datafile.split('.')[0])
+        contsub = '{}_contsub.ms.fits'.format(datafile.split('.')[0])
+        pb.prep_spectra(datafile, fitfile, contsub, velocity)
+        pb.do_fitprof(contsub, pointing)
+        emline = pyfits.open('P{}_HB_fits.fits'.format(pointing))[0].data
+    else:
         #Hacky hack for fit files. These values should not really change, so I think it's OK
         cdelt = 2.1
         crpix = 1
@@ -69,6 +77,12 @@ def data_prep(datafile, velocity, output):
     data = data[:,idx]
 
     shift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),data[i,:]) for i in range(data.shape[0])])
+
+    if isdata:
+#        emline = emline[:,idx]
+        print shift.shape
+        print emline.shape
+        shift -= emline/1e17
 
     header.update('CRVAL1', 3800.)
     pyfits.PrimaryHDU(shift,header).writeto(output,clobber=True)
