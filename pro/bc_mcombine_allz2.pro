@@ -27,7 +27,7 @@
 ;-
 ;------------------------------------------------------------------------------
 
-function bc_mcombine_allZ2, x, a, mlib=mlib, savedata=savedata
+function bc_mcombine_allZ2, x, a, mlib=mlib;, savedata=savedata
 
 light_factor = 100.
 vel_factor = 100.
@@ -47,40 +47,6 @@ e_tau_lam = exp(-1. * klam * a[1])
 y = y * e_tau_lam
 
 y = interpol(y,xred,x)
-
-if n_elements(savedata) eq 0 then savedata = 0
-
-if tag_exist(savedata, 'flux',/quiet) then begin
-   redidx = where(x ge 5250)
-   blueidx = where(x lt 5250)
-   hklow = 3920
-   hkhigh = 4000
-   hkidx = where(x gt hklow and x lt hkhigh)
-   chisq = total((y - savedata.flux)^2/savedata.err^2)/(n_elements(y) - n_elements(a) - 1)
-   
-   redchi = total((y[redidx] - savedata.flux[redidx])^2/savedata.err[redidx]^2)
-   bluechi = total((y[blueidx] - savedata.flux[blueidx])^2/savedata.err[blueidx]^2)
-   hkchi = total((y[hkidx] - savedata.flux[hkidx])^2/savedata.err[hkidx]^2)
-
-   SNR = mean(savedata.flux[savedata.lightidx]/savedata.err[savedata.lightidx])
-   MMWA = total(savedata.agearr*a[1:*]*light_factor/savedata.norm) $
-          / total(a[1:*]*light_factor/savedata.norm)
-
-   redd = exp(-a[0]*(savedata.wave[savedata.lightidx]/5500)^(-0.7))
-   light_weight = mean(savedata.flux[savedata.lightidx,*] * $
-                       rebin(redd,n_elements(savedata.lightidx),$
-                             n_elements(savedata.agearr)), $
-                       dimension=1) * a[1:*] * light_factor
-   MLWA = total(light_weight * savedata.agearr) / total(light_weight)
-
-   MMWZ = total(savedata.Z * a[1:*] * light_factor / savedata.norm) $
-          / total(a[1:*] * light_factor / savedata.norm)
-
-   MLWZ = total(light_weight * savedata.Z) / total(light_weight)
-
-   printf, savedata.lun, -1, a[1:*]/savedata.norm, MMWA, MLWA, $
-           MMWZ, MLWZ, a[0], SNR, chisq, redchi, bluechi, hkchi, format=savedata.fmt
-endif
 
 return, y
 

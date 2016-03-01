@@ -147,7 +147,7 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
    if keyword_set(savestep) then begin
-      savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i,format='(I02)') + '_steps.dat'
+      savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i+1,format='(I02)') + '_steps.dat'
       openw, savelun, savename, /get_lun
       printf, savelun, '# Generated on ',systime()
       printf, savelun, '# Data file: ',datafile
@@ -171,7 +171,7 @@ for i = 0, numfibers - 1 DO BEGIN
                              lightidx=lightidx, fmt=fmt, $
                              chivec=chivec)
    
-   if savestep then close, savelun
+   if savestep then free_lun, savelun
 ;; ; measure absorption line indices
 ;;    icoef = absline_index(wave, flux, err)
 ;;    mcoef = absline_index(wave, continuum, tag='_model') ; measure off model

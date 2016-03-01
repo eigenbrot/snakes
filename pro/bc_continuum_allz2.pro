@@ -48,6 +48,59 @@
 ;-
 ;------------------------------------------------------------------------------
 
+pro savestep, funct, p, iter, fnorm, functargs=fcnargs, parinfo=parinfo, quiet=quiet, $
+              flux = flux, err = err, agearr = agearr, Z = Z,norm = norm, lightidx = lightidx, $
+              lun = lun, wave = wave,fmt = fmt, dof = dof, custom_lib = custom_lib
+  
+  light_factor = 100.
+  vel_factor = 100.
+  light_frac = p[2:*]*light_factor
+
+  tauv = p[1]
+  vsys = p[0]*vel_factor
+
+  print, iter, fnorm
+  
+  ; fit to full spectrum including masked pixels
+  redidx = where(wave ge 5400)
+  blueidx = where(wave lt 5400)
+  hklow = 3920
+  hkhigh = 4000
+  hkidx = where(wave gt hklow and wave lt hkhigh)
+  
+  yfit = bc_mcombine_allz2(wave, p, mlib=custom_lib)
+  freeparm = n_elements(parinfo.fixed) - total(parinfo.fixed)
+
+  chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - freeparm - 1)
+  redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
+                 (n_elements(redidx) - freeparm - 1)
+  bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
+                  (n_elements(blueidx) - freeparm - 1)
+  hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
+                (n_elements(hkidx) - freeparm - 1)
+  
+  SNR = mean(flux[lightidx]/err[lightidx])
+  
+  MMWA = total(reform(agearr)*light_frac/reform(norm)) $
+               / total(light_frac/reform(norm))
+  
+  redd = exp(-tauv(wave[lightidx]/5500)^(-0.7))
+  light_weight = mean(custom_lib[lightidx,*]*rebin(redd,n_elements(lightidx),$
+                                                   n_elements(reform(agearr))),$
+                      dimension=1) * light_frac
+  
+  MLWA = total(light_weight * reform(agearr)) / total(light_weight)
+  
+  
+  MMWZ = total(Z*light_frac/norm) $
+               / total(light_frac/norm)
+  MLWZ = total(light_weight * Z) / total(light_weight)
+  
+  printf, lun, -1, p[2:*]/norm, MMWA, MLWA, MMWZ, MLWZ, vsys, tauv, SNR, chisq, redchi, $
+          bluechi, hkchi, format=fmt
+  
+end
+
 function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
                              yfit = yfit, fitregion = fitregion, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
@@ -219,16 +272,20 @@ if savestep eq 1 then begin
                Z: model.Z[vdidx,*], $
                norm: model.norm[vdidx,*], $
                lightidx: lightidx, $
+               custom_lib: custom_lib, $
                lun: lun, $
                wave: fitwave, $
                fmt: fmt}
+   mpe = {iterproc: 'savestep', iterargs: savedata}
 endif else begin
-   savedata = 0
+   mpe = {}
 endelse
 
 fitcoefs = mpfitfun('bc_mcombine_allz2', fitwave, fitflux, fiterr, $
                     parinfo = parinfo, $
-                    functargs = {mlib: fitlib, savedata: savedata}, $
+                    _EXTRA = mpe, $
+;iterproc = 'savestep', iterargs = savedata, $
+                    functargs = {mlib: fitlib}, $
                     perror=perror, niter=niter, status=status, $
                     errmsg=errmsg, maxiter = 50000, xtol=1d-10, ftol=1d-10, /NAN)
 
