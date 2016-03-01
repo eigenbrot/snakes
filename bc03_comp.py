@@ -133,7 +133,7 @@ def combine_sbands(output,numaps=10):
         print aps[sidx]
         for a, ap in enumerate(aps[sidx]):
             idx = np.where(data['aps'] == ap)
-            results[a,f,:] = eat_index(data['index'][idx])
+            results[a,f,:] = eat_index(data['eqwidth'][idx])
 
     
     outhdu = pyfits.PrimaryHDU(results)
@@ -180,7 +180,7 @@ def bc03_compare(databands, bc03bands, outputprefix):
 
     for a, ap in enumerate(aps[sidx]):
         idx = np.where(galdata['aps'] == ap)
-        bands = eat_index(galdata['index'][idx])
+        bands = eat_index(galdata['eqwidth'][idx])
         compdata = np.tile(bands,(numages,numZ,1))
         chigrid = np.sum((compdata - bc03data)**2/bc03data,axis=2)
         bestage, bestZ = np.unravel_index(np.argmin(chigrid),chigrid.shape)
@@ -264,7 +264,7 @@ def plot_bc03_grid(bc03_data_file, ax, band1, band2):
                 '-k')
         ax.text(bc03data[a+3,-1,band1],
                 bc03data[a+3,-1,band2],
-                '{:4.1f} Gyr'.format(agelist[a+3]),fontsize=8,ha='right')
+                '{:4.1f} Gyr'.format(agelist[a+3]),fontsize=6,ha='left')
     
     for z in range(numZ):
         # ax.plot(np.log10(bc03data[idx,z,band1]),
@@ -278,7 +278,7 @@ def plot_bc03_grid(bc03_data_file, ax, band1, band2):
                 ':k')
         ax.text(bc03data[idx[-1],z,band1],
                 bc03data[idx[-1],z,band2],
-                '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8)
+                '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
 
     return
 
@@ -313,8 +313,8 @@ def plot_index_grid(bc03_data_file,data_file,output):
                                   bandlist[p/2])
         ax.set_xlabel(ab[p%2])
         ax.set_ylabel(o[p/2])
-        ax.set_xlim(0.87,1.05)
-        ax.set_ylim(0.728,1.197)
+        # ax.set_xlim(0.87,1.05)
+        # ax.set_ylim(0.728,1.197)
         # ax.set_xlim(-0.060,0.021)
         # ax.set_ylim(-0.138,0.078)
         if p < 4:

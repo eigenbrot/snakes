@@ -227,7 +227,7 @@ def get_index(pointing, data, datfile=None):
             raw_input('')
 
         idx = np.where(galdata['aps'] == aps[i])
-        bands = bcc.eat_index(galdata['index'][idx])
+        bands = bcc.eat_index(galdata['eqwidth'][idx])
 
         data['Hb'][i] = bands[0]
         data['HdA'][i] = bands[1]
