@@ -8,9 +8,9 @@ glob = glob.glob
 
 basepath = '/d/monk/eigenbrot/WIYN/14B-0456'
 
-def create_yanny(pointing, output):
+def create_yanny(pointing, output, indexfile=None):
     
-    numaps = get_numaps(pointing)
+    numaps = get_numaps_loc(pointing)
     
     data = np.zeros((numaps,),
                     dtype = [('ap','i'),
@@ -48,11 +48,11 @@ def create_yanny(pointing, output):
                              ('az_redchi','f4'),
                              ('az_bluechi','f4')])
 
-    data = get_basics(pointing, data)
-    data = get_index(pointing, data)
-    data = get_unreg(pointing, data)
-    data = get_alltau(pointing, data)
-    data = get_allz(pointing, data)
+    data = get_basics_loc(pointing, data)
+    data = get_index(pointing, data, datfile=indexfile)
+#    data = get_unreg(pointing, data)
+#    data = get_alltau(pointing, data)
+#    data = get_allz(pointing, data)
 
     par = yanny(filename=None, np=True, debug=False)
     struct = par.dtype_to_struct(data.dtype, 
@@ -147,6 +147,13 @@ def get_numaps(pointing):
     
     return d.shape[0]
 
+def get_numaps_loc(pointing):
+
+    locfile = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+    print 'Getting numaps from {}'.format(locfile)
+    d = np.loadtxt(locfile)
+    return d.shape[0]
+
 def get_basics(pointing, data):
 
     datfile = glob('{}/anal/unreg/blue_chi/multi_Z/NGC*P{}*_fit.dat'.\
@@ -179,15 +186,33 @@ def get_basics(pointing, data):
 
     return data
 
-def get_index(pointing, data):
+def get_basics_loc(pointing, data):
 
-    datfile = glob('{}/anal/bc03_index/NGC*P{}*bands.dat'.\
-                   format(basepath, pointing))[0]
+    locfile = glob('NGC*P{}*_locations.dat'.\
+                   format(pointing))[0]
+    print 'Getting basic info from {}'.format(locfile)
+    
+    lid, size, r, z = np.loadtxt(locfile, 
+                                 usecols=(0,1,4,5), unpack=True)
+    for i in range(lid.size):
+        data['ap'][i] = lid[i]
+        data['apsize'][i] = size[i]
+        data['r'][i] = r[i]
+        data['z'][i] = z[i]
+
+    return data
+
+
+def get_index(pointing, data, datfile=None):
+
+    if datfile is None:
+        datfile = glob('{}/anal/indecies/NGC*P{}*dfkmid3*bands.dat'.\
+                       format(basepath, pointing))[0]
     print 'Getting index info from {}'.format(datfile)
 
     galdata = np.loadtxt(datfile,usecols=(0,1,5,6),
                          dtype={'names':('aps','bands','index','eqwidth'),
-                         'formats':('S35','S11','f4','f4')})
+                         'formats':('S50','S11','f4','f4')})
 
     aps = np.unique(galdata['aps'])
     sar = [int(s.split('(')[-1].split(')')[0]) for s in aps]
@@ -196,7 +221,7 @@ def get_index(pointing, data):
     sar = np.array(sar)[sidx]
 
     for i in range(aps.size):
-        if sar[i] != data['ap'][i]:
+        if sar[i] != data['ap'][i] + 1:
             print 'WARNING: index ap {} does not match data ap {}'.\
                 format(sar[i], data['ap'][i])
             raw_input('')
