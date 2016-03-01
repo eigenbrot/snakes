@@ -287,7 +287,7 @@ fitcoefs = mpfitfun('bc_mcombine_allz2', fitwave, fitflux, fiterr, $
 ;iterproc = 'savestep', iterargs = savedata, $
                     functargs = {mlib: fitlib}, $
                     perror=perror, niter=niter, status=status, $
-                    errmsg=errmsg, maxiter = 50000, xtol=1d-10, ftol=1d-10, /NAN)
+                    errmsg=errmsg, maxiter = 50000, xtol=1d-50, ftol=1d-50, /NAN)
 
 print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)
@@ -312,16 +312,17 @@ hkhigh = 4000
 hkidx = where(restwl gt hklow and restwl lt hkhigh)
 
 yfit = bc_mcombine_allz2(restwl, fitcoefs, mlib=custom_lib)
+freeparm = n_elements(parinfo.fixed) - total(parinfo.fixed)
 
 coefs.bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
 
-coefs.chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - n_elements(fitcoefs) - 1)
+coefs.chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - freeparm - 1)
 coefs.redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
-         (n_elements(redidx) - n_elements(fitcoefs) - 1)
+         (n_elements(redidx) - freeparm - 1)
 coefs.bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
-          (n_elements(blueidx) - n_elements(fitcoefs) - 1)
+          (n_elements(blueidx) - freeparm - 1)
 coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
-        (n_elements(hkidx) - n_elements(fitcoefs) - 1)
+        (n_elements(hkidx) - freeparm - 1)
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 
@@ -347,13 +348,13 @@ galfit[ok] = flux[ok]
 
 chivec = (flux - yfit)/err
 
-print, fitcoefs, format = '(60F6.1)'
-print, coefs.vsys
-print, coefs.tauv
-print, coefs.hkchi
-print, coefs.MLWZ
-print, coefs.MMWZ
-print, '$$$$$$$$$$$$$$$$$$$$$', coefs.MLWA
+;; print, fitcoefs, format = '(60F6.1)'
+;; print, coefs.vsys
+;; print, coefs.tauv
+;; print, coefs.hkchi
+;; print, coefs.MLWZ
+;; print, coefs.MMWZ
+;; print, '$$$$$$$$$$$$$$$$$$$$$', coefs.MLWA
 
 return, coefs
 
