@@ -157,7 +157,7 @@ for i = 0, numfibers - 1 DO BEGIN
               'MMWZ [Z_sol]','MLWZ [Z_sol]','V_sys','Tau_V','S/N','Chisq',$
               'redChi','blueChi','HKChi',$
               format='(A-11,'+string(numages + 5)+'A13,2A11,4A25)'
-      printf, lun, '#'
+      printf, savelun, '#'
    endif else begin
       savestep = 0
       savelun = 0
