@@ -7,6 +7,7 @@ from yanny import yanny
 from pyraf import iraf
 import time
 import prep_balmer as pb
+import scipy.stats as ss
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -56,12 +57,14 @@ def data_prep(datafile, velocity, output, isdata=True):
         cdelt = header['CDELT1']
         crpix = header['CRPIX1']
         crval = header['CRVAL1']
-        pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
-        fitfile = '{}_allz2.fit.fits'.format(datafile.split('.')[0])
-        contsub = '{}_contsub.ms.fits'.format(datafile.split('.')[0])
+        base = os.path.basename(datafile)
+        dirn = os.path.dirname(datafile)
+        pointing = int(re.search('_P([1-6])_',base).groups()[0])
+        fitfile = '{}/{}_allz2.fit.fits'.format(dirn,base.split('.')[0])
+        contsub = '{}/{}_contsub.ms.fits'.format(dirn,base.split('.')[0])
         pb.prep_spectra(datafile, fitfile, contsub, velocity)
         pb.do_fitprof(contsub, pointing)
-        emline = pyfits.open('P{}_HB_fits.fits'.format(pointing))[0].data
+        emline = pyfits.open('{}/P{}_HB_fits.fits'.format(dirn,pointing))[0].data
     else:
         #Hacky hack for fit files. These values should not really change, so I think it's OK
         cdelt = 2.1
@@ -99,17 +102,20 @@ def prep_all_data():
 
     return
 
-def run_sbands(findstr, bands):
+def run_sbands(findstr, bands, clobber=True):
     
     inputlist = glob(findstr)
     
     for data in inputlist:
         output = data.split('.fits')[0]+'.bands.dat'
         print '{} -> {}'.format(data,output)
+        if clobber and os.path.exists(output):
+            os.system('rm {}'.format(output))
         iraf.sbands(data,output,bands,
                     normali=True,
                     mag=False,
-                    verbose=True)
+                    verbose=True,
+                    _save=0)
         
     return
 
@@ -361,3 +367,107 @@ def plot_index_grid(bc03_data_file,data_file,output):
     pp.close()
     plt.close(fig)
     return 
+
+def model_compare(dataloc, modellist, output, prep=True, sband=True):
+
+    pp = PDF(output)
+    
+    bandlist = ['Hb','HdA','HgA','HdF','HgF','Fe','MgFe']
+    plotbands = [0,  1,     2,                5,   6]
+    
+    for p in range(6):
+        
+        fig = plt.figure()
+        lax = fig.add_subplot(111)
+        lax.set_axis_off()
+        lax.set_ylabel('Data')
+        lax.set_title('P{}\n{}'.format(p+1,time.asctime()),fontsize=8)
+        
+        #First, get the actual data
+        datafile = glob('{}/NGC_891_P{}*.ms.fits'.format(dataloc,p+1))[0]
+        velfile = glob('{}/NGC_891_P{}*velocities.dat'.format(dataloc,p+1))[0]
+        preppedfile = '{}/NGC_891_P{}_bin30.ms.bp.fits'.format(dataloc,p+1)
+    
+        print 'Grabbing', datafile
+
+        if prep:
+            data_prep(datafile, velfile, preppedfile)
+        
+        if sband:
+            try:
+                run_sbands(preppedfile, 'LICK.bands'.format(dataloc))
+            except Exception as e:
+                print e
+                run_sbands(preppedfile, 'LICK.bands'.format(dataloc))
+
+        bandfile = '{}/NGC_891_P{}_bin30.ms.bp.bands.dat'.format(dataloc,p+1)
+        data = quick_eat(bandfile)
+
+        #Now the different models
+        linelist = []
+        leglist = []
+        axlist = []
+        for axn, band in enumerate(plotbands):
+            ax = fig.add_subplot(3,2,axn+2)
+            ax.text(0.1,0.85,bandlist[band],transform=ax.transAxes)
+            ax.tick_params(axis='both',labelsize=8)
+            axlist.append(ax)
+
+        for mnum, mloc in enumerate(modellist):
+            lax.set_xlabel(mloc)
+            
+            print '{}/NGC_891_P{}*.fit.fits'.format(mloc,p+1)
+            modelfile = glob('{}/NGC_891_P{}*.fit.fits'.format(mloc,p+1))[0]
+            Mvelfile = glob('{}/NGC_891_P{}*velocities.dat'.format(mloc,p+1))[0]
+            Mpreppedfile = '{}/NGC_891_P{}_bin30_allz2.fit.bp.fits'.format(mloc,p+1)
+
+            print 'Grabbing', modelfile
+            
+            if prep:
+                data_prep(modelfile, Mvelfile, Mpreppedfile, isdata=False)
+
+            if sband:
+                try:
+                    run_sbands(Mpreppedfile, 'LICK.bands'.format(dataloc))
+                except Exception as e:
+                    #Fuck you, IRAF
+                    print e
+                    run_sbands(Mpreppedfile, 'LICK.bands'.format(dataloc))
+            
+            Mbandfile = '{}/NGC_891_P{}_bin30_allz2.fit.bp.bands.dat'.format(mloc,p+1)
+            model = quick_eat(Mbandfile)
+            
+            print data.shape
+            print model.shape
+
+            for axn, band in enumerate(plotbands):
+                l = axlist[axn].plot(data[:,band],model[:,band],'.')[0]
+                tau, pval = ss.kendalltau(data[:,band], model[:,band])
+                CI = (1-ss.norm.cdf(ss.norm.isf(tau)))*100
+                axlist[axn].text(0.9,0.9-mnum*0.05,'{:4.2f}'.format(tau),color=l.get_color(),
+                                 transform=axlist[axn].transAxes,fontsize=5)
+                # if axn != 0 and axn %2 == 0:
+                #     ax.set_yticklabels([])
+                # if axn < 3:
+                #     ax.set_xticklabels([])
+
+            linelist.append(l)
+            leglist.append(os.path.basename(mloc))
+
+        for ax in axlist:
+            ax.autoscale(False)
+            ax.plot([-100,100],[-100,100],':k',alpha=0.3)
+                        
+
+        kax = fig.add_axes([0.2,0.7,0.2,0.2])
+        kax.set_xlabel('Data')
+        kax.set_ylabel('Model')
+        kax.set_xticklabels([])
+        kax.set_yticklabels([])
+        kax.legend(linelist, leglist, loc='center',fontsize=8, numpoints=1,frameon=False)
+        # fig.subplots_adjust(hspace=0.0001, wspace=0.0001)
+        fig.tight_layout(h_pad=0.2,w_pad=1.2)
+        pp.savefig(fig)
+        plt.close(fig)
+
+    pp.close()
