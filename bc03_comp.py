@@ -151,6 +151,32 @@ def combine_sbands(output,numaps=10):
 
     return
 
+def quick_eat(datafile, numbands=7):
+
+    data = np.loadtxt(datafile,usecols=(0,1,5,6),
+                      dtype={'names':('aps','bands','index','eqwidth'),
+                             'formats':('S80','S11','f4','f4')},
+                      converters={5: eat_indef, 6: eat_indef})
+    aps = np.unique(data['aps'])
+    sar = [int(s.split(',')[-1].split(']')[0]) for s in aps]
+    sidx = np.argsort(sar)
+    numaps = aps.size
+    results = np.zeros((numaps,numbands))
+    for a, ap in enumerate(aps[sidx]):
+        idx = np.where(data['aps'] == ap)
+        results[a,:] = eat_index(data['eqwidth'][idx])
+    
+    return results
+
+def eat_indef(s):
+
+    try:
+        res = np.float(s)
+    except ValueError:
+        res = np.nan
+
+    return res
+
 def bc03_compare(databands, bc03bands, outputprefix):
 
     pp = PDF('{}.pdf'.format(outputprefix))
