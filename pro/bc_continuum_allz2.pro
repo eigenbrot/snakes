@@ -301,7 +301,8 @@ coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          light_frac_err: perror[2:*]*light_factor, $
          model_age: model.age[vdidx,*], chisq: 0.0D, $
          redchi: 0.0D, bluechi: 0.0D, hkchi: 0.0D, $
-         bluefree: 0L, MMWA: 0.0D, MLWA: 0.0D, $
+         bluefree: 0L, totfree: 0L, redfree: 0L, hkfree: 0L,$
+         MMWA: 0.0D, MLWA: 0.0D, $
          MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
 
 ; fit to full spectrum including masked pixels
@@ -314,15 +315,15 @@ hkidx = where(restwl gt hklow and restwl lt hkhigh)
 yfit = bc_mcombine_allz2(restwl, fitcoefs, mlib=custom_lib)
 freeparm = n_elements(parinfo.fixed) - total(parinfo.fixed)
 
-coefs.bluefree = (n_elements(blueidx) - n_elements(fitcoefs) - 1)
+coefs.bluefree = (n_elements(blueidx) - freeparm - 1)
+coefs.totfree = (n_elements(flux) - freeparm - 1)
+coefs.redfree = (n_elements(redidx) - freeparm - 1)
+coefs.hkfree = (n_elements(hkidx) - freeparm - 1)
 
-coefs.chisq = total((yfit - flux)^2/err^2)/(n_elements(flux) - freeparm - 1)
-coefs.redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/$
-         (n_elements(redidx) - freeparm - 1)
-coefs.bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/$
-          (n_elements(blueidx) - freeparm - 1)
-coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/$
-        (n_elements(hkidx) - freeparm - 1)
+coefs.chisq = total((yfit - flux)^2/err^2)/coefs.totfree
+coefs.redchi = total((yfit[redidx] - flux[redidx])^2/err[redidx]^2)/coefs.redfree
+coefs.bluechi = total((yfit[blueidx] - flux[blueidx])^2/err[blueidx]^2)/coefs.bluefree
+coefs.hkchi = total((yfit[hkidx] - flux[hkidx])^2/err[hkidx]^2)/coefs.hkfree
 ;redchi = total((yfit - flux)^2/err^2)/(n_elements(flux) + n_elements(fitcoefs) - 1)
 
 

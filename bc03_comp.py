@@ -461,7 +461,7 @@ def model_compare(dataloc, modellist, output, prep=True, sband=True):
 
         kax = fig.add_axes([0.2,0.7,0.2,0.2])
         kax.set_xlabel('Data')
-        kax.set_ylabel('Model')
+        kax.set_ylabel('Best Fit Model')
         kax.set_xticklabels([])
         kax.set_yticklabels([])
         kax.legend(linelist, leglist, loc='center',fontsize=8, numpoints=1,frameon=False)
