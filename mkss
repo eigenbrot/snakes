@@ -17,7 +17,7 @@ VELSTART=""
 PYPLOT="~/snakes/plot_bc_vardisp.py"
 MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits"
 
-while [[ $# > 1 ]]
+while [[ $# -gt 1 ]]
 do
     key=$1
     case $key in
@@ -75,7 +75,7 @@ done
 
 P=$1
 
-if [[ $FV = 1 ]]; then
+if [[ $FV -eq 1 ]]; then
     VELOCITY=" velocity='NGC_891_P${P}_bin30_velocities.dat',"
 else
     VELOCITY=""
@@ -93,14 +93,14 @@ echo $idlcmd >> $scrfile
 echo $plotcmd >> $scrfile
 echo $chicmd >> $scrfile
 
-if [[ $S>1 ]]; then
+if [[ $S -gt 1 ]]; then
     echo $plotcmd "-s $S" >> $scrfile
 fi
 
-if [[ $B==1 ]]; then
+if [[ $B -eq 1 ]]; then
     echo $plotcmd "-b" >> $scrfile
     echo $chicmd "-b" >> $scrfile
-    if [[ $S>1 ]]; then
+    if [[ $S -gt 1 ]]; then
 	echo $plotcmd "-b -s $S" >> $scrfile
     fi
 fi
