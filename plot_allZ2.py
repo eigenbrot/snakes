@@ -226,6 +226,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         print dat
         loc = glob('*P{}*locations.dat'.format(pointing))[0]
         print loc
+        print 'Excluding: ', exclude[pointing-1]
     
         td = np.loadtxt(dat, usecols=(col,), unpack=True)
         r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
@@ -241,7 +242,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
             ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
             linelabel = 'P{}'.format(pointing)
 
-        exarr = np.array(exclude[i])-1 #becuase aps are 1-indexed
+        exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
         td = np.delete(td,exarr)
         t = np.delete(r,exarr)
         tz = np.delete(tz,exarr)
