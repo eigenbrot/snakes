@@ -262,10 +262,12 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         d = d[gidx]
         z = z[gidx]
         e = e[gidx]
-        
+
         sidx = np.argsort(z)
-        mean = bn.move_mean(d[sidx],order)
-        std = bn.move_std(d[sidx],order)
+        dp = np.r_[d[sidx][order::-1],d[sidx]]
+        zp = np.r_[z[sidx][order::-1],z[sidx]]
+        mean = bn.move_mean(dp,order)[order+1:]
+        std = bn.move_std(dp,order)[order+1:]
         spl = spi.UnivariateSpline(z[sidx],d[sidx])
         mean = spl(z[sidx])
         # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
