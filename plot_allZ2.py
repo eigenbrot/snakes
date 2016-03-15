@@ -286,7 +286,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
     if ylims is not None:
         bigax.set_ylim(*ylims)
 
-    axlist.append(bigax)
+    axlist = [bigax] + axlist
 
     return axlist
 

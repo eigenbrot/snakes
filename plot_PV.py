@@ -25,7 +25,7 @@ def plot_PV(prefix='',
 
     for i in range(6):
 
-        dat = glob('{}*P{}*xcor.dat'.format(prefix,i+1))[0]
+        dat = glob('{}*P{}*velocities.dat'.format(prefix,i+1))[0]
         print dat
         loc = glob('{}*P{}*locations.dat'.format(prefix,i+1))[0]
         print loc
