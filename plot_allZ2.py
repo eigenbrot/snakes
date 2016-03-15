@@ -200,7 +200,8 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=5, ylims=None, exclude=[[],[],[],[],[],[]]):
+                col=62, order=5, ylims=None, labelr=False,
+                exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
     dd = np.array([])
@@ -221,11 +222,6 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         color = color_list[i]
         style = style_list[i]
 
-        ax = plt.figure().add_subplot(111)
-        ax.set_xlabel('|Height [kpc]|')
-        ax.set_ylabel(label)
-        ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
-
         dat = glob('*P{}*{}'.format(pointing, inputsuffix))[0]
         print dat
         loc = glob('*P{}*locations.dat'.format(pointing))[0]
@@ -233,7 +229,18 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
     
         td = np.loadtxt(dat, usecols=(col,), unpack=True)
         r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
-        
+        avgr = np.mean(r)
+
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('|Height [kpc]|')
+        ax.set_ylabel(label)
+        if labelr:
+            ax.set_title('{:4.0f} kpc'.format(avgr))
+            linelabel = '{:4.0f} kpc'.format(avgr)
+        else:
+            ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
+            linelabel = 'P{}'.format(pointing)
+
         exarr = np.array(exclude[i])-1 #becuase aps are 1-indexed
         td = np.delete(td,exarr)
         t = np.delete(r,exarr)
@@ -264,7 +271,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
         # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
         # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
 
-        bigax.plot(z[sidx],mean, label='P{}'.format(pointing), color=color, ls=style)
+        bigax.plot(z[sidx],mean, label=linelabel, color=color, ls=style)
         bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
         
         ax.plot(z[sidx],mean,color=color, ls=style)
@@ -311,7 +318,7 @@ def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     return
 
-def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0):
+def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0, labelr=False):
 
     clist = [6,5,10,7,8]
     llist = ['Mean Light Weighted Age [Gyr]',
@@ -324,7 +331,7 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0):
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
         pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
-        for x in simple_plot(col=c+offset,label=l,ylims=yl,exclude=exclude,order=order):
+        for x in simple_plot(col=c+offset,label=l,ylims=yl,exclude=exclude,order=order,labelr=labelr):
             pp.savefig(x.figure)
 
         pp.close()
