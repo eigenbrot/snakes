@@ -200,7 +200,7 @@ def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
     return
 
 def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]', 
-                col=62, order=5, ylims=None, labelr=False,
+                col=62, order=5, ylims=None, labelr=False, bigpoints=False,
                 exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
@@ -276,6 +276,8 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
         bigax.plot(z[sidx],mean, label=linelabel, color=color, ls=style)
         bigax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
+        if bigpoints:
+            bigax.errorbar(z, d, yerr=e, fmt='.', color=color, alpha=0.6, capsize=0)
         
         ax.plot(z[sidx],mean,color=color, ls=style)
         ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
@@ -321,7 +323,8 @@ def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     return
 
-def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0, labelr=False):
+def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], 
+              offset=0, labelr=False, bigpoints=False):
 
     clist = [6,5,10,7,8]
     llist = ['Mean Light Weighted Age [Gyr]',
@@ -334,7 +337,9 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]], offset=0, labelr=Fal
 
     for c, l, sl, yl in zip(clist, llist, sllist, yllist):
         pp = PDF('{}_{}_heights.pdf'.format(prefix,sl))
-        for x in simple_plot(col=c+offset,label=l,ylims=yl,exclude=exclude,order=order,labelr=labelr):
+        for x in simple_plot(col=c+offset,label=l,ylims=yl,
+                             exclude=exclude,order=order,
+                             labelr=labelr,bigpoints=bigpoints):
             pp.savefig(x.figure)
 
         pp.close()
