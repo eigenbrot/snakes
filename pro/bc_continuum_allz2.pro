@@ -104,7 +104,7 @@ end
 function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
                              yfit = yfit, fitregion = fitregion, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
-                             chivec=chivec, fixedV=fixedV
+                             chivec=chivec, fixedV=fixedV, parinfo=parinfo
 
 light_factor = 100.
 vel_factor = 100.
@@ -127,25 +127,29 @@ nmodels = dims[2]
 ; Constrain model fit coefs to be positive, let TauV be pos or neg
 ; (fitcoefs = [TauV, model_coefs[*]])
 
-parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
-                    limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
+if not keyword_set(parinfo) then begin
+   parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
+                        limits:[0.0,0], step:0, relstep:0}, nmodels + 2)
 
-if keyword_set(fixedV) then begin 
-   parinfo[0].value = fixedV/vel_factor
-   parinfo[0].fixed = 1
-   fixedVBool = 1
+   if keyword_set(fixedV) then begin 
+      parinfo[0].value = fixedV/vel_factor
+      parinfo[0].fixed = 1
+      fixedVBool = 1
+   endif else begin
+      parinfo[0].limited = [1,1]
+      parinfo[0].limits = [(velstart - 200.)/vel_factor, (velstart + 200.)/vel_factor]
+      parinfo[0].fixed = 0
+      parinfo[0].value = velstart/vel_factor
+      fixedVBool = 0
+   endelse
+
+   parinfo[1].limited = [1,1]
+   parinfo[1].limits = [0.,20.]
+   parinfo[2:*].limited = [1,0]
+   parinfo[2:*].limits = [0.,0.]
 endif else begin
-   parinfo[0].limited = [1,1]
-   parinfo[0].limits = [(velstart - 200.)/vel_factor, (velstart + 200.)/vel_factor]
-   parinfo[0].fixed = 0
-   parinfo[0].value = velstart/vel_factor
-   fixedVBool = 0
+   fixedVBool = 1
 endelse
-
-parinfo[1].limited = [1,1]
-parinfo[1].limits = [0.,20.]
-parinfo[2:*].limited = [1,0]
-parinfo[2:*].limits = [0.,0.]
 
 ;Put in some age/metallicity priors
 ;default: don't fit

@@ -1,6 +1,6 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                     velocity=velocity, emmaskw=emmaskw, $
+                     velocity=velocity, emmaskw=emmaskw, parinfofile=parinfofile, $
                      model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
@@ -147,6 +147,13 @@ for i = 0, numfibers - 1 DO BEGIN
       fixedV = 0
    endelse
 
+   if keyword_set(parinfofile) then begin
+      parinfo = mrdfits(parinfofile, i+1)
+   endif else begin
+      parinfo = 0
+   endelse
+   
+
    if keyword_set(savestep) then begin
       savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i+1,format='(I02)') + '_steps.dat'
       openw, savelun, savename, /get_lun
@@ -170,7 +177,7 @@ for i = 0, numfibers - 1 DO BEGIN
                              yfit=yfit, velstart=velstart, emmaskw=emmaskw, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
-                             chivec=chivec)
+                             chivec=chivec, parinfo=parinfo)
    
    if savestep then free_lun, savelun
 ;; ; measure absorption line indices
