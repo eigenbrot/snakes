@@ -26,6 +26,10 @@ rc('ps', usedistiller='Xpdf')
 rc('xtick', labelsize=10.0)
 rc('ytick', labelsize=10.0)
 
+exclude = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29], [35, 36, 38]]
+e2 = [[5, 7, 9, 30, 34], [1, 2, 3, 11, 32, 33, 34, 35, 37], 
+      [1, 3, 4, 50, 53, 54, 55, 59], [1, 2, 15], [1, 2, 3, 5, 24, 27, 28, 29], [35, 36, 37, 38]]
+
 def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
 
     datname = output.split('.pdf')[0]+'.dat'
