@@ -31,4 +31,4 @@ ps.all_maps('{}_MLWZ_map.pdf'.format(pre),col=8+offset,inputsuffix='allz2.dat',l
 ps.all_maps('{}_V_map.pdf'.format(pre),col=9+offset,inputsuffix='allz2.dat',label='Velocity [km/s]', minval=298, maxval=758,binned=True,cmap='bwr',exclude=exclude)
 ps.all_maps('{}_TauV_map.pdf'.format(pre),col=10+offset,inputsuffix='allz2.dat',label=r'$\tau_V$', minval=0, maxval=5,binned=True,exclude=exclude)
 
-pa2.dfk_batch(sys.argv[1],offset=offset)
+pa2.dfk_batch(sys.argv[1],offset=offset,exclude=exclude)
