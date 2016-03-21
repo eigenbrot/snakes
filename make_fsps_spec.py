@@ -13,8 +13,8 @@ def make_single_age(age, Z=1.0, wavemin=3000, wavemax=9000):
                       0.0150, 0.0190, 0.0240, 0.0300])/0.0190
 
     
-    zidx = np.argmin(np.abs(Z - z_arr))
-    print '\t',zidx+1
+    zidx = np.argmin(np.abs(Z - z_arr))+1
+    print '\t',zidx
     if zidx.size == 0:
         print 'Could not find Z = {}'.format(Z)
         return
