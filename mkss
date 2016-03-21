@@ -66,6 +66,10 @@ do
 	    echo "Using model ${MODNAM}"
 	    shift
 	    ;;
+	-o)
+	    O='o'
+	    echo "Using offset data"
+	    ;;
 	*)
 	    
 	    ;;
@@ -81,11 +85,11 @@ else
     VELOCITY=""
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms.fits','NGC_891_P${P}_bin30.me.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}', emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms${O}.fits','NGC_891_P${P}_bin30.me${O}.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}', emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
 
-plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms.fits NGC_891_P${P}_bin30.me.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
+plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms${O}.fits NGC_891_P${P}_bin30.me${O}.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
 
-chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30.ms.fits -n"
+chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30.ms${O}.fits -n"
 
 scrfile="P${P}.sh"
 echo '#!/bin/bash' > $scrfile

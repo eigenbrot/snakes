@@ -38,6 +38,31 @@ def main(offset=74):
 
     return
 
+def shift_data_files(offset=74.):
+    import numpy as np
+
+    base = 'NGC_891_P{}_bin30'
+
+    for p in range(6):
+        for suff in ['.ms','.me']:
+            hdu = pyfits.open(base.format(p+1)+suff+'.fits')[0]
+            data = hdu.data
+            header = hdu.header
+
+            cdelt = header['CDELT1']
+            crpix = header['CRPIX1']
+            crval = header['CRVAL1']
+    
+            wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
+
+            shift = np.vstack([np.interp(wave,wave*(1 + offset/3e5),data[i,:]*1e17) for i in range(data.shape[0])])
+            
+            new = base.format(p+1)+suff+'o.fits'
+            print base.format(p+1)+suff+'.fits', '-->', new
+            pyfits.PrimaryHDU(shift/1e17, header).writeto(new,clobber=True)
+
+    return
+
 if __name__ == '__main__':
     try:
         main(offset=float(sys.argv[1]))
