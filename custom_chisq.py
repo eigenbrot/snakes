@@ -17,10 +17,13 @@ def edit_errors(inputfile, velocityfile,
     wave = (np.arange(data.shape[1]) - (hdu.header['CRPIX1'] - 1))*hdu.header['CDELT1'] + hdu.header['CRVAL1']
 
     for i in range(data.shape[0]):
-        tcents = np.array(centlist)*(V[i]/3e5 + 1)
         mod = np.zeros(data.shape[1])
-        for c in tcents:
-            idx = np.argmin(np.abs(wave - c))
+        for c in centlist:
+            tc = np.array(c)*(V[i]/3e5 + 1)
+            if tc.size == 1:
+                idx = np.argmin(np.abs(wave - c))
+            else:
+                idx = np.where((wave >= tc[0]) & (wave <= tc[1]))[0]
             mod[idx] = 1.
 
         # ax = plt.figure().add_subplot(111)
@@ -38,12 +41,20 @@ def edit_errors(inputfile, velocityfile,
 
     return output
 
-def batch_edit(width=20, amp=10, centlist=[3969., 3934., 4102., 4341., 4861.]):
+def batch_edit(width=20, amp=100, centlist=None, metal=False):
     
+    if centlist is None:
+        if metal:
+            centlist = [[6000.,6300.],4780.,4930.]
+            suff = 'Z'
+        else:
+            centlist = [4304.4, 4341., 4102., 3933.7, 3968.5, 3970.18]
+            suff = 'A'
+
     for p in range(6):
-        inputfile = 'NGC_891_P{}_bin30.me.fits'.format(p+1)
+        inputfile = 'NGC_891_P{}_bin30.meo.fits'.format(p+1)
         velocity = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
-        output = 'NGC_891_P{}_bin30.mec.fits'.format(p+1)
+        output = 'NGC_891_P{}_bin30.meo{}.fits'.format(p+1,suff)
         print '{} -> {}'.format(inputfile, output)
         
         edit_errors(inputfile, velocity, output=output,
