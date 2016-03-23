@@ -35,9 +35,10 @@ dfklims = [[0.9,5.2],$
            [6000,13500]]/1e3
 
 
-modelpaths = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/FSPS/FSPS_models/raw/fsps_MILES_cha00190z.ssp']
+modelpaths = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/FSPS/FSPS_models/raw/fsps_MILES_cha00190z.ssp',$
+              '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/FSPS/FSPS_models/raw/fsps_MILES_cha00077z.ssp']
 
-Z_arr = [1]
+Z_arr = [1,0.4]
 numZ = n_elements(Z)
 
 ; Set up log-lambda wavelength grid
