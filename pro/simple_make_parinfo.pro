@@ -1,4 +1,4 @@
-function simple_make_parinfo, coeffile, output, fixweights=fixweights, fixtau=fixtau
+function simple_make_parinfo, coeffile, output, fixweights=fixweights, fixtau=fixtau, zeroweights=zeroweights, zerotau=zerotau
 
 light_factor = 100.
 vel_factor = 100.
@@ -31,6 +31,9 @@ parinfo[*,0].fixed = 1
 
 if keyword_set(fixtau) then parinfo[*,1].fixed=1
 if keyword_set(fixweights) then parinfo[*,2:*].fixed=1
+
+if keyword_set(zerotau) then parinfo[*,1].value = 0.0
+if keyword_set(zeroweights) then parinfo[*,2:*].value = 0.0
 
 mwrfits, parinfo[0,*], output, /create
 for p = 1, nap - 1 do begin
