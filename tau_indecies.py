@@ -14,7 +14,9 @@ plt.ioff()
 iraf.noao(_doprint=0)
 iraf.onedspec(_doprint=0)
 
-def make_galaxies(tausf_list = [10,8,5,1]):
+deftlst = [13,8,5,4,3,2,1]
+
+def make_galaxies(tausf_list = deftlst):
 
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
@@ -123,7 +125,7 @@ def run_sbands(findstr, bands, clobber=True):
         
     return
 
-def combine_sbands(output,numaps=10):
+def combine_sbands(output,numaps=len(deftlst)):
 
     numbands = 7
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -278,7 +280,7 @@ def plot_bc03_grid(bc03_data_file, ax, band1, band2):
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     fraclist = np.sort(fraclist)
     
-    tausf_list = np.array([10, 8, 5, 1])
+    tausf_list = np.array(deftlst)
 
     bc03data = pyfits.open(bc03_data_file)[0].data
     numtau, numZ, numindex = bc03data.shape
@@ -312,16 +314,22 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[]):
     
     res = quick_eat(datafile)
+    pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
+    loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+    z = np.loadtxt(loc,usecols=(5,),unpack=True)
+
+    res = np.delete(res,exclude,axis=0)
+    z = np.delete(z,exclude)
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=40, linewidths=0,
-                      alpha=0.7)
+                      c=np.abs(z), alpha=0.7, cmap=plt.cm.gnuplot2)
 
     return scat
 
-def plot_index_grid(bc03_data_file,data_file,output):
+def plot_index_grid(bc03_data_file,data_file,output,exclude=[]):
     
     fig = plt.figure(figsize=(12,11))
     
@@ -339,7 +347,8 @@ def plot_index_grid(bc03_data_file,data_file,output):
                        p/2)
         scat = plot_quick_on_grid(data_file, ax,
                                   5 + (p % 2),
-                                  p/2)
+                                  p/2,
+                                  exclude=exclude)
         ax.set_xlabel(ab[p%2])
         ax.set_ylabel(o[p/2])
         # ax.set_xlim(0.87,1.05)
@@ -355,8 +364,8 @@ def plot_index_grid(bc03_data_file,data_file,output):
 
     fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
     
-    # cb = fig.colorbar(scat,ax=axes)
-    # cb.set_label('z [kpc]')
+    cb = fig.colorbar(scat,ax=axes)
+    cb.set_label('|z| [kpc]')
     fig.suptitle('{}\nGenerated on {}'.format(data_file,time.asctime()))
 
     pp = PDF(output)
