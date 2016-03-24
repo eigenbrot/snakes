@@ -3,14 +3,14 @@ import time
 import numpy as np
 import pyfits
 import matplotlib
-matplotlib.use('agg')
+#matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import scipy.ndimage as spnd
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 def make_galaxy(output,
                 SSPs = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
-                sigma = '/d/monk/eigenbrot/WIYN/14B-0456/anal/SN_realization/Noise.fits',
+                sigma = '/d/monk/eigenbrot/WIYN/14B-0456/anal/pre_ind/SN_realization/Noise.fits',
                 vdisp = 209.34,
                 tau_sf = 8.0,
                 t_form = 12.0,
@@ -21,7 +21,8 @@ def make_galaxy(output,
                 SNmax = 5550.,
                 lightmin = 5450.,
                 lightmax = 5550.,
-                makeplot=True):
+                makeplot=True,
+                writeoutput=True):
 
     '''Makes a galaxy by adding up SSPs with different ages based on a tau star
     formation model:
@@ -83,9 +84,10 @@ def make_galaxy(output,
     bc03_pix = 70.0
     bc03_vdisp = 75.0
 
-    vdisp_add = np.sqrt(vdisp**2 - bc03_vdisp**2)
-    sigma_pix = vdisp_add / bc03_pix
-    lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
+    if vdisp > bc03_vdisp:
+        vdisp_add = np.sqrt(vdisp**2 - bc03_vdisp**2)
+        sigma_pix = vdisp_add / bc03_pix
+        lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
     
     if np.isfinite(SN):
         linwave, lingal, error = add_noise(linwave, lingal, sigma, SN,
@@ -136,33 +138,34 @@ def make_galaxy(output,
         pp.savefig(fig)
         pp.close()
 
-    outname = '{}.ms_lin.fits'.format(output)
-    hdu = pyfits.PrimaryHDU(lingal)
-    hdu.header.update('CTYPE1','LINEAR')
-    hdu.header.update('CRPIX1',1)
-    hdu.header.update('CRVAL1',linwave[0])
-    hdu.header.update('CDELT1',np.mean(np.diff(linwave)))
-    hdu.writeto(outname,clobber=True)
+    if writeoutput:
+        outname = '{}.ms_lin.fits'.format(output)
+        hdu = pyfits.PrimaryHDU(lingal)
+        hdu.header.update('CTYPE1','LINEAR')
+        hdu.header.update('CRPIX1',1)
+        hdu.header.update('CRVAL1',linwave[0])
+        hdu.header.update('CDELT1',np.mean(np.diff(linwave)))
+        hdu.writeto(outname,clobber=True)
 
-    errname = '{}.me_lin.fits'.format(output)
-    ehdu = pyfits.PrimaryHDU(error)
-    ehdu.header.update('CTYPE1','LINEAR')
-    ehdu.header.update('CRPIX1',1)
-    ehdu.header.update('CRVAL1',linwave[0])
-    ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
-    ehdu.writeto(errname,clobber=True)
+        errname = '{}.me_lin.fits'.format(output)
+        ehdu = pyfits.PrimaryHDU(error)
+        ehdu.header.update('CTYPE1','LINEAR')
+        ehdu.header.update('CRPIX1',1)
+        ehdu.header.update('CRVAL1',linwave[0])
+        ehdu.header.update('CDELT1',np.mean(np.diff(linwave)))
+        ehdu.writeto(errname,clobber=True)
 
-    f = open('{}_model.dat'.format(output),'w')
-    f.write(str('# Generated on {}\n' + 
-                '# tau_sf = {:}\n' +
-                '# tau_V = {:}\n' +
-                '# vdisp = {:}\n' +
-                '# Mtot = {:3.1e}\n').format(time.asctime(),tau_sf,tau_V,vdisp,Mtot))
-    f.write(str('# {:>11}'+weighted_age.size*'{:>9.3f} Gyr'+'{:>13}{:>13}\n#\n').\
-            format('Num',*weighted_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
-    f.write(str('{:13}'+'{:13.3e}'*(weighted_age.size+2)).format(1,*mass.tolist()+[MMWA,MLWA]))
-    f.write('\n')
-    f.close()
+        f = open('{}_model.dat'.format(output),'w')
+        f.write(str('# Generated on {}\n' + 
+                    '# tau_sf = {:}\n' +
+                    '# tau_V = {:}\n' +
+                    '# vdisp = {:}\n' +
+                    '# Mtot = {:3.1e}\n').format(time.asctime(),tau_sf,tau_V,vdisp,Mtot))
+        f.write(str('# {:>11}'+weighted_age.size*'{:>9.3f} Gyr'+'{:>13}{:>13}\n#\n').\
+                format('Num',*weighted_age.tolist()+['MMWA [Gyr]','MLWA [Gyr]']))
+        f.write(str('{:13}'+'{:13.3e}'*(weighted_age.size+2)).format(1,*mass.tolist()+[MMWA,MLWA]))
+        f.write('\n')
+        f.close()
 
     return {'wave':linwave, 'flux':lingal, 'err':error,
             'MMWA': MMWA, 'MLWA': MLWA, 'age': weighted_age, 'mass': mass}
