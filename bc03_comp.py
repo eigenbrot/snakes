@@ -374,10 +374,11 @@ def model_compare(dataloc, modellist, output, prep=True, sband=True):
     
     bandlist = ['Hb','HdA','HgA','HdF','HgF','Fe','MgFe']
     plotbands = [0,  1,     2,                5,   6]
+    axlims = [[1,6], [-5,9],[-7,7],[0,3.5],[0,4]]
     
     for p in range(6):
         
-        fig = plt.figure()
+        fig = plt.figure(figsize=(6,8))
         lax = fig.add_subplot(111)
         lax.set_axis_off()
         lax.set_ylabel('Data')
@@ -408,7 +409,7 @@ def model_compare(dataloc, modellist, output, prep=True, sband=True):
         leglist = []
         axlist = []
         for axn, band in enumerate(plotbands):
-            ax = fig.add_subplot(3,2,axn+2)
+            ax = fig.add_subplot(3,2,axn+2,aspect='equal')
             ax.text(0.1,0.85,bandlist[band],transform=ax.transAxes)
             ax.tick_params(axis='both',labelsize=8)
             axlist.append(ax)
@@ -446,6 +447,8 @@ def model_compare(dataloc, modellist, output, prep=True, sband=True):
                 CI = (1-ss.norm.cdf(ss.norm.isf(tau)))*100
                 axlist[axn].text(0.9,0.9-mnum*0.05,'{:4.2f}'.format(tau),color=l.get_color(),
                                  transform=axlist[axn].transAxes,fontsize=5)
+                axlist[axn].set_xlim(*axlims[axn])
+                axlist[axn].set_ylim(*axlims[axn])
                 # if axn != 0 and axn %2 == 0:
                 #     ax.set_yticklabels([])
                 # if axn < 3:
