@@ -121,7 +121,8 @@ def compute_rms_spec(swindow=100):
     rms_A = np.sqrt(rms_A)/nmetal
 #    ax.plot(wave,rms_Z,label='total')
     ax.legend(loc=0)
-    mfig.savefig('A_rms.png',dpi=100)
+    add_line_labels(ax)
+    mfig.savefig('A_rms2.png',dpi=200)
 
     #Age axis
     afig = plt.figure()
@@ -139,7 +140,8 @@ def compute_rms_spec(swindow=100):
     rms_Z = np.sqrt(rms_Z)/nage
 #    ax.plot(wave, rms_A,label='total')
     ax.legend(loc=0)
-    afig.savefig('Z_rms.png',dpi=100)
+    add_line_labels(ax)
+    afig.savefig('Z_rms2.png',dpi=200)
 
     #All
     bigfig = plt.figure()
@@ -153,7 +155,32 @@ def compute_rms_spec(swindow=100):
     ax.plot(wave, rms_Z/np.mean(rms_Z)*np.mean(rms_A), label=r'RMS$_Z$')
     ax.plot(wave, rms_A, label=r'RMS$_{\rm age}$')
     ax.legend(loc=0)
-    bigfig.show()
-    bigfig.savefig('big_RMS.png',dpi=100)
+    add_line_labels(ax)    
+#    bigfig.show()
+    bigfig.savefig('big_RMS2.png',dpi=200)
 
     return bigD
+
+def add_line_labels(ax):
+
+    em = np.array([6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8])
+    emnam = [r'H$\alpha$', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
+        
+    ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102.])
+    absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$']
+
+    emposfac = [2,1,3,1,2,3]
+    absposfac = [1,2,3,1,3,2,1,2,1,1,1,1]
+    ymin, ymax = ax.get_ylim()
+    
+    for e, en, ef in zip(em, emnam, emposfac):
+        top_pos = ymax + 0.01*ef*2*(ymax - ymin)
+        ax.axvline(x = e, color='b', alpha=0.2)
+        ax.text(e, top_pos, en, ha='center', fontsize=8)
+
+    for a, an, af in zip(ab, absnam, absposfac):
+        top_pos = ymax + 0.01*af*2*(ymax - ymin)
+        ax.axvline(x = a, color='r', alpha=0.2)
+        ax.text(a, top_pos, an, ha='center', fontsize=8)
+
+    return
