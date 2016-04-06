@@ -2,18 +2,29 @@
 
 PRE=""
 
-if [ $# -eq 1 ]; then
-    PRE="$1_"
-fi
+while [[ $# -gt 0 ]]
+do
+    key=$1
+    case $key in
+	-u)
+	    echo "Using balmer subtracted scripts"
+	    BALMSUB="_balmsub"
+	    ;;
+	*)
+	    PRE="$1_"
+	    ;;
+    esac
+    shift
+done
 
 for i in `seq 1 6`; do
-    if [ ! -x "P$i.sh" ]; then
+    if [ ! -x "P$i${BALMSUB}.sh" ]; then
 	echo "P$i.sh is either non-existent or non-executable"
 	continue
     fi
     
     echo "Starting screen ${PRE}P$i"
-    screen -S ${PRE}P$i -d -m ./P$i.sh
+    screen -S ${PRE}P$i -d -m ./P$i${BALMSUB}.sh
 
 done
 exit

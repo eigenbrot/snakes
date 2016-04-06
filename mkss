@@ -90,7 +90,7 @@ do
 	    echo "Masking Balmer lines"
 	    ;;
 	-u)
-	    BALMSUB="_balmersub"
+	    BALMSUB="_balmsub"
 	    echo "Using balmer subtracted data"
 	    ;;
 	*)
