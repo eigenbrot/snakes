@@ -276,7 +276,7 @@ def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
 
     if balmer:
         bal_out = 'NGC_891_P{}_bin30_balmer_model.ms.fits'.format(pointing)
-        sub_out = 'NGC_891_P{}_bin30_balmsub.ms.fits'.format(pointing)
+        sub_out = 'NGC_891_P{}_bin30_balmsub.mso.fits'.format(pointing)
         make_balmer_model(output+'.txt','P{}_HB.fitp'.format(pointing),location, velocity, bal_out)
         data = pyfits.open(datafile)[0]
         balm = pyfits.open(bal_out)[0]
