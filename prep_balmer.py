@@ -264,7 +264,7 @@ def mconv(y, sig):
         
     return yp
 
-def do_all(datafile, fitfile, velocity, smooth=3.):
+def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
 
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
     prepped = 'P{}_contsub.ms.fits'.format(pointing)
@@ -273,6 +273,15 @@ def do_all(datafile, fitfile, velocity, smooth=3.):
     prep_spectra(datafile, fitfile, prepped, velocity, smooth=smooth)
     do_fitprof(prepped,pointing)
     get_results(pointing,output)
+
+    if balmer:
+        bal_out = 'NGC_891_P{}_bin30_balmer_model.ms.fits'.format(pointing)
+        sub_out = 'NGC_891_P{}_bin30_balmsub.ms.fits'.format(pointing)
+        make_balmer_model(output+'.txt','P{}_HB.fitp'.format(pointing),location, velocity, bal_out)
+        data = pyfits.open(datafile)[0]
+        balm = pyfits.open(bal_out)[0]
+        data.data -= balm.data
+        data.writeto(sub_out,clobber=True)
 
     return
 
