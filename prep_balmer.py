@@ -9,7 +9,6 @@ from pyraf import iraf
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 import plot_simple as ps
 import plot_allZ2 as pa2
-import ADEUtils as ADE
 
 plt.ioff()
 iraf.noao(_doprint=0)
