@@ -9,7 +9,7 @@ plt.ioff()
 
 def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
             location=None, xcorV=None, chivel=None, veloffset=0.,
-            wavemin=3800., wavemax=6800., 
+            wavemin=3800., wavemax=6800., maskBalm=False, 
             plotblue=False, smoothkern=0):
 
     flux_factor = 1e17
@@ -136,6 +136,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
+        balm = np.array([6563, 4861, 4341, 4102, 3970])
         
         try:
             dz = coefs['EMMASKW']/3e5
@@ -147,8 +148,10 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         try:
             if 'FIXEDVBOOL' in coef_arr.names:
                 em2 *= (coefs['VSYS']/3e5 + 1.)
+                balm *= (coefs['VSYS']/3e5 + 1.)
             else:
                 em2 *= (coefs['VELSTART']/3e5 + 1.)
+                balm *= (coefs['VELSTART']/3e5 + 1.)
         except KeyError:
             pass
                 
@@ -159,6 +162,11 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         for ss in sk2:
             maskout = np.where((restwl > ss*(1-dzsk)) & (restwl < ss*(1+dzsk)))
             quality[maskout] = 0
+
+        if maskBalm:
+            for b in balm:
+                maskout = np.where((restwl > b*(1-dzsk)) & (restwl < b*(1+dzsk)))
+                quality[maskout] = 0
 
         ok = quality == 1
 
@@ -518,6 +526,9 @@ def parse_input(inputlist):
         if inputlist[i] == '-n':
             import nice_plots
             nice_plots.format_plots(False)
+
+        if inputlist[i] == '-H':
+            kwar['maskBalm'] = True
 
         i += 1
 

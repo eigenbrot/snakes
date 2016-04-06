@@ -1,6 +1,7 @@
 
 pro do_simple_allZ2, datafile, errorfile, output, location=location, $
-                     velocity=velocity, emmaskw=emmaskw, parinfofile=parinfofile, $
+                     velocity=velocity, emmaskw=emmaskw, $
+                     maskBalm=maskBalm, parinfofile=parinfofile, $
                      model=model, fitregion=fitregion, velstart=velstart, $
                      wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
                      lightmax=lightmax, multimodel=multimodel, savestep=savestep
@@ -174,7 +175,8 @@ for i = 0, numfibers - 1 DO BEGIN
 ; fit continuum
    coef = bc_continuum_allZ2(m, wave, flux, err, vdidx, $
                              fitregion=fitregion, fixedV=fixedV, $
-                             yfit=yfit, velstart=velstart, emmaskw=emmaskw, $
+                             yfit=yfit, velstart=velstart, $
+                             maskBalm=maskBalm, emmaskw=emmaskw, $
                              savestep=savestep, lun=savelun, $
                              lightidx=lightidx, fmt=fmt, $
                              chivec=chivec, parinfo=parinfo)

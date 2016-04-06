@@ -12,6 +12,8 @@ LMAX="5550."
 EMMW="1000."
 B=0
 S=0
+MASKBALM=""
+PYBALM=""
 FV=1
 VELSTART=""
 PINFO=""
@@ -81,6 +83,11 @@ do
 	    echo "Using error suffix $2"
 	    shift
 	    ;;
+	-H)
+	    MASKBALM=" /maskbalm,"
+	    PYBALM=" -H"
+	    echo "Masking Balmer lines"
+	    ;;
 	*)
 	    
 	    ;;
@@ -96,9 +103,9 @@ else
     VELOCITY=""
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms${O}.fits','NGC_891_P${P}_bin30.me${O}${ERRC}.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}',${PINFO} emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}], lightmin=${LMIN}, lightmax=${LMAX}\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30.ms${O}.fits','NGC_891_P${P}_bin30.me${O}${ERRC}.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}',${PINFO} emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}],${MASKBALM} lightmin=${LMIN}, lightmax=${LMAX}\""
 
-plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms${O}.fits NGC_891_P${P}_bin30.me${O}${ERRC}.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n"
+plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30.ms${O}.fits NGC_891_P${P}_bin30.me${O}${ERRC}.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n${PYBALM}"
 
 chicmd="python ~/snakes/plot_bc_chi.py NGC_891_P${P}_bin30_allz2.chi.fits NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30.ms${O}.fits -n"
 

@@ -104,7 +104,7 @@ end
 function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
                              yfit = yfit, fitregion = fitregion, velstart = velstart, $
                              savestep=savestep, lun=lun, lightidx=lightidx, fmt=fmt, $
-                             chivec=chivec, fixedV=fixedV, parinfo=parinfo
+                             maskBalm=maskBalm, chivec=chivec, fixedV=fixedV, parinfo=parinfo
 
 light_factor = 100.
 vel_factor = 100.
@@ -220,6 +220,9 @@ emnam = ['Ha', 'Hb', '[OIII]','[OIII]',   'S2',   'NII',  'NII']
 
 abs =    [3933.7, 3968.5, 4304.4,   5175.3, 5894.0, 4861., 4341., 4102.]
 absnam = ['H',    'K',    'G band', 'Mg',   'Na',   'HB',  'HG',  'HD']
+
+balm = [6563, 4861, 4341, 4102, 3970]
+
 ;sk = [5569., 5882.6]
 HPS = 5914.
 HPS_wid = 230.
@@ -227,8 +230,10 @@ HPS_wid = 230.
 ;shift emission to velocity guess. The mask width allows for slop
 if keyword_set(fixedV) then begin 
    em *= (fixedV/3e5 + 1)
+   balm *= (fixedV/3e5 + 1)
 endif else begin
    em *= (velstart/3e5 + 1)
+   balm *= (velstart/3e5 + 1)
 endelse
 
 dz = emmaskw / 3e5 ; clipping interval
@@ -243,6 +248,13 @@ for ii = 0, n_elements(sk2) - 1 do begin
   maskout = where(restwl gt sk2[ii]*(1-dzsk) and restwl lt sk2[ii]*(1+dzsk))
   if maskout[0] ne -1 then quality[maskout] = 0
 endfor
+
+if keyword_set(maskBalm) then begin
+   for ii = 0, n_elements(balm) - 1 do begin 
+      maskout = where(restwl gt balm[ii]*(1-dzsk) and restwl lt balm[ii]*(1+dzsk))
+      if maskout[0] ne -1 then quality[maskout] = 0
+   endfor
+endif
 
 ok = where(quality eq 1)
 
