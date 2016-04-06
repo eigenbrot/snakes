@@ -285,19 +285,20 @@ def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
 
     return
 
-def Pbatch():
+def Pbatch(balmer=False):
 
     for i in range(6):
         
-        data = 'NGC_891_P{}_bin30.ms.fits'.format(i+1)
+        data = 'NGC_891_P{}_bin30.mso.fits'.format(i+1)
         fit = 'NGC_891_P{}_bin30_allz2.fit.fits'.format(i+1)
         vel = 'NGC_891_P{}_bin30_velocities.dat'.format(i+1)
+        loc = 'NGC_891_P{}_bin30_locations.dat'.format(i+1)
 
         print data
         print fit
         print vel
         
-        do_all(data,fit,vel)
+        do_all(data,fit,vel,loc,balmer=balmer)
 
     return
 
