@@ -194,7 +194,7 @@ def make_balmer_model(balmerD, HBfitp, location, velocities, output,
     #It's been long enough I think I can just use these magic numbers
     wave = np.arange(2011)*2.1 + 3340.
     #wave = np.arange(1428)*2.1 + 3800.
-    m_wave = np.logspace(np.log10(3340), np.log10(7600), 16000)
+    m_wave = np.logspace(np.log10(3340), np.log10(7600), 5000)
     mpix = np.mean(np.diff(m_wave)/m_wave[1:]*3e5) #size of 1 model pixel in km/s
     balmer_flux = np.zeros((numap,m_wave.size))
 
