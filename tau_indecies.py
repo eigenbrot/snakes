@@ -15,6 +15,7 @@ iraf.noao(_doprint=0)
 iraf.onedspec(_doprint=0)
 
 deftlst = [13,8,5,4,3,2,1]
+excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29], [35, 36, 38]]
 
 def make_galaxies(tausf_list = deftlst):
 
@@ -48,7 +49,7 @@ def make_galaxies(tausf_list = deftlst):
         
     return
 
-def data_prep(datafile, velocity, output, isdata=True):
+def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
     
     wavemin=3800.
     wavemax=6800.
@@ -63,14 +64,21 @@ def data_prep(datafile, velocity, output, isdata=True):
         cdelt = header['CDELT1']
         crpix = header['CRPIX1']
         crval = header['CRVAL1']
-        base = os.path.basename(datafile)
-        dirn = os.path.dirname(datafile)
-        pointing = int(re.search('_P([1-6])_',base).groups()[0])
-        fitfile = os.path.join(dirn,'{}_allz2.fit.fits'.format(base.split('.')[0]))
-        contsub = os.path.join(dirn,'{}_contsub.ms.fits'.format(base.split('.')[0]))
-        pb.prep_spectra(datafile, fitfile, contsub, velocity)
-        pb.do_fitprof(contsub, pointing)
-        emline = pyfits.open(os.path.join(dirn,'P{}_HB_fits.fits'.format(pointing)))[0].data
+
+        if emcorr:
+            #WARNING: The emission correction done below only corrects Ha and
+            # HB, to get all the balmer lines check out
+            # prep_balmer.do_all(*args,balmer=True)
+
+            print "Correcting for Ha and HB emission"
+            base = os.path.basename(datafile)
+            dirn = os.path.dirname(datafile)
+            pointing = int(re.search('_P([1-6])_',base).groups()[0])
+            fitfile = os.path.join(dirn,'{}_allz2.fit.fits'.format(base.split('.')[0]))
+            contsub = os.path.join(dirn,'{}_contsub.ms.fits'.format(base.split('.')[0]))
+            pb.prep_spectra(datafile, fitfile, contsub, velocity)
+            pb.do_fitprof(contsub, pointing)
+            emline = pyfits.open(os.path.join(dirn,'P{}_HB_fits.fits'.format(pointing)))[0].data
     else:
         #Hacky hack for fit files. These values should not really change, so I think it's OK
         cdelt = 2.1
@@ -87,7 +95,7 @@ def data_prep(datafile, velocity, output, isdata=True):
 
     shift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),data[i,:]) for i in range(data.shape[0])])
 
-    if isdata:
+    if isdata and emcorr:
 #        emline = emline[:,idx]
         print shift.shape
         print emline.shape
@@ -98,17 +106,24 @@ def data_prep(datafile, velocity, output, isdata=True):
 
     return
 
-def prep_all_data():
-    
+def prep_all_data(emcorr=False):
+
+    if not emcorr:
+        bs = '_balmsub'
+    else:
+        bs = ''
+
     for i in range(6):
         
         output = 'NGC_891_P{}_bin30.msoz.fits'.format(i+1)
-        data_prep('NGC_891_P{}_bin30.mso.fits'.format(i+1),
-                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output)
+        data_prep('NGC_891_P{}_bin30{}.mso.fits'.format(i+1,bs),
+                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=emcorr)
 
     return
 
-def run_sbands(findstr, bands, clobber=True):
+def run_sbands(findstr, 
+               bands='/d/monk/eigenbrot/WIYN/14B-0456/anal/LICK.bands', 
+               clobber=True):
     
     inputlist = glob(findstr)
     
