@@ -165,7 +165,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
 
         if maskBalm:
             for b in balm:
-                maskout = np.where((restwl > b*(1-dzsk)) & (restwl < b*(1+dzsk)))
+                maskout = np.where((restwl > b*(1-dz)) & (restwl < b*(1+dz)))
                 quality[maskout] = 0
 
         ok = quality == 1

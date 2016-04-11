@@ -251,7 +251,7 @@ endfor
 
 if keyword_set(maskBalm) then begin
    for ii = 0, n_elements(balm) - 1 do begin 
-      maskout = where(restwl gt balm[ii]*(1-dzsk) and restwl lt balm[ii]*(1+dzsk))
+      maskout = where(restwl gt balm[ii]*(1-dz) and restwl lt balm[ii]*(1+dz))
       if maskout[0] ne -1 then quality[maskout] = 0
    endfor
 endif
