@@ -403,12 +403,14 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
     # big_mean = big_poly(zz[sidx])
 
     p = np.poly1d(np.polyfit(zz[sidx],big_mean,1))
-    
+    print p.coeffs
+
     bigax.plot(zz[sidx],big_mean,'-k',lw=2)
     bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
     bigax.legend(loc=0, numpoints=1, scatterpoints=1)
 
-    bigax.set_title(time.asctime())
+    bigax.set_title('{:}\n'.format(time.asctime())+r'$\tau_{{\mathrm{{V,Balm}}}}={:4.2f}z{:+4.2f}$'.\
+                    format(p.coeffs[0],p.coeffs[1]))
     bigax.set_xlim(-0.1,2.6)
 
     print zz.size
