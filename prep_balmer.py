@@ -223,7 +223,7 @@ def make_balmer_model(balmerD, HBfitp, location, velocities, output,
     
     for c, r in zip(cents, ratios):
         idx = np.argmin(np.abs(m_wave - c))
-        balmer_flux[:,idx] = 1
+        balmer_flux[:,idx] = r
         
     final_model = np.zeros((numap,wave.size))
     for i in range(numap):
