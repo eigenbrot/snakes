@@ -146,7 +146,7 @@ def get_results(pointing, output):
     print 'Consolidating measurements'
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_ylabel('Av')
+    ax.set_ylabel(r'$\tau_{\mathrm{V,balm}}')
     ax.set_xlabel('Aperture number')
     ax.set_title(time.asctime())
 
@@ -164,20 +164,24 @@ def get_results(pointing, output):
     ratio = Haf/HBf
     ratio_e = np.sqrt((Hafe/HBf)**2 + (HBfe*Haf/HBf**2)**2)
 
-    EBV = 1.97*np.log10(ratio/2.86)
-    Av = 4.05*EBV
-    tauV = Av/1.086
-    Av_e = 1.97*4.05*ratio_e/(1.086*ratio*np.log(10))
+    # EBV = 1.97*np.log10(ratio/2.86)
+    # Av = 4.05*EBV
+    # tauV = Av/1.086
+    # Av_e = 1.97*4.05*ratio_e/(1.086*ratio*np.log(10))
+    
+    tauV = 4.84*np.log(ratio/2.86)
+    tauV_e = 4.84/ratio*ratio_e
 
     print 'Plotting'
-    ax.errorbar(np.arange(ratio.size)+1,Av,yerr=Av_e,fmt='.')
+    ax.errorbar(np.arange(ratio.size)+1,tauV,yerr=tauV_e,fmt='.')
     fig.savefig(output+'.png')
 
     with open(output+'.txt','w') as f:
         f.write('# Written on {}\n'.format(time.asctime()))
+        f.write('# With Charlot and Fall extinction law\n')
         f.write('#\n#{:>3}{:>10}{:>10}\n\n'.format('Ap','Tau_V','TauV_err'))
-        for i in range(Av.size):
-            f.write('{:4}{:10.2f}{:10.2f}\n'.format(i+1,Av[i],Av_e[i]))
+        for i in range(tauV.size):
+            f.write('{:4}{:10.2f}{:10.2f}\n'.format(i+1,tauV[i],tauV_e[i]))
 
     return
     
