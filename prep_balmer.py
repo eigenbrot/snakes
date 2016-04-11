@@ -336,25 +336,25 @@ def make_plots():
                [1,2,35],
                [59],
                [2,8],
-               [1,2,3,27,28,29],
+               [1,2,3,27,28,29,5],
                [35,36,38]]
 
-    ps.all_maps('TauV_diff_map.pdf',col=1,inputprefix='',
-                inputsuffix='Tdiff.txt',minval=-5,maxval=5,
-                binned=True,exclude=exclude,
-                label=r'$\frac{\tau_{V,Balm} - \tau_{V,SSP}}{\tau_{V,SSP}}$')
+    # ps.all_maps('TauV_diff_map.pdf',col=1,inputprefix='',
+    #             inputsuffix='Tdiff.txt',minval=-5,maxval=5,
+    #             binned=True,exclude=exclude,
+    #             label=r'$\frac{\tau_{V,Balm} - \tau_{V,SSP}}{\tau_{V,SSP}}$')
     
     ps.all_maps('TauV_balmer_map.pdf',col=1,inputprefix='',
                 inputsuffix='balmerD.txt',
                 minval=-1,maxval=6,binned=True,exclude=exclude,
                 label=r'$\tau_{V,Balm}$')
 
-    al = pa2.simple_plot(inputsuffix='balmerD.txt',
-                         col=1,label=r'$\tau_{V,Balm}$',
-                         ylims=[-1,6],exclude=exclude)
+    al = pa2.plot_heights_with_err(inputsuffix='balmerD.txt',
+                                   col=1,errcol=2,label=r'$\tau_{V,Balm}$',
+                                   ylims=[-6,13],exclude=exclude, bigorder=60)
     al2 = pa2.simple_plot(inputsuffix='Tdiff.txt',col=1,
                           label=r'$\frac{\tau_{V,Balm} - \tau_{V,SSP}}{\tau_{V,SSP}}$',
-                          ylims=[-5,5],exclude=exclude)
+                          ylims=[-6,13],exclude=exclude)
 
     pp = PDF('TauV_balm_heights.pdf')
     [pp.savefig(a.figure) for a in al]

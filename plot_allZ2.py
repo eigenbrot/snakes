@@ -306,6 +306,120 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     return axlist
 
+def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
+                          col=1, errcol=2, order=5, bigorder=60, s=None,
+                          ylims=None, labelr=False, bigpoints=False,
+                          exclude=[[],[],[],[],[],[]]):
+
+    zz = np.array([])
+    dd = np.array([])
+    ee = np.array([])
+    axlist = []
+
+    bigax = plt.figure().add_subplot(111)
+    bigax.set_xlabel('|Height [kpc]|')
+    bigax.set_ylabel(label)
+    
+    plist = [6,3,4,2,1,5]
+    color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
+    style_list = ['-','-','-','--','--','--']
+
+    for i in range(6):
+        pointing = plist[i]
+        color = color_list[i]
+        style = style_list[i]
+
+        dat = glob('*P{}*{}'.format(pointing, inputsuffix))[0]
+        print dat
+        loc = glob('*P{}*locations.dat'.format(pointing))[0]
+        print loc
+        print 'Excluding: ', exclude[pointing-1]
+    
+        data, err = np.loadtxt(dat, usecols=(col,errcol), unpack=True)
+        r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+        avgr = np.mean(r)
+
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('|Height [kpc]|')
+        ax.set_ylabel(label)
+        if labelr:
+            ax.set_title('{:4.0f} kpc'.format(avgr))
+            linelabel = '{:4.0f} kpc'.format(avgr)
+        else:
+            ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
+            linelabel = 'P{}'.format(pointing)
+
+        exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
+        data = np.delete(data,exarr)
+        err = np.delete(err,exarr)
+        r = np.delete(r,exarr)
+        z = np.delete(z,exarr)
+
+        gidx = data == data
+        data = data[gidx]
+        z = z[gidx]
+        err = err[gidx]
+        
+        zz = np.r_[zz,z]
+        dd = np.r_[dd,data]
+        ee = np.r_[ee,err]
+
+        sidx = np.argsort(z)
+        data_pad = np.r_[data[sidx][order::-1],data[sidx]]
+        z_pad = np.r_[z[sidx][order::-1],z[sidx]]
+        # mean = bn.move_mean(data_pad,order)[order+1:]
+        std = bn.move_std(data_pad,order)[order+1:]
+        spl = spi.UnivariateSpline(z[sidx],data[sidx])
+        mean = spl(z[sidx])
+        # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
+        # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
+
+        bigax.errorbar(z, data, yerr=err, fmt='.', label=linelabel, color=color, capsize=0)
+        
+        # ax.plot(z[sidx],mean,color=color, ls=style)
+        # ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
+
+        ax.errorbar(z, data, yerr=err, fmt='.', color=color, capsize=0)
+        ax.set_xlim(-0.1,2.6)
+        
+        if ylims is not None:
+            ax.set_ylim(*ylims)
+        
+        axlist.append(ax)
+        
+    sidx = np.argsort(zz)
+    big_data_pad = np.r_[dd[sidx][bigorder::-1],dd[sidx]]
+    big_z_pad = np.r_[zz[sidx][bigorder::-1],zz[sidx]]
+    big_e_pad = np.r_[ee[sidx][bigorder::-1],ee[sidx]]
+    big_sum = bn.move_sum(big_data_pad/big_e_pad,bigorder)[bigorder+1:]
+    big_weight = bn.move_sum(1./big_e_pad,bigorder)[bigorder+1:]
+    big_mean = big_sum/big_weight
+
+    # std = bn.move_std(data_pad,order)[order+1:]
+    # big_spl = spi.UnivariateSpline(zz[sidx],dd[sidx],w = 1./ee[sidx]**2, k=k, s=s)
+    # big_mean = big_spl(zz[sidx])
+    # big_pc = np.polyfit(zz[sidx], dd[sidx], polydeg, w=1./ee[sidx]**2)
+    # big_poly = np.poly1d(big_pc)
+    # big_mean = big_poly(zz[sidx])
+
+    p = np.poly1d(np.polyfit(zz[sidx],big_mean,1))
+    
+    bigax.plot(zz[sidx],big_mean,'-k',lw=2)
+    bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
+    bigax.legend(loc=0, numpoints=1, scatterpoints=1)
+
+    bigax.set_title(time.asctime())
+    bigax.set_xlim(-0.1,2.6)
+
+    print zz.size
+
+    if ylims is not None:
+        bigax.set_ylim(*ylims)
+
+    axlist = [bigax] + axlist
+    
+    return axlist
+
 def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     clist = [62,61,66,63]
