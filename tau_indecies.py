@@ -14,7 +14,7 @@ plt.ioff()
 iraf.noao(_doprint=0)
 iraf.onedspec(_doprint=0)
 
-deftlst = [13,8,5,4,3,2,1]
+deftlst = [-1,-3,-9,13,5,3,1]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -434,6 +434,31 @@ def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestf
     pp.close()
     plt.close(fig)
     return 
+
+def plot_all_grids(usefits=False, ma11=False):
+
+    if ma11:
+        model_file = 'MA11_data.fits'
+        outpre = 'ma11'
+    else:
+        model_file = 'BC03_data.fits'
+        outpre = 'bc03'
+
+    for i in range(6):
+        print i+1
+        if usefits:
+            bf = 'NGC_891_P{}_bin30_allz2.fitz.bands.dat'.format(i+1)
+        else:
+            bf = None
+            
+        plot_index_grid(model_file,
+                        'NGC_891_P{}_bin30.msoz.bands.dat'.format(i+1),
+                        '{}_P{}_balmsum_tau_grid.pdf'.format(outpre,i+1),
+                        exclude=excl[i],
+                        ma11=ma11,
+                        bestfits=bf)
+
+    return
 
 def model_compare(dataloc, modellist, output, prep=True, sband=True):
 
