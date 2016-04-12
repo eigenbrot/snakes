@@ -134,6 +134,16 @@ def prep_all_data(emcorr=False):
 
     return
 
+def prep_all_fits():
+    
+    for i in range(6):
+        
+        output = 'NGC_891_P{}_bin30_allz2.fitz.fits'.format(i+1)
+        data_prep('NGC_891_P{}_bin30_allz2.fit.fits'.format(i+1),
+                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,isdata=False)
+
+    return
+
 def run_sbands(findstr, 
                bands='/d/monk/eigenbrot/WIYN/14B-0456/anal/LICK.bands', 
                clobber=True):
@@ -356,7 +366,7 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[]):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], size=40, marker='o'):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
@@ -366,12 +376,13 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[]):
     res = np.delete(res,exclude,axis=0)
     z = np.delete(z,exclude)
 
-    scat = ax.scatter(res[:,band1], res[:,band2], s=40, linewidths=0,
+    scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
+                      marker=marker,
                       c=np.abs(z), alpha=0.7, cmap=plt.cm.gnuplot2)
 
     return scat
 
-def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False):
+def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestfits=None):
     
     fig = plt.figure(figsize=(12,11))
     
@@ -387,10 +398,18 @@ def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False):
         plot_model_grid(model_data_file,ax,
                         5 + (p % 2),
                         p/2,ma11=ma11)
+        if bestfits is not None:
+            _ = plot_quick_on_grid(bestfits, ax,
+                                   5 + (p % 2),
+                                   p/2,
+                                   exclude=exclude,
+                                   marker='s',size=20)
+
         scat = plot_quick_on_grid(data_file, ax,
                                   5 + (p % 2),
                                   p/2,
-                                  exclude=exclude)
+                                  exclude=exclude,
+                                  marker='o',size=40)
         ax.set_xlabel(ab[p%2])
         ax.set_ylabel(o[p/2])
         # ax.set_xlim(0.87,1.05)
