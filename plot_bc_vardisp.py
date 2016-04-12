@@ -128,7 +128,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         
         sk2 = np.array([6300., 5890., 5577.])
         # em2 = np.array([6563.8, 6716.0, 6583.41, 6548.04])
-        em2 = np.array([6563.8,  4861., 4959., 5006.8, 6716.0, 6583.41, 6548.04])
+        em2 = np.array([6563.8, 4959., 5006.8, 6716.0, 6583.41, 6548.04])
         
         em = np.array([6563.8,  6716.0, 6583.41, 6548.04, 4959., 5006.8])
         emnam = [r'H$\alpha$', 'S2', 'NII', 'NII', '[OIII]', '[OIII]']
