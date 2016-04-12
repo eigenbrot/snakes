@@ -15,12 +15,18 @@ iraf.noao(_doprint=0)
 iraf.onedspec(_doprint=0)
 
 deftlst = [13,8,5,4,3,2,1]
-excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29], [35, 36, 38]]
+excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
+ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
+bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
 
-def make_galaxies(tausf_list = deftlst):
+def make_galaxies(tausf_list = deftlst, ma11 = False):
 
-    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
-    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    if ma11:
+        fraclist = ma11_fraclist
+        modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/MA11_models/ma11_cha_{}.fits'.format(i) for i in ['0005Z','005Z','05Z','1Z','2Z']]
+    else:
+        fraclist = bc03_fraclist
+        modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
     
     for z in range(len(modellist)):
         #get the length of the wavelength vector
@@ -29,8 +35,12 @@ def make_galaxies(tausf_list = deftlst):
         output = np.zeros((len(tausf_list), nwave))
         outhdu = pyfits.PrimaryHDU()
         for i, t in enumerate(tausf_list):
-            gal = tm.make_galaxy('tmp',tau_sf = t,
-                                 SSPs=modellist[z],makeplot=False,
+            if ma11:
+                galname = 'ma11_gal_t{}'.format(t)
+            else:
+                galname = 'bc03_gal_t{}'.format(t)
+            gal = tm.make_galaxy(galname,tau_sf = t,
+                                 SSPs=modellist[z],makeplot=True,
                                  writeoutput=False,vdisp=0.0)
             output[i,:] = gal['flux']/np.mean(gal['flux'])
             outhdu.header.update('TSF{:02n}'.format(i+1),t)
@@ -45,7 +55,10 @@ def make_galaxies(tausf_list = deftlst):
         outhdu.header.update('CRPIX2',1)
         outhdu.header.update('CRVAL2',len(tausf_list))
         outhdu.header.update('CDELT2',1)
-        outhdu.writeto('BC03_Z{:04n}_tau.fits'.format(fraclist[z]*1000),clobber=True)
+        if ma11:
+            outhdu.writeto('MA11_Z{:04n}_tau.fits'.format(fraclist[z]*1000),clobber=True)
+        else:
+            outhdu.writeto('BC03_Z{:04n}_tau.fits'.format(fraclist[z]*1000),clobber=True)
         
     return
 
@@ -140,16 +153,22 @@ def run_sbands(findstr,
         
     return
 
-def combine_sbands(output,numaps=len(deftlst)):
+def combine_sbands(output,numaps=len(deftlst),ma11 = False):
 
     numbands = 7
-    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    if ma11:
+        fraclist = ma11_fraclist
+    else:
+        fraclist = bc03_fraclist
     fraclist = np.sort(fraclist)
 
     results = np.zeros((numaps, fraclist.size, numbands))
     for f, frac in enumerate(fraclist):
         
-        fracfile = 'BC03_Z{:04n}_tau.bands.dat'.format(frac*1000)
+        if ma11:
+            fracfile = 'MA11_Z{:04n}_tau.bands.dat'.format(frac*1000)
+        else:
+            fracfile = 'BC03_Z{:04n}_tau.bands.dat'.format(frac*1000)
         data = np.loadtxt(fracfile,usecols=(0,1,5,6),
                           dtype={'names':('aps','bands','index','eqwidth'),
                                  'formats':('S50','S11','f4','f4')})
@@ -290,31 +309,39 @@ def eat_index(index):
                      index[2], index[3], 
                      FeAvg, MgFe])
 
-def plot_bc03_grid(bc03_data_file, ax, band1, band2):
+def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
 
-    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    if ma11:
+        fraclist = ma11_fraclist
+    else:
+        fraclist = bc03_fraclist
     fraclist = np.sort(fraclist)
     
     tausf_list = np.array(deftlst)
 
-    bc03data = pyfits.open(bc03_data_file)[0].data
-    numtau, numZ, numindex = bc03data.shape
+    modeldata = pyfits.open(model_data_file)[0].data
+    numtau, numZ, numindex = modeldata.shape
 
 
     for t in range(numtau):
-        ax.plot(bc03data[t,:,band1],
-                bc03data[t,:,band2],
+        ax.plot(modeldata[t,:,band1],
+                modeldata[t,:,band2],
                 '-k')
-        ax.text(bc03data[t,-1,band1],
-                bc03data[t,-1,band2],
-                '{:4.1f} Gyr'.format(tausf_list[t]),fontsize=6,ha='left')
-    
+        if t == 0:
+            ax.text(modeldata[t,-1,band1],
+                    modeldata[t,-1,band2],
+                    r'$\tau_{{\mathrm{{SF}}}}={:4.1f}$ Gyr'.format(tausf_list[t]),fontsize=6,ha='left')
+        else:
+            ax.text(modeldata[t,-1,band1],
+                    modeldata[t,-1,band2],
+                    '{:4.1f} Gyr'.format(tausf_list[t]),fontsize=6,ha='left')
+
     for z in range(numZ):
-        ax.plot(bc03data[:,z,band1],
-                bc03data[:,z,band2],
+        ax.plot(modeldata[:,z,band1],
+                modeldata[:,z,band2],
                 ':k')
-        ax.text(bc03data[-1,z,band1],
-                bc03data[-1,z,band2],
+        ax.text(modeldata[-1,z,band1],
+                modeldata[-1,z,band2],
                 '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
 
     return
@@ -344,7 +371,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[]):
 
     return scat
 
-def plot_index_grid(bc03_data_file,data_file,output,exclude=[]):
+def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False):
     
     fig = plt.figure(figsize=(12,11))
     
@@ -357,9 +384,9 @@ def plot_index_grid(bc03_data_file,data_file,output,exclude=[]):
     for p in range(6):
         ax = fig.add_subplot(3,2,p+1)
         axes.append(ax)
-        plot_bc03_grid(bc03_data_file,ax,
-                       5 + (p % 2),
-                       p/2)
+        plot_model_grid(model_data_file,ax,
+                        5 + (p % 2),
+                        p/2,ma11=ma11)
         scat = plot_quick_on_grid(data_file, ax,
                                   5 + (p % 2),
                                   p/2,
