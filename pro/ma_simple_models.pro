@@ -25,7 +25,9 @@ zid = where(Z*0.02/0.02 eq Z_arr)
 print, 'Zid: ', zid
 print, 'Reading ',modelpaths[zid]
 readcol, string(modelpaths[zid],format='(A)'), Mage, MZ, Mwave, Mflux
-   
+
+Mage *= 1e9
+
 ;Put us in L_sol units
 Mflux = Mflux / 3.826e33
 
@@ -52,7 +54,7 @@ for ii = 0, nssp - 1 do begin
    plot, m.wave, spec, xtitle='Wavelength ( '+angstrom+' )', $
          ytitle = string('F!D!X',lambda,'!N (L',sunsymbol(),$
                          '/M',sunsymbol(),' ',angstrom,')')
-   xyouts, 0.5, 0.98, string(uniA[ii],' Gyr',format='(F7.3,A4)'), /norm
+   xyouts, 0.5, 0.98, string(uniA[ii]/1e9,' Gyr',format='(F7.3,A4)'), /norm
    hline, median(spec[nwl])
    vline, m.wave[nwl[0]]
    vline, m.wave[nwl[-1]]
