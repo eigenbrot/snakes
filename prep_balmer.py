@@ -185,19 +185,22 @@ def get_results(pointing, output):
 
     return
     
-def make_balmer_model(balmerD, HBfitp, location, velocities, output,
+def make_balmer_model(Hafitp, location, velocities, output, tauV_coeffs=[-1.06,3.78], #for ma11
                       dispdata = '/d/monk/eigenbrot/WIYN/14B-0456/anal/disp/GP_disp_batch_avg_int.fits'):
     
-    tauV = np.loadtxt(balmerD, usecols=(1,), unpack=True)
-    sizes = np.loadtxt(location, usecols=(1,), unpack=True)
+    #bc03 coeffs = [-0.91,4.15]
+
+    # tauV = np.loadtxt(balmerD, usecols=(1,), unpack=True)
+    tauV = np.poly1d(tauV_coeffs)
+    sizes, z = np.loadtxt(location, usecols=(1,5), unpack=True)
     vels = np.loadtxt(velocities, usecols=(1,), unpack=True)
-    numap = tauV.size
-    HB_data = i2p.parse_fitprofs(HBfitp,1)
-    HB_peak = HB_data[7][:,0]/1e17 #- 1e-16
+    numap = vels.size
+    Ha_data = i2p.parse_fitprofs(Hafitp,3)
+    Ha_flux = Ha_data[4][:,0]/1e17 #- 1e-16
 
     #It's been long enough I think I can just use these magic numbers
     wave = np.arange(2011)*2.1 + 3340.
-    #wave = np.arange(1428)*2.1 + 3800.
+    ##wave = np.arange(1428)*2.1 + 3800. #for comparing to contsub data
     m_wave = np.logspace(np.log10(3340), np.log10(7600), 5000)
     mpix = np.mean(np.diff(m_wave)/m_wave[1:]*3e5) #size of 1 model pixel in km/s
     balmer_flux = np.zeros((numap,m_wave.size))
@@ -219,7 +222,7 @@ def make_balmer_model(balmerD, HBfitp, location, velocities, output,
              2.812: 4}
 
     cents = [6563, 4861, 4341, 4102, 3970]
-    ratios = [2.86, 1, 0.47, 0.25, 0.16]
+    ratios = np.array([2.86, 1, 0.47, 0.25, 0.16])/2.86 #dividing here doesn't really matter
     
     for c, r in zip(cents, ratios):
         idx = np.argmin(np.abs(m_wave - c))
@@ -232,17 +235,20 @@ def make_balmer_model(balmerD, HBfitp, location, velocities, output,
         if np.isnan(tauV[i]):
             red = np.ones(m_wave.size)
         else:
-            red = np.exp(-1 * tauV[i]*(m_wave/5500.)**(-0.7))
+            print 'z = {}; tau = {}'.format(z[i],tauV(np.abs(z[i])))
+            red = np.exp(-1 * tauV(np.abs(z[i]))*(m_wave/5500.)**(-0.7))
         balmer_flux[i,:] *= red
+
         did = sized[sizes[i]]
         sigma_pix = disp_arr[did,:]/mpix
         balmer_flux[i,:] = mconv(balmer_flux[i,:],sigma_pix)
-        HBid = np.argmin(np.abs(m_wave - cents[1]))
-        # HBid = np.where((m_wave > cents[1] - 30) & (m_wave < cents[1] + 30))[0]
-        # mHB_flux = np.sum(balmer_flux[i,HBid])
-        mHB_peak = balmer_flux[i,HBid]
-        print HB_peak[i], mHB_peak
-        balmer_flux[i,:] *= HB_peak[i]/mHB_peak
+
+        # Haid = np.argmin(np.abs(m_wave - cents[0]))
+        # mHa_peak = balmer_flux[i,Haid]
+        Haid = np.where((m_wave > cents[0] - 30) & (m_wave < cents[0] + 30))[0]
+        mHa_flux = np.sum(balmer_flux[i,Haid])
+        print Ha_flux[i], mHa_flux
+        balmer_flux[i,:] *= Ha_flux[i]/mHa_flux
         final_model[i,:] = np.interp(wave,m_wave,balmer_flux[i,:])
         final_model[i,:] = np.interp(wave,wave_red,final_model[i,:])
 
@@ -281,7 +287,7 @@ def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
     if balmer:
         bal_out = 'NGC_891_P{}_bin30_balmer_model.ms.fits'.format(pointing)
         sub_out = 'NGC_891_P{}_bin30_balmsub.mso.fits'.format(pointing)
-        make_balmer_model(output+'.txt','P{}_HB.fitp'.format(pointing),location, velocity, bal_out)
+        make_balmer_model('P{}_Ha.fitp'.format(pointing),location, velocity, bal_out)
         data = pyfits.open(datafile)[0]
         balm = pyfits.open(bal_out)[0]
         data.data -= balm.data
@@ -352,6 +358,7 @@ def make_plots():
     al = pa2.plot_heights_with_err(inputsuffix='balmerD.txt',
                                    col=1,errcol=2,label=r'$\tau_{V,Balm}$',
                                    ylims=[-6,13],exclude=exclude, bigorder=60)
+
     al2 = pa2.simple_plot(inputsuffix='Tdiff.txt',col=1,
                           label=r'$\frac{\tau_{V,Balm} - \tau_{V,SSP}}{\tau_{V,SSP}}$',
                           ylims=[-6,13],exclude=exclude)
