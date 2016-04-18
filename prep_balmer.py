@@ -18,6 +18,7 @@ llist = ['HB','Ha']
 #rlist = [np.array([4793., 4923.]), np.array([6485., 6685.])]
 rlist = [np.array([4847., 4872.]), np.array([6510., 6625.])]
 centlist = [[4861.], np.array([6563., 6549., 6585.])]
+bc_coeffs = [-0.91,4.15]
 
 def prep_spectra(datafile, fitfile, output, velocity, smooth=3.):
 
@@ -274,7 +275,8 @@ def mconv(y, sig):
         
     return yp
 
-def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
+def do_all(datafile, fitfile, velocity, location, smooth=3., 
+           balmer=False, tauV_coeffs=[-1.06,3.78]):
 
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
     prepped = 'P{}_contsub.ms.fits'.format(pointing)
@@ -287,7 +289,8 @@ def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
     if balmer:
         bal_out = 'NGC_891_P{}_bin30_balmer_model.ms.fits'.format(pointing)
         sub_out = 'NGC_891_P{}_bin30_balmsub.mso.fits'.format(pointing)
-        make_balmer_model('P{}_Ha.fitp'.format(pointing),location, velocity, bal_out)
+        make_balmer_model('P{}_Ha.fitp'.format(pointing),location, 
+                          velocity, bal_out, tauV_coeffs=tauV_coeffs)
         data = pyfits.open(datafile)[0]
         balm = pyfits.open(bal_out)[0]
         data.data -= balm.data
@@ -295,7 +298,7 @@ def do_all(datafile, fitfile, velocity, location, smooth=3., balmer=False):
 
     return
 
-def Pbatch(balmer=False):
+def Pbatch(balmer=False, tauV_coeffs=[-1.06,3.78]):
 
     for i in range(6):
         
@@ -308,7 +311,7 @@ def Pbatch(balmer=False):
         print fit
         print vel
         
-        do_all(data,fit,vel,loc,balmer=balmer)
+        do_all(data,fit,vel,loc,balmer=balmer,tauV_coeffs=tauV_coeffs)
 
     return
 
