@@ -377,10 +377,32 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], size=40, marker='
     z = np.delete(z,exclude)
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
-                      marker=marker, vmin=-0.5, vmax=2.5,
-                      c=np.abs(z), alpha=0.7, cmap=plt.cm.gnuplot2)
+                      marker=marker, vmin=-0.1, vmax=2.5,
+                      c=np.abs(z), alpha=0.2, cmap=plt.cm.gnuplot2)
 
     return scat
+
+def prep_contour_data(datafile, band1, band2, exclude=[]):
+
+    res = quick_eat(datafile)
+    res = np.delete(res, exclude, axis=0)
+    b1 = res[:,band1]
+    b2 = res[:,band2]
+    idx = np.where((b1 == b1) & (b2 == b2))
+    b1 = b1[idx]
+    b2 = b2[idx]
+
+    return b1, b2
+
+def plot_contour_on_grid(ax, data1, data2, color='k'):
+
+    H, xbins, ybins = np.histogram2d(data1,data2)
+    H /= np.max(H)
+    extent = [xbins[0], xbins[-1], ybins[0], ybins[-1]]
+    ax.contour(H.T,[0.9,0.63,0.5,0.25],extent=extent,colors=color)
+    #ax.contour(H.T,extent=extent,colors=color)
+
+    return
 
 def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestfits=None):
     
@@ -428,6 +450,105 @@ def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestf
     cb = fig.colorbar(scat,ax=axes)
     cb.set_label('|z| [kpc]')
     fig.suptitle('{}\nGenerated on {}'.format(data_file,time.asctime()))
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+    return 
+
+def plot_all_pointing_grid(output, plotdata=True, plotfits=False, 
+                           ma11=False, exclude=excl, contour=False):
+
+    if ma11:
+        model_file = 'MA11_data.fits'
+        outpre = 'ma11'
+    else:
+        model_file = 'BC03_data.fits'
+        outpre = 'bc03'
+
+    fig = plt.figure(figsize=(12,11))
+    
+    bandlist = ['Hb','HdA','HgA','HdF','HgF','Fe','MgFe']
+
+    ab = ['<Fe>','<MgFe>']
+    o = [r'$H\beta$',r'$H_{\delta,A}$','$H_{\gamma,A}$']
+
+    axes = []
+    
+    for p in range(6):
+        ax = fig.add_subplot(3,2,p+1)
+        axes.append(ax)
+        plot_model_grid(model_file,ax,
+                        5 + (p % 2),
+                        p/2,ma11=ma11)
+        if contour:
+            data1 = np.array([])
+            data2 = np.array([])
+            fits1 = np.array([])
+            fits2 = np.array([])
+
+        for pointing in range(6):
+
+            if plotfits:
+                bestfits = 'NGC_891_P{}_bin30_allz2.fitz.bands.dat'.format(pointing+1)
+                if contour:
+                    f1, f2 = prep_contour_data(bestfits,
+                                               5 + (p%2),
+                                               p/2,
+                                               exclude=exclude[pointing])
+                    fits1 = np.r_[fits1,f1]
+                    fits2 = np.r_[fits2,f2]
+
+                else:
+                    scat = plot_quick_on_grid(bestfits, ax,
+                                              5 + (p % 2),
+                                              p/2,
+                                              exclude=exclude[pointing],
+                                              marker='s',size=20)
+            
+            if plotdata:
+                data_file = 'NGC_891_P{}_bin30.msoz.bands.dat'.format(pointing+1)
+                if contour:
+                    d1, d2 = prep_contour_data(data_file,
+                                               5 + (p%2),
+                                               p/2,
+                                               exclude=exclude[pointing])
+                    data1 = np.r_[data1, d1]
+                    data2 = np.r_[data2, d2]
+
+#                else:
+                    scat = plot_quick_on_grid(data_file, ax,
+                                              5 + (p % 2),
+                                              p/2,
+                                              exclude=exclude[pointing],
+                                              marker='o',size=40)
+
+        if contour:
+            if plotdata:
+                plot_contour_on_grid(ax,data1,data2,color='b')
+            if plotfits:
+                plot_contour_on_grid(ax,fits1,fits2,color='r')
+
+        ax.set_xlabel(ab[p%2])
+        ax.set_ylabel(o[p/2])
+        # ax.set_xlim(0.87,1.05)
+        # ax.set_ylim(0.728,1.197)
+        # ax.set_xlim(-0.060,0.021)
+        # ax.set_ylim(-0.138,0.078)
+        if p < 4:
+            ax.set_xticklabels([])
+            ax.set_xlabel('')
+        if p % 2 == 1:
+            ax.set_yticklabels([])
+            ax.set_ylabel('')
+
+    fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
+    fig.suptitle('{}\nGenerated on {}'.format(output,time.asctime()))
+    
+    if not contour:
+        cb = fig.colorbar(scat,ax=axes)
+        cb.set_label('|z| [kpc]')
 
     pp = PDF(output)
     pp.savefig(fig)
