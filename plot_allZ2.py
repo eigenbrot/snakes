@@ -335,7 +335,12 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         print loc
         print 'Excluding: ', exclude[pointing-1]
     
-        data, err = np.loadtxt(dat, usecols=(col,errcol), unpack=True)
+        if errcol is not None:
+            data, err = np.loadtxt(dat, usecols=(col,errcol), unpack=True)
+        else:
+            data = np.loadtxt(dat, usecols=(col,), unpack=True)
+            err = np.ones(data.size)*0.01
+
         r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
         avgr = np.mean(r)
 
@@ -409,7 +414,7 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
     bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
     bigax.legend(loc=0, numpoints=1, scatterpoints=1)
 
-    bigax.set_title('{:}\n'.format(time.asctime())+r'$\tau_{{\mathrm{{V,Balm}}}}={:4.2f}z{:+4.2f}$'.\
+    bigax.set_title('{:}\n'.format(time.asctime())+label+'$={:4.2f}z{:+4.2f}$'.\
                     format(p.coeffs[0],p.coeffs[1]))
     bigax.set_xlim(-0.1,2.6)
 
