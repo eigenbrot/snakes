@@ -366,7 +366,8 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], size=40, marker='o'):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], 
+                       zcut=[-99,99], size=40, marker='o'):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
@@ -376,18 +377,29 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], size=40, marker='
     res = np.delete(res,exclude,axis=0)
     z = np.delete(z,exclude)
 
+    idx = np.where((z >= zcut[0]) & (z < zcut[1]))[0]
+    res = res[idx,:]
+    z = z[idx]
+
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=2.5,
                       c=np.abs(z), alpha=0.2, cmap=plt.cm.gnuplot2)
 
     return scat
 
-def prep_contour_data(datafile, band1, band2, exclude=[]):
+def prep_contour_data(datafile, band1, band2, exclude=[], zcut=[-99,99]):
 
     res = quick_eat(datafile)
+    pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
+    loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+    z = np.loadtxt(loc,usecols=(5,),unpack=True)
+
     res = np.delete(res, exclude, axis=0)
-    b1 = res[:,band1]
-    b2 = res[:,band2]
+    z = np.delete(z, exclude, axis=0)
+    zidx = np.where((z >= zcut[0]) & (z < zcut[1]))[0]
+
+    b1 = res[zidx,band1]
+    b2 = res[zidx,band2]
     idx = np.where((b1 == b1) & (b2 == b2))
     b1 = b1[idx]
     b2 = b2[idx]
@@ -458,7 +470,8 @@ def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestf
     return 
 
 def plot_all_pointing_grid(output, plotdata=True, plotfits=False, 
-                           ma11=False, exclude=excl, contour=False):
+                           ma11=False, exclude=excl, contour=False,
+                           zcut=[-99,99]):
 
     if ma11:
         model_file = 'MA11_data.fits'
@@ -495,7 +508,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
                 if contour:
                     f1, f2 = prep_contour_data(bestfits,
                                                5 + (p%2),
-                                               p/2,
+                                               p/2, zcut=zcut,
                                                exclude=exclude[pointing])
                     fits1 = np.r_[fits1,f1]
                     fits2 = np.r_[fits2,f2]
@@ -503,7 +516,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
                 else:
                     scat = plot_quick_on_grid(bestfits, ax,
                                               5 + (p % 2),
-                                              p/2,
+                                              p/2, zcut=zcut,
                                               exclude=exclude[pointing],
                                               marker='s',size=20)
             
@@ -512,7 +525,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
                 if contour:
                     d1, d2 = prep_contour_data(data_file,
                                                5 + (p%2),
-                                               p/2,
+                                               p/2, zcut=zcut,
                                                exclude=exclude[pointing])
                     data1 = np.r_[data1, d1]
                     data2 = np.r_[data2, d2]
@@ -520,7 +533,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 #                else:
                     scat = plot_quick_on_grid(data_file, ax,
                                               5 + (p % 2),
-                                              p/2,
+                                              p/2, zcut=zcut,
                                               exclude=exclude[pointing],
                                               marker='o',size=40)
 
