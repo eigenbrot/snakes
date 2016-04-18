@@ -377,7 +377,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], size=40, marker='
     z = np.delete(z,exclude)
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
-                      marker=marker,
+                      marker=marker, vmin=-0.5, vmax=2.5,
                       c=np.abs(z), alpha=0.7, cmap=plt.cm.gnuplot2)
 
     return scat
