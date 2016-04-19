@@ -429,6 +429,86 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
     
     return axlist
 
+def height_plot_across_folders(folder_list, inputsuffix='allz2.dat', 
+                               label='Mean Light Weighted Age [Gyr]', 
+                               col=62, order=5, ylims=None, bigpoints=False,
+                               exclude=[[],[],[],[],[],[]]):
+
+    axlist = []
+    
+    plist = [6,3,4,2,1,5]
+    #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
+    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
+    style_list = ['-','-','-','-','-','-']
+
+    for i in range(6):                
+        pointing = plist[i]
+
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('|Height [kpc]|')
+        ax.set_ylabel(label)
+        ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
+
+        for f, folder in enumerate(folder_list):
+            color = color_list[f]
+            style = style_list[f]
+
+            dat = glob('{}/*P{}*{}'.format(folder, pointing, inputsuffix))[0]
+            print dat
+            loc = glob('{}/*P{}*locations.dat'.format(folder, pointing))[0]
+            print loc
+            print 'Excluding: ', exclude[pointing-1]
+    
+            td = np.loadtxt(dat, usecols=(col,), unpack=True)
+            r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
+
+            exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
+            td = np.delete(td,exarr)
+            r = np.delete(r,exarr)
+            tz = np.delete(tz,exarr)
+            
+            z = np.array([])
+            d = np.array([])
+            e = np.array([])
+            while tz.size > 0:
+                zi = tz[0]
+                idx = np.where(np.abs(tz - zi) < 0.05)
+                d = np.r_[d,np.mean(td[idx])]
+                e = np.r_[e,np.std(td[idx])]
+                z = np.r_[z,np.abs(zi)]
+                tz = np.delete(tz, idx)
+                td = np.delete(td, idx)
+                
+            gidx = d == d
+            d = d[gidx]
+            z = z[gidx]
+            e = e[gidx]
+
+            sidx = np.argsort(z)
+            dp = np.r_[d[sidx][order::-1],d[sidx]]
+            zp = np.r_[z[sidx][order::-1],z[sidx]]
+            mean = bn.move_mean(dp,order)[order+1:]
+            std = bn.move_std(dp,order)[order+1:]
+            spl = spi.UnivariateSpline(z[sidx],d[sidx])
+            mean = spl(z[sidx])
+            # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
+            # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
+        
+            ax.plot(z[sidx],mean,color=color, ls=style, label=folder)
+            ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
+
+            ax.errorbar(z, d, yerr=e, fmt='.', color=color)
+
+        ax.set_xlim(-0.1,2.6)
+        
+        if ylims is not None:
+            ax.set_ylim(*ylims)
+        ax.legend(loc=0,numpoints=1)
+        axlist.append(ax)
+
+    return axlist
+
+
 def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
     clist = [62,61,66,63]
