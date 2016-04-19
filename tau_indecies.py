@@ -367,7 +367,7 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     return scat
 
 def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], 
-                       zcut=[-99,99], size=40, marker='o'):
+                       zcut=[-99,99], size=40, marker='o', alpha=0.7):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
@@ -383,7 +383,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[],
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=2.5,
-                      c=np.abs(z), alpha=0.2, cmap=plt.cm.gnuplot2)
+                      c=np.abs(z), alpha=alpha, cmap=plt.cm.gnuplot2)
 
     return scat
 
@@ -518,7 +518,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
                                               5 + (p % 2),
                                               p/2, zcut=zcut,
                                               exclude=exclude[pointing],
-                                              marker='s',size=20)
+                                              marker='s',size=20,alpha=0.7)
             
             if plotdata:
                 data_file = 'NGC_891_P{}_bin30.msoz.bands.dat'.format(pointing+1)
@@ -529,13 +529,20 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
                                                exclude=exclude[pointing])
                     data1 = np.r_[data1, d1]
                     data2 = np.r_[data2, d2]
-
-#                else:
+                    
                     scat = plot_quick_on_grid(data_file, ax,
                                               5 + (p % 2),
                                               p/2, zcut=zcut,
                                               exclude=exclude[pointing],
-                                              marker='o',size=40)
+                                              marker='o',size=40,alpha=0.2)
+
+
+                else:
+                    scat = plot_quick_on_grid(data_file, ax,
+                                              5 + (p % 2),
+                                              p/2, zcut=zcut,
+                                              exclude=exclude[pointing],
+                                              marker='o',size=40,alpha=0.7)
 
         if contour:
             if plotdata:
