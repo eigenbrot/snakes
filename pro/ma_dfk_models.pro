@@ -30,7 +30,7 @@ lambda = 'l'
 ;readcol, dfkfile, ages, weights, dfkgrp
 numdfk = 3
 dfklims = [$;[0.9,5.2],$
-           [5.5,404],$
+           [0,404],$
            [456.5,5750],$
            [6000,13500]]/1e3
 
@@ -113,11 +113,15 @@ for zz = 0, numZ - 1 do begin
 
    print, 'found', nssp, ' SSPs'
    print, nwave, nssp
+   print, uniA
          
    for ff = 0, 4 do begin
       for gg = 0, numdfk - 1 do begin
          gidx = where(uniA ge dfklims[0,gg] and uniA le dfklims[1,gg])
          if gidx[0] eq -1 then continue
+
+         ;This is a stupid hack to have future multi-dimensional things work OK
+         if n_elements(gidx) eq 1 then gidx = [gidx[0], gidx[0]]
 
          print, uniA[gidx]
          tw = transpose(rebin(weights[gidx], n_elements(gidx), nwave))
