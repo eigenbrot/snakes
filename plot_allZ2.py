@@ -309,7 +309,7 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
                           col=1, errcol=2, order=5, bigorder=60, s=None,
                           ylims=None, labelr=False, bigpoints=False,
-                          exclude=[[],[],[],[],[],[]]):
+                          plotfit=True, exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
     dd = np.array([])
@@ -392,30 +392,32 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         
         axlist.append(ax)
         
-    sidx = np.argsort(zz)
-    big_data_pad = np.r_[dd[sidx][bigorder::-1],dd[sidx]]
-    big_z_pad = np.r_[zz[sidx][bigorder::-1],zz[sidx]]
-    big_e_pad = np.r_[ee[sidx][bigorder::-1],ee[sidx]]
-    big_sum = bn.move_sum(big_data_pad/big_e_pad,bigorder)[bigorder+1:]
-    big_weight = bn.move_sum(1./big_e_pad,bigorder)[bigorder+1:]
-    big_mean = big_sum/big_weight
+    plot_title = time.asctime()
+    if plotfit:
+        sidx = np.argsort(zz)
+        big_data_pad = np.r_[dd[sidx][bigorder::-1],dd[sidx]]
+        big_z_pad = np.r_[zz[sidx][bigorder::-1],zz[sidx]]
+        big_e_pad = np.r_[ee[sidx][bigorder::-1],ee[sidx]]
+        big_sum = bn.move_sum(big_data_pad/big_e_pad,bigorder)[bigorder+1:]
+        big_weight = bn.move_sum(1./big_e_pad,bigorder)[bigorder+1:]
+        big_mean = big_sum/big_weight
 
-    # std = bn.move_std(data_pad,order)[order+1:]
-    # big_spl = spi.UnivariateSpline(zz[sidx],dd[sidx],w = 1./ee[sidx]**2, k=k, s=s)
-    # big_mean = big_spl(zz[sidx])
-    # big_pc = np.polyfit(zz[sidx], dd[sidx], polydeg, w=1./ee[sidx]**2)
-    # big_poly = np.poly1d(big_pc)
-    # big_mean = big_poly(zz[sidx])
+        # std = bn.move_std(data_pad,order)[order+1:]
+        # big_spl = spi.UnivariateSpline(zz[sidx],dd[sidx],w = 1./ee[sidx]**2, k=k, s=s)
+        # big_mean = big_spl(zz[sidx])
+        # big_pc = np.polyfit(zz[sidx], dd[sidx], polydeg, w=1./ee[sidx]**2)
+        # big_poly = np.poly1d(big_pc)
+        # big_mean = big_poly(zz[sidx])
+        
+        p = np.poly1d(np.polyfit(zz[sidx],big_mean,1))
+        print p.coeffs
+        
+        bigax.plot(zz[sidx],big_mean,'-k',lw=2)
+        bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
+        plot_title += '\n'+label+'$={:4.2f}z{:+4.2f}$'.format(p.coeffs[0],p.coeffs[1])
 
-    p = np.poly1d(np.polyfit(zz[sidx],big_mean,1))
-    print p.coeffs
-
-    bigax.plot(zz[sidx],big_mean,'-k',lw=2)
-    bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
+    bigax.set_title(plot_title)
     bigax.legend(loc=0, numpoints=1, scatterpoints=1)
-
-    bigax.set_title('{:}\n'.format(time.asctime())+label+'$={:4.2f}z{:+4.2f}$'.\
-                    format(p.coeffs[0],p.coeffs[1]))
     bigax.set_xlim(-0.1,2.6)
 
     print zz.size
