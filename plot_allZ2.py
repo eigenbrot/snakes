@@ -520,6 +520,8 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
     color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
     style_list = ['-','-','-','-','-','-']
 
+    bigD = dict(zip(folder_list,[np.array([]) for i in range(6)]))
+
     for i in range(6):                
         pointing = plist[i]
 
@@ -545,6 +547,8 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             d = d[gidx]
 
             ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.2)
+            
+            bigD[folder] = np.r_[bigD[folder], d]
 
         if xlims is not None:
             ax.set_xlim(*xlims)
@@ -553,6 +557,26 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             ax.set_ylim(*ylims)
         ax.legend(loc=0,numpoints=1)
         axlist.append(ax)
+
+    bigax = plt.figure().add_subplot(111)
+    bigax.set_xlabel(label)
+    bigax.set_ylabel('N')
+    bigax.set_title(time.asctime())
+        
+    for f, folder in enumerate(folder_list):
+        color = color_list[f]
+        style = style_list[f]
+        
+        bigax.hist(bigD[folder], bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.2)
+        
+    bigax.legend(loc=0,numpoints=1)
+    if xlims is not None:
+        bigax.set_xlim(*xlims)
+        
+    if ylims is not None:
+        bigax.set_ylim(*ylims)
+        
+    axlist = [bigax] + axlist
 
     return axlist
 
