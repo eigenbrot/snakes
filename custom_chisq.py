@@ -62,6 +62,39 @@ def batch_edit(width=20, amp=100, centlist=None, metal=False):
 
     return
 
+def apply_rms_spec(inputfile, velocityfile, output,
+                   amp=1.):
+
+    hdu = pyfits.open(inputfile)[0]
+    data = hdu.data
+    aps, V = np.loadtxt(velocityfile, unpack=True)
+    
+    wave = (np.arange(data.shape[1]) - (hdu.header['CRPIX1'] - 1))*hdu.header['CDELT1'] + hdu.header['CRVAL1']
+
+    rms_wave, rms, rms_Z, rms_A = compute_rms_spec()
+
+    for i in range(data.shape[0]):
+        rms_V = np.interp(wave,rms_wave*(V[i]/3e5 + 1),rms)
+        rms_V /= np.mean(rms_V)
+        weights = 1./(rms_V*amp)
+        data[i,:] *= weights
+    
+    pyfits.PrimaryHDU(data,hdu.header).writeto(output, clobber=True)
+
+    return
+        
+def batch_apply(suff='R'):
+
+    for p in range(6):
+        inputfile = 'NGC_891_P{}_bin30.meo.fits'.format(p+1)
+        velocity = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
+        output = 'NGC_891_P{}_bin30.meo{}.fits'.format(p+1,suff)
+        print '{} -> {}'.format(inputfile, output)
+        
+        apply_rms_spec(inputfile, velocity, output, amp=1.)
+
+    return
+
 def compute_rms_spec(swindow=100):
 
     mlist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
@@ -151,15 +184,15 @@ def compute_rms_spec(swindow=100):
     bigAvg = np.mean(bigD,axis=(0,1))
     rms = np.sqrt(np.mean((bigD - bigAvg)**2,axis=(0,1)))
     rms = np.convolve(rms,np.ones(20)/20.,'same')
-#    ax.plot(wave,rms, label='total')
+    ax.plot(wave, rms, label='total')
     ax.plot(wave, rms_Z/np.mean(rms_Z)*np.mean(rms_A), label=r'RMS$_Z$')
     ax.plot(wave, rms_A, label=r'RMS$_{\rm age}$')
     ax.legend(loc=0)
     add_line_labels(ax)    
 #    bigfig.show()
-    bigfig.savefig('big_RMS2.png',dpi=200)
+    bigfig.savefig('big_RMS3.png',dpi=200)
 
-    return bigD
+    return wave, rms, rms_Z, rms_A
 
 def add_line_labels(ax):
 
