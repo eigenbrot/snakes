@@ -601,6 +601,34 @@ def plot_all_grids(usefits=False, ma11=False):
 
     return
 
+def do_all420(outname, ma11=False):
+
+    if ma11:
+        model_file = 'MA11_data.fits'
+        outpre = 'ma11'
+    else:
+        model_file = 'BC03_data.fits'
+        outpre = 'bc03'
+
+    make_galaxies(ma11=ma11)
+    prep_all_data()
+    prep_all_fits()
+    run_sbands('*z.fits')
+    run_sbands('*tau.fits')
+    combine_sbands(model_file)
+
+    plot_all_pointing_grid('{}_{}_taugrid_data.pdf'.format(outpre,outname),
+                           ma11=ma11,plotdata=True,plotfits=False,
+                           contour=False,exclude=excl)
+    plot_all_pointing_grid('{}_{}_taugrid_fits.pdf'.format(outpre,outname),
+                           ma11=ma11,plotdata=False,plotfits=True,
+                           contour=False,exclude=excl)
+    plot_all_pointing_grid('{}_{}_taugrid_test.pdf'.format(outpre,outname),
+                           ma11=ma11,plotdata=True,plotfits=True,
+                           contour=True,exclude=excl)
+    plt.close('all')
+    return
+
 def model_compare(dataloc, modellist, output, prep=True, sband=True):
 
     pp = PDF(output)
