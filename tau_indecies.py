@@ -615,7 +615,7 @@ def do_all420(outname, ma11=False):
     prep_all_fits()
     run_sbands('*z.fits')
     run_sbands('*tau.fits')
-    combine_sbands(model_file)
+    combine_sbands(model_file,ma11=ma11)
 
     plot_all_pointing_grid('{}_{}_taugrid_data.pdf'.format(outpre,outname),
                            ma11=ma11,plotdata=True,plotfits=False,
