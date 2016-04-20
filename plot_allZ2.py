@@ -508,6 +508,54 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
 
     return axlist
 
+def histogram_across_folders(folder_list, inputsuffix='allz2.dat', 
+                             label='Mean Light Weighted Age [Gyr]', 
+                             col=62, bins=10, ylims=None, xlims=None,
+                             exclude=[[],[],[],[],[],[]]):
+    
+    axlist = []
+    
+    plist = [6,3,4,2,1,5]
+    #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
+    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
+    style_list = ['-','-','-','-','-','-']
+
+    for i in range(6):                
+        pointing = plist[i]
+
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel(label)
+        ax.set_ylabel('N')
+        ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
+
+        for f, folder in enumerate(folder_list):
+            color = color_list[f]
+            style = style_list[f]
+
+            dat = glob('{}/*P{}*{}'.format(folder, pointing, inputsuffix))[0]
+            print dat
+            print 'Excluding: ', exclude[pointing-1]
+    
+            d = np.loadtxt(dat, usecols=(col,), unpack=True)
+            
+            exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
+            d = np.delete(d,exarr)
+                            
+            gidx = d == d
+            d = d[gidx]
+
+            ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.2)
+
+        if xlims is not None:
+            ax.set_xlim(*xlims)
+        
+        if ylims is not None:
+            ax.set_ylim(*ylims)
+        ax.legend(loc=0,numpoints=1)
+        axlist.append(ax)
+
+    return axlist
+
 
 def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):
 
