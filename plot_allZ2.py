@@ -466,19 +466,33 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             td = np.delete(td,exarr)
             r = np.delete(r,exarr)
             tz = np.delete(tz,exarr)
+
+            alpha=1.0
+            if combine_all and f == 0:
+                bigD = np.zeros(td.size)
+                alpha=0.3
             
-            z = np.array([])
-            d = np.array([])
-            e = np.array([])
-            while tz.size > 0:
-                zi = tz[0]
-                idx = np.where(np.abs(tz - zi) < 0.05)
-                d = np.r_[d,np.mean(td[idx])]
-                e = np.r_[e,np.std(td[idx])]
-                z = np.r_[z,np.abs(zi)]
-                tz = np.delete(tz, idx)
-                td = np.delete(td, idx)
-                
+            if binz:
+                z = np.array([])
+                d = np.array([])
+                e = np.array([])
+                while tz.size > 0:
+                    zi = tz[0]
+                    idx = np.where(np.abs(tz - zi) < 0.05)
+                    d = np.r_[d,np.mean(td[idx])]
+                    e = np.r_[e,np.std(td[idx])]
+                    z = np.r_[z,np.abs(zi)]
+                    tz = np.delete(tz, idx)
+                    td = np.delete(td, idx)
+            else:
+                z = tz
+                d = td
+                e = np.zeros(tz.size)
+
+            if combine_all:
+                bigD = np.vstack((bigD,d))
+                bigz = z
+
             gidx = d == d
             d = d[gidx]
             z = z[gidx]
@@ -494,16 +508,28 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
             # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
         
-            ax.plot(z[sidx],mean,color=color, ls=style, label=folder)
+            ax.plot(z[sidx],mean,color=color, ls=style, label=folder, alpha=alpha)
             ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
 
-            ax.errorbar(z, d, yerr=e, fmt='.', color=color)
+            ax.errorbar(z, d, yerr=e, fmt='.', color=color,alpha=alpha,capsize=0)
 
         ax.set_xlim(-0.1,2.6)
         
         if ylims is not None:
             ax.set_ylim(*ylims)
         ax.legend(loc=0,numpoints=1)
+
+        if combine_all:
+            sidx = np.argsort(bigz)
+            bigD = bigD[1:]
+            bigMean = bn.nanmean(bigD,axis=0)
+            bigStd = bn.nanstd(bigD,axis=0)
+            bigspl = spi.UnivariateSpline(bigz[sidx],bigMean[sidx])
+            bigFit = bigspl(bigz[sidx])
+            
+            ax.plot(bigz[sidx], bigFit, 'k-')
+            ax.errorbar(bigz, bigMean, yerr=bigStd, fmt='.', color='k',capsize=0)
+
         axlist.append(ax)
 
     return axlist
