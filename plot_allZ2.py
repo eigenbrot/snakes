@@ -441,6 +441,9 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
     color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
     style_list = ['-','-','-','-','-','-']
 
+    if not isinstance(col,list):
+        col = [col] * len(folder_list)
+
     for i in range(6):                
         pointing = plist[i]
 
@@ -452,14 +455,14 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
         for f, folder in enumerate(folder_list):
             color = color_list[f]
             style = style_list[f]
-
+            
             dat = glob('{}/*P{}*{}'.format(folder, pointing, inputsuffix))[0]
             print dat
             loc = glob('{}/*P{}*locations.dat'.format(folder, pointing))[0]
             print loc
             print 'Excluding: ', exclude[pointing-1]
     
-            td = np.loadtxt(dat, usecols=(col,), unpack=True)
+            td = np.loadtxt(dat, usecols=(col[f],), unpack=True)
             r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
 
             exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
