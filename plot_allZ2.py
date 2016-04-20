@@ -26,9 +26,9 @@ rc('ps', usedistiller='Xpdf')
 rc('xtick', labelsize=10.0)
 rc('ytick', labelsize=10.0)
 
-exclude = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29], [35, 36, 38]]
+exclude = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 e2 = [[5, 7, 9, 30, 34], [1, 2, 3, 11, 32, 33, 34, 35, 37], 
-      [1, 3, 4, 50, 53, 54, 55, 59], [1, 2, 15], [1, 2, 3, 5, 24, 27, 28, 29], [35, 36, 37, 38]]
+      [1, 3, 4, 50, 53, 54, 55, 59], [1, 2, 15], [1, 2, 3, 5, 24, 27, 28, 29,5], [35, 36, 37, 38]]
 
 def all_heights(output, inputprefix='NGC_891', err=True, binned=True):
 
@@ -431,15 +431,16 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
 
 def height_plot_across_folders(folder_list, inputsuffix='allz2.dat', 
                                label='Mean Light Weighted Age [Gyr]', 
-                               col=62, order=5, ylims=None, bigpoints=False,
+                               col=6, order=5, ylims=None, bigpoints=False,
+                               binz=True, combine_all=False,
                                exclude=[[],[],[],[],[],[]]):
 
     axlist = []
     
     plist = [6,3,4,2,1,5]
     #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
-    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
-    style_list = ['-','-','-','-','-','-']
+    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid','lightblue']
+    style_list = ['-','-','-','-','-','-','-']
 
     if not isinstance(col,list):
         col = [col] * len(folder_list)
@@ -575,7 +576,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             gidx = d == d
             d = d[gidx]
 
-            ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.2)
+            ax.hist(d, bins=bins, histtype='step', color=color, label=folder,alpha=1)
             
             bigD[folder] = np.r_[bigD[folder], d]
 
@@ -596,7 +597,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
         color = color_list[f]
         style = style_list[f]
         
-        bigax.hist(bigD[folder], bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.2)
+        bigax.hist(bigD[folder], bins=bins, histtype='step', color=color, label=folder,alpha=1)
         
     bigax.legend(loc=0,numpoints=1)
     if xlims is not None:
