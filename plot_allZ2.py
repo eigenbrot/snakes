@@ -432,7 +432,7 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
 def height_plot_across_folders(folder_list, inputsuffix='allz2.dat', 
                                label='Mean Light Weighted Age [Gyr]', 
                                col=6, order=5, ylims=None, bigpoints=False,
-                               binz=True, combine_all=False,
+                               binz=True, combine_all=False, plot_std=False,
                                exclude=[[],[],[],[],[],[]]):
 
     axlist = []
@@ -531,10 +531,18 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             bigspl = spi.UnivariateSpline(bigz[sidx],bigMean[sidx])
             bigFit = bigspl(bigz[sidx])
             
-            ax.plot(bigz[sidx], bigFit, 'k-')
+            ax.plot(bigz[sidx], bigFit, 'k-', lw=2)
             ax.errorbar(bigz, bigMean, yerr=bigStd, fmt='.', color='k',capsize=0)
 
         axlist.append(ax)
+    
+        if combine_all and plot_std:
+            ax2 = plt.figure().add_subplot(111)
+            ax2.set_xlabel('|Height [kpc]|')
+            ax2.set_ylabel('$\delta$'+label)
+            ax2.set_title(ax.get_title())
+            ax2.plot(bigz, bigStd, 'k')
+            axlist.append(ax2)
 
     return axlist
 
