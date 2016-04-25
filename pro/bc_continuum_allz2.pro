@@ -109,7 +109,6 @@ function bc_continuum_allZ2, model, restwl, flux, err, vdidx, emmaskw=emmaskw, $
 light_factor = 100.
 vel_factor = 100.
 
-if n_elements(savestep) eq 0 then savestep = 0
 if n_elements(velstart) eq 0 then velstart = 528.
 
 ; width of emission line masks in km/s
@@ -281,7 +280,7 @@ endif else begin
    fitlib = custom_lib[ok,*]
 endelse
 
-if savestep eq 1 then begin
+if keyword_set(savestep) then begin
    savedata = {flux: fitflux,$
                err: fiterr, $
                agearr: model.age[vdidx,*]/1e9, $

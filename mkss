@@ -18,6 +18,7 @@ FV=1
 VELSTART=""
 BALMSUB=""
 PINFO=""
+SAVESTEP=""
 PYPLOT="~/snakes/plot_bc_vardisp.py"
 MODNAM="/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits"
 
@@ -93,6 +94,14 @@ do
 	    BALMSUB="_balmsub"
 	    echo "Using balmer subtracted data"
 	    ;;
+	-S)
+	    SAVESTEP=" savestep='$2',"
+	    echo "Using '$2' as savestep prefix"
+	    shift
+	    if [ ! -d "steps" ]; then
+		mkdir steps
+	    fi
+	    ;;
 	*)
 	    
 	    ;;
@@ -108,7 +117,7 @@ else
     VELOCITY=""
 fi
 
-idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30${BALMSUB}.ms${O}.fits','NGC_891_P${P}_bin30.me${O}${ERRC}.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}',${PINFO} emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}],${MASKBALM} lightmin=${LMIN}, lightmax=${LMAX}\""
+idlcmd="idl -e \"do_simple_allZ2, 'NGC_891_P${P}_bin30${BALMSUB}.ms${O}.fits','NGC_891_P${P}_bin30.me${O}${ERRC}.fits','NGC_891_P${P}_bin30_allz2.dat',location='NGC_891_P${P}_bin30_locations.dat',${VELOCITY} model='${MODNAM}',${PINFO} emmaskw=${EMMW}, wavemin=3800., wavemax=6800.,${VELSTART} fitregion=[${FMIN}, ${FMAX}],${MASKBALM} ${SAVESTEP} lightmin=${LMIN}, lightmax=${LMAX}\""
 
 plotcmd="python ${PYPLOT} NGC_891_P${P}_bin30_allz2.coef.fits NGC_891_P${P}_bin30_allz2.fit.fits NGC_891_P${P}_bin30${BALMSUB}.ms${O}.fits NGC_891_P${P}_bin30.me${O}${ERRC}.fits ${MODNAM} -l NGC_891_P${P}_bin30_locations.dat -n${PYBALM}"
 

@@ -156,7 +156,7 @@ for i = 0, numfibers - 1 DO BEGIN
    
 
    if keyword_set(savestep) then begin
-      savename = 'steps/' + (strsplit(output,'.',/extract))[0] + '_' + string(i+1,format='(I02)') + '_steps.dat'
+      savename = 'steps/' + savestep + '_' + string(i+1,format='(I02)') + '_steps.dat'
       openw, savelun, savename, /get_lun
       printf, savelun, '# Generated on ',systime()
       printf, savelun, '# Data file: ',datafile
