@@ -281,15 +281,15 @@ endif else begin
 endelse
 
 if keyword_set(savestep) then begin
-   savedata = {flux: fitflux,$
-               err: fiterr, $
+   savedata = {flux: flux,$
+               err: err, $
                agearr: model.age[vdidx,*]/1e9, $
                Z: model.Z[vdidx,*], $
                norm: model.norm[vdidx,*], $
                lightidx: lightidx, $
                custom_lib: custom_lib, $
                lun: lun, $
-               wave: fitwave, $
+               wave: restwl, $
                fmt: fmt}
    mpe = {iterproc: 'savestep', iterargs: savedata}
 endif else begin
