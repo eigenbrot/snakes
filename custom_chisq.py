@@ -63,7 +63,7 @@ def batch_edit(width=20, amp=100, centlist=None, metal=False):
     return
 
 def apply_rms_spec(inputfile, velocityfile, output,
-                   amp=1.):
+                   power=1):
 
     hdu = pyfits.open(inputfile)[0]
     data = hdu.data
@@ -76,14 +76,14 @@ def apply_rms_spec(inputfile, velocityfile, output,
     for i in range(data.shape[0]):
         rms_V = np.interp(wave,rms_wave*(V[i]/3e5 + 1),rms)
         rms_V /= np.mean(rms_V)
-        weights = 1./(rms_V*amp)
+        weights = 1./(rms_V**power)
         data[i,:] *= weights
     
     pyfits.PrimaryHDU(data,hdu.header).writeto(output, clobber=True)
 
     return
         
-def batch_apply(suff='R'):
+def batch_apply(suff='R',power=1):
 
     for p in range(6):
         inputfile = 'NGC_891_P{}_bin30.meo.fits'.format(p+1)
@@ -91,7 +91,7 @@ def batch_apply(suff='R'):
         output = 'NGC_891_P{}_bin30.meo{}.fits'.format(p+1,suff)
         print '{} -> {}'.format(inputfile, output)
         
-        apply_rms_spec(inputfile, velocity, output, amp=1.)
+        apply_rms_spec(inputfile, velocity, output, power=power)
 
     return
 
