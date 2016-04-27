@@ -1,5 +1,6 @@
 import sys
 from glob import glob
+import time
 import numpy as np
 import scipy.stats as ss
 from mpl_toolkits.mplot3d import Axes3D
@@ -164,7 +165,7 @@ def plot_multiZ(prefix,minval=0,maxval=200,bluefree=702):
         
     return fig
 
-def plot_multifolder(folder_list, Zlist, pointing, ap):
+def plot_multifolder_old(folder_list, Zlist, pointing, ap):
     rw = 0.5
     rh = 0.1
     numfree = 1334 - 5 - 1
@@ -261,6 +262,75 @@ def plot_multifolder(folder_list, Zlist, pointing, ap):
 #    fig.show()
         
     return fig, np.mean(goodage), np.std(goodage), bigZ
+
+def plot_multifolder(folder_list, Zlist, pointing, ap):
+    numfree = 1334 - 5 - 1
+    clist = ['blue','green','red','orange','purple','black']
+
+    minchi = np.inf
+    maxchi = 0
+    for f in folder_list:
+        stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
+        print stepfile
+        chi = np.loadtxt(stepfile,usecols=(12,),unpack=True)
+        chi = chi[chi == chi]
+        upperlim = np.median(chi) + 1.3*np.min(chi)
+        if chi[-1] < minchi:
+            minchi = chi[-1]
+        if upperlim > maxchi:
+            maxchi = upperlim
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.set_title('P{}.{}\n{}'.format(pointing,ap,time.asctime()))
+
+    ax.set_ylabel('MLWA')
+    ax.set_xlabel(r'$\Delta\chi^2_{\nu}$')
+    goodage = []
+    bigZ = np.zeros(len(folder_list))
+    avgdiff = 0
+    for z,f in enumerate(folder_list):
+
+        stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
+        print stepfile
+        MLWA, chi = np.loadtxt(stepfile,usecols=(6,12),
+                               unpack=True)
+        idx = chi == chi
+        chi = chi[idx]
+        MLWA = MLWA[idx]
+        idx = MLWA == MLWA
+        chi = chi[idx]
+        MLWA = MLWA[idx]
+
+        chi -= minchi
+        avgdiff += np.median(chi)
+
+        ax.scatter(chi, MLWA, label=f, color=clist[z], s=60, alpha=0.7)
+        
+        prob = 1 - ss.chi2.cdf(chi[-1]*numfree,numfree)
+        if prob >= 0.68:
+            goodage.append(MLWA[-1])
+            bigZ[z] = 1
+
+        # ax.text(chi[-1],MLWA[-1],
+        #         '{:4.2f}\n{:4.2f}'.format(prob,chi[-1]),
+        #         fontsize=10)
+
+    avgdiff /= len(folder_list)
+    ax.legend(loc=0,numpoints=1,scatterpoints=1)
+    ax.set_xlim(-1,avgdiff*5)
+    ax.set_ylim(0,12)
+
+    cutoff = ss.chi2.ppf(0.68,numfree)/numfree
+    ax.axvline(cutoff,ls=':',color='k',alpha=0.6)
+    ax.axhline(np.mean(goodage),ls='--',color='k',alpha=0.6)
+    ax.text(avgdiff*5*0.9,np.mean(goodage),'MLWA = {:3.1f} Gyr'.format(np.mean(goodage)),
+            ha='right',va='bottom',fontsize=9)
+#    fig.show()
+        
+    return fig, np.mean(goodage), np.std(goodage), bigZ
+
 
 def do_pointing(folder_list, Zlist, pointing, numaps, output):
     
