@@ -12,6 +12,9 @@ from matplotlib.collections import PatchCollection
 from mpl_toolkits.axes_grid1 import ImageGrid
 plt.ioff()
 
+Zlist = [0.005,0.02,0.2,0.4,1,2.5]
+flist = ['{}Z/steps'.format(i) for i in Zlist]
+
 def plot(stepfile, offset=0):
 
     MLWA, TAUV, Chi, blueChi = np.loadtxt(stepfile,usecols=(6+offset,
@@ -352,11 +355,13 @@ def do_pointing(folder_list, Zlist, pointing, numaps, output):
     plt.close('all')
     return
 
-def do_all_pointings(folder_list, Zlist):
+def do_all_pointings(suff='',folder_list=flist, Zlist=Zlist):
     
     numlist = [37,38,59,60,29,38]
+    if suff != '':
+        suff = '_' + suff
     for i in range(6):
-        output = 'NGC_891_P{}_CI'.format(i+1)
+        output = 'NGC_891_P{}_CI{}'.format(i+1,suff)
         do_pointing(folder_list, Zlist, i+1, numlist[i], output)
 
     return
