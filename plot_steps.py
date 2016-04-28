@@ -266,8 +266,7 @@ def plot_multifolder_old(folder_list, Zlist, pointing, ap):
         
     return fig, np.mean(goodage), np.std(goodage), bigZ
 
-def plot_multifolder(folder_list, Zlist, pointing, ap):
-    numfree = 1334 - 5 - 1
+def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=0):
     clist = ['blue','green','red','orange','purple','black']
 
     minchi = np.inf
@@ -275,7 +274,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap):
     for f in folder_list:
         stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
         print stepfile
-        chi = np.loadtxt(stepfile,usecols=(12,),unpack=True)
+        chi = np.loadtxt(stepfile,usecols=(12+offset,),unpack=True)
         chi = chi[chi == chi]
         upperlim = np.median(chi) + 1.3*np.min(chi)
         if chi[-1] < minchi:
@@ -297,7 +296,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap):
 
         stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
         print stepfile
-        MLWA, chi = np.loadtxt(stepfile,usecols=(6,12),
+        MLWA, chi = np.loadtxt(stepfile,usecols=(8+offset,12+offset),
                                unpack=True)
         idx = chi == chi
         chi = chi[idx]
@@ -322,8 +321,8 @@ def plot_multifolder(folder_list, Zlist, pointing, ap):
 
     avgdiff /= len(folder_list)
     ax.legend(loc=0,numpoints=1,scatterpoints=1)
-    ax.set_xlim(-1,avgdiff*5)
-    ax.set_ylim(0,12)
+    ax.set_xlim(-0.1*avgdiff,avgdiff*5)
+    ax.set_ylim(0,3)
 
     cutoff = ss.chi2.ppf(0.68,numfree)/numfree
     ax.axvline(cutoff,ls=':',color='k',alpha=0.6)
@@ -335,7 +334,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap):
     return fig, np.mean(goodage), np.std(goodage), bigZ
 
 
-def do_pointing(folder_list, Zlist, pointing, numaps, output):
+def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,offset=0):
     
     pp = PDF(output+'.pdf')
     txtfile = output+'.dat'
@@ -344,7 +343,8 @@ def do_pointing(folder_list, Zlist, pointing, numaps, output):
         f.write(str('{:>7}Z'*len(Zlist)).format(*Zlist))
         f.write('\n#\n')
         for a in range(numaps):
-            fig, age, std, bigZ = plot_multifolder(folder_list, Zlist, pointing, a+1)
+            fig, age, std, bigZ = plot_multifolder(folder_list, Zlist, pointing, a+1,
+                                                   numfree=numfree,offset=offset)
             pp.savefig(fig)
             
             f.write('{:5n}{:10.3f}{:10.3f}'.format(a+1,age,std))
