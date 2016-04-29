@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import scipy.ndimage as spnd
 import pyfits
 import matplotlib.pyplot as plt
@@ -95,7 +96,35 @@ def batch_apply(suff='R',power=1):
 
     return
 
-def compute_rms_spec(swindow=100):
+def convert_to_IRAF():
+    
+    mlist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
+             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
+             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
+             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits']
+
+    for mod in mlist:
+        d = pyfits.open(mod)[1].data[0]
+        wave = d['WAVE']
+        lin_wave = np.linspace(np.min(wave),np.max(wave),wave.size)
+        print np.std(np.diff(lin_wave))
+        CDELT = np.mean(np.diff(lin_wave))
+        tmp = np.zeros(d['FLUX'].shape[0:2])
+        for i in range(tmp.shape[0]):
+            tmp[i,:] = np.interp(lin_wave, wave, d['FLUX'][i,:,0])
+
+        HDU = pyfits.PrimaryHDU(tmp)
+        HDU.header.update('CRVAL1',lin_wave.min())
+        HDU.header.update('CRPIX1',1)
+        HDU.header.update('CDELT1',CDELT)
+
+        outname = '{}.iraf.fits'.format(os.path.splitext(os.path.basename(mod))[0])
+        print outname
+        HDU.writeto(outname,clobber=True)
+
+    return
+
+def compute_rms_spec(swindow=100,order=5):
 
     mlist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
              '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
