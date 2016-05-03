@@ -266,37 +266,47 @@ def plot_multifolder_old(folder_list, Zlist, pointing, ap):
         
     return fig, np.mean(goodage), np.std(goodage), bigZ
 
-def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=0):
-    clist = ['blue','green','red','orange','purple','black']
+def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=0,col=6,label='MLWA'):
+    clist = ['blue','green','red','orange','purple','black','maroon']
+
+    if not isinstance(offset,list):
+        offset = [offset] * len(folder_list)
+    if not isinstance(numfree,list):
+        numfree = [numfree] * len(folder_list)
 
     minchi = np.inf
     maxchi = 0
-    for f in folder_list:
+    for i, f in enumerate(folder_list):
         stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
         print stepfile
-        chi = np.loadtxt(stepfile,usecols=(12+offset,),unpack=True)
-        chi = chi[chi == chi]
+        MLWA, chi = np.loadtxt(stepfile,usecols=(col+offset[i], 12+offset[i],),unpack=True)
+        idx = chi == chi
+        chi = chi[idx]
+        MLWA = chi[idx]
         upperlim = np.median(chi) + 1.3*np.min(chi)
-        if chi[-1] < minchi:
-            minchi = chi[-1]
+        if np.min(chi) < minchi:
+            minchi = np.min(chi)
+            bestnumfree = numfree[i]
+            bestMLWA = MLWA[np.argmin(chi)]
         if upperlim > maxchi:
             maxchi = upperlim
 
+    print bestMLWA, bestnumfree
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
     ax.set_title('P{}.{}\n{}'.format(pointing,ap,time.asctime()))
 
-    ax.set_ylabel('MLWA')
-    ax.set_xlabel(r'$\Delta\chi^2_{\nu}$')
-    goodage = []
+    ax.set_xlabel(label)
+    ax.set_ylabel(r'$\Delta\chi^2_{\nu}$')
+    goodage = np.array([])
     bigZ = np.zeros(len(folder_list))
     avgdiff = 0
     for z,f in enumerate(folder_list):
 
         stepfile = glob('{:}/P{:}_*{:02n}_steps.dat'.format(f,pointing,ap))[0]
         print stepfile
-        MLWA, chi = np.loadtxt(stepfile,usecols=(8+offset,12+offset),
+        MLWA, chi = np.loadtxt(stepfile,usecols=(col+offset[z],12+offset[z]),
                                unpack=True)
         idx = chi == chi
         chi = chi[idx]
@@ -308,12 +318,17 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
         chi -= minchi
         avgdiff += np.median(chi)
 
-        ax.scatter(chi, MLWA, label=f, color=clist[z], s=60, alpha=0.7)
+        ax.scatter(MLWA, chi, label=f, color=clist[z], s=60, alpha=0.5, edgecolors='none')
         
-        prob = 1 - ss.chi2.cdf(chi[-1]*numfree,numfree)
+        prob = 1 - ss.chi2.cdf(np.min(chi)*numfree[z],numfree[z])
         if prob >= 0.68:
-            goodage.append(MLWA[-1])
+            goodidx = np.argmin(chi)
+            goodage = np.r_[goodage,MLWA[goodidx]]
             bigZ[z] = 1
+            ax.scatter(MLWA[goodidx],np.min(chi),color=clist[z],s=120)
+        
+        if np.min(chi) == 0.0:
+            ax.axvline(MLWA[goodidx],ls='--',color=clist[z])
 
         # ax.text(chi[-1],MLWA[-1],
         #         '{:4.2f}\n{:4.2f}'.format(prob,chi[-1]),
@@ -321,33 +336,35 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
 
     avgdiff /= len(folder_list)
     ax.legend(loc=0,numpoints=1,scatterpoints=1)
-    ax.set_xlim(-0.1*avgdiff,avgdiff*5)
-    ax.set_ylim(0,3)
-
-    cutoff = ss.chi2.ppf(0.68,numfree)/numfree
-    ax.axvline(cutoff,ls=':',color='k',alpha=0.6)
-    ax.axhline(np.mean(goodage),ls='--',color='k',alpha=0.6)
-    ax.text(avgdiff*5*0.9,np.mean(goodage),'MLWA = {:3.1f} Gyr'.format(np.mean(goodage)),
-            ha='right',va='bottom',fontsize=9)
+    ax.set_ylim(-0.1*avgdiff,avgdiff*5)
+    ax.set_xlim(0,11)
+    
+    cutoff = ss.chi2.ppf(0.68,bestnumfree)/bestnumfree
+    ax.axhline(cutoff,ls=':',color='k',alpha=0.6)
+    # ax.axvline(bestMLWA,ls='--',color='k',alpha=0.6)
+    # ax.text(np.mean(goodage),avgdiff*5*0.9,'{:} = {:3.1f}'.format(label,np.mean(goodage)),
+    #         ha='right',va='bottom',fontsize=8)
 #    fig.show()
         
-    return fig, np.mean(goodage), np.std(goodage), bigZ
+    return fig, bestMLWA, np.std(goodage), bigZ
 
 
-def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,offset=0):
-    
+def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,offset=0,
+                col=6,label='MLWA'):
+    #offset = 20 for multiZ
     pp = PDF(output+'.pdf')
     txtfile = output+'.dat'
     with open(txtfile,'w') as f:
-        f.write('#{:>4}{:>10}{:>10}'.format('ap','MLWA','dMLWA'))
+        f.write('#{:>4}{:>10}{:>13}'.format('ap',label,'d'+label))
         f.write(str('{:>7}Z'*len(Zlist)).format(*Zlist))
         f.write('\n#\n')
         for a in range(numaps):
             fig, age, std, bigZ = plot_multifolder(folder_list, Zlist, pointing, a+1,
-                                                   numfree=numfree,offset=offset)
+                                                   numfree=numfree,offset=offset,
+                                                   col=col,label=label)
             pp.savefig(fig)
             
-            f.write('{:5n}{:10.3f}{:10.3f}'.format(a+1,age,std))
+            f.write('{:5n}{:10.3f}{:13.4f}'.format(a+1,age,std))
             f.write(str('{:8n}'*bigZ.size).format(*bigZ))
             f.write('\n')
 
@@ -355,14 +372,16 @@ def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,o
     plt.close('all')
     return
 
-def do_all_pointings(suff='',folder_list=flist, Zlist=Zlist):
+def do_all_pointings(suff='',folder_list=flist, Zlist=Zlist,
+                     numfree=1334-5-1,offset=0,col=6,label='MLWA'):
     
     numlist = [37,38,59,60,29,38]
     if suff != '':
         suff = '_' + suff
     for i in range(6):
         output = 'NGC_891_P{}_CI{}'.format(i+1,suff)
-        do_pointing(folder_list, Zlist, i+1, numlist[i], output)
+        do_pointing(folder_list, Zlist, i+1, numlist[i], output,
+                    offset=offset,col=col,label=label,numfree=numfree)
 
     return
 
