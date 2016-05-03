@@ -64,7 +64,11 @@ def batch_edit(width=20, amp=100, centlist=None, metal=False):
     return
 
 def apply_rms_spec(inputfile, velocityfile, output,
-                   power=1):
+                   power=1,
+                   ml = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
+                         '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
+                         '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
+                         '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits']):
 
     hdu = pyfits.open(inputfile)[0]
     data = hdu.data
@@ -72,7 +76,7 @@ def apply_rms_spec(inputfile, velocityfile, output,
     
     wave = (np.arange(data.shape[1]) - (hdu.header['CRPIX1'] - 1))*hdu.header['CDELT1'] + hdu.header['CRVAL1']
 
-    rms_wave, rms, rms_Z, rms_A = compute_rms_spec()
+    rms_wave, rms, rms_Z, rms_A = compute_rms_spec(mlist=ml)
 
     for i in range(data.shape[0]):
         rms_V = np.interp(wave,rms_wave*(V[i]/3e5 + 1),rms)
@@ -84,7 +88,11 @@ def apply_rms_spec(inputfile, velocityfile, output,
 
     return
         
-def batch_apply(suff='R',power=1):
+def batch_apply(suff='R',power=1,
+                ml=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
+                    '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
+                    '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
+                    '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits']):
 
     for p in range(6):
         inputfile = 'NGC_891_P{}_bin30.meo.fits'.format(p+1)
@@ -92,7 +100,7 @@ def batch_apply(suff='R',power=1):
         output = 'NGC_891_P{}_bin30.meo{}.fits'.format(p+1,suff)
         print '{} -> {}'.format(inputfile, output)
         
-        apply_rms_spec(inputfile, velocity, output, power=power)
+        apply_rms_spec(inputfile, velocity, output, power=power, ml=ml)
 
     return
 
@@ -124,31 +132,52 @@ def convert_to_IRAF():
 
     return
 
-def compute_rms_spec(swindow=100,order=5):
+def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
+                            '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
+                            '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
+                            '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits'],
+                     swindow=100,order=5):
 
-    mlist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_02Z_vardisp.fits',
-             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
-             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
-             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits']
     Zlist = [0.2,0.4,1,2.5]
 
-    #Get dims
-    tmp = pyfits.open(mlist[0])[1].data[0]
-    nage = tmp['FLUX'].shape[0]
+    #Get dims, IRAF style
+    tmp = pyfits.open(mlist[0])[0]
+    nage, nwave = tmp.data.shape
     nmetal = len(mlist)
-    wave = tmp['WAVE']
-    idx = np.where((wave >= 3800) & (wave <= 6800))[0]
-    wave = wave[idx]
-    age = tmp['AGE'][:,0]/1e9
-    nwave = wave.size
+    wave = (np.arange(nwave) - tmp.header['CRPIX1'] - 1)*tmp.header['CDELT1'] + tmp.header['CRVAL1']
+    age = np.array([2.75846757e-03,   2.16358081e-01,   3.15126872e+00, 9.68775558e+00]) #MAGIC NUMBERS!
+    
+    # #Get dims
+    # tmp = pyfits.open(mlist[0])[1].data[0]
+    # nage = tmp['FLUX'].shape[0]
+    # nmetal = len(mlist)
+    # wave = tmp['WAVE']
+    # idx = np.where((wave >= 3800) & (wave <= 6800))[0]
+    # wave = wave[idx]
+    # age = tmp['AGE'][:,0]/1e9
+    # nwave = wave.size
 
     bigD = np.zeros((nmetal, nage, nwave))
 
+    # for i, mod in enumerate(mlist):
+    #     data = pyfits.open(mod)[1].data[0]
+    #     for j in range(nage):
+    #         cont = np.convolve(data['FLUX'][j,:,0],np.ones(swindow)/swindow,'same')
+    #         # contf = np.poly1d(np.polyfit(wave,data['FLUX'][j,idx,0],order))
+    #         # cont = contf(wave)
+    #         bigD[i,j,:] = data['FLUX'][j,idx,0]/cont[idx]
+    #         cax = plt.figure().add_subplot(111)
+    #         cax.plot(wave,data['FLUX'][j,idx,0])
+    #         cax.plot(wave,cont[idx])
+    #         #cax.plot(wave, bigD[i,j,:])
+    #         cax.figure.show()
+    #         print '{}\n\t{}'.format(mod,j)
+    #         raw_input('')
+    #         plt.close(cax.figure)
+
     for i, mod in enumerate(mlist):
-        data = pyfits.open(mod)[1].data[0]
-        for j in range(nage):
-            cont = np.convolve(data['FLUX'][j,idx,0],np.ones(swindow)/swindow,'same')
-            bigD[i,j,:] = data['FLUX'][j,idx,0]/cont
+        data = pyfits.open(mod)[0].data
+        bigD[i,:,:] = data
 
     # bigAvg = np.mean(bigD,axis=(0,1))
     # smoothedAvg = np.convolve(bigAvg,np.ones(swindow)/swindow,'same')
@@ -182,9 +211,10 @@ def compute_rms_spec(swindow=100,order=5):
 
     rms_A = np.sqrt(rms_A)/nmetal
 #    ax.plot(wave,rms_Z,label='total')
+    ax.set_xlim(3400,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    mfig.savefig('A_rms2.png',dpi=200)
+    mfig.savefig('A_rms_IRAF.png',dpi=200)
 
     #Age axis
     afig = plt.figure()
@@ -201,9 +231,10 @@ def compute_rms_spec(swindow=100,order=5):
 
     rms_Z = np.sqrt(rms_Z)/nage
 #    ax.plot(wave, rms_A,label='total')
+    ax.set_xlim(3500,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    afig.savefig('Z_rms2.png',dpi=200)
+    afig.savefig('Z_rms_IRAF.png',dpi=200)
 
     #All
     bigfig = plt.figure()
@@ -216,10 +247,11 @@ def compute_rms_spec(swindow=100,order=5):
     ax.plot(wave, rms, label='total')
     ax.plot(wave, rms_Z/np.mean(rms_Z)*np.mean(rms_A), label=r'RMS$_Z$')
     ax.plot(wave, rms_A, label=r'RMS$_{\rm age}$')
+    ax.set_xlim(3500,7000)
     ax.legend(loc=0)
     add_line_labels(ax)    
 #    bigfig.show()
-    bigfig.savefig('big_RMS3.png',dpi=200)
+    bigfig.savefig('big_RMS_IRAF.png',dpi=200)
 
     return wave, rms, rms_Z, rms_A
 
