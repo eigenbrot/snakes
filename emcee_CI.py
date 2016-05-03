@@ -39,9 +39,9 @@ def main(datafile, errorfile, location, coeffile, output,
     sizeidx = [0.937,1.406,1.875,2.344,2.812]
 
     idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
-    lightidx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
 
     wave = wave[idx]
+    lightidx = np.where((wave >= lightmin) & (wave <= lightmax))[0]
 
     agearr = m['AGE']/1e9
     numages = agearr.shape[0]
@@ -88,7 +88,7 @@ def main(datafile, errorfile, location, coeffile, output,
     yfitfile = output.split('.')[0] + '.emceefit.fits'
     yfitarr = np.zeros((numfibers, wave.size))
 
-    for i in [14]:#range(numfiber):
+    for i in range(numfibers):
 
         print "Doing fiber {}".format(i+1)
         flux = data[i,idx]*flux_factor
@@ -106,12 +106,15 @@ def main(datafile, errorfile, location, coeffile, output,
         yfitarr[i,:] = yfit/flux_factor
 
         if plot:
-            fig = triangle.corner(S.flatchain*np.r_[1,np.ones(numages)*100.],
-                                  labels=[r'$\tau_V$'] + ['$w_{}$'.format(i) for i in range(numages)],
-                                  truths=np.r_[MCcoefs['TAUV'],MCcoefs['LIGHT_FRAC']])
-            pp.savefig(fig)
-            plt.close(fig)
-
+            try:
+                fig = triangle.corner(S.flatchain*np.r_[1,np.ones(numages)*100.],
+                                      labels=[r'$\tau_V$'] + ['$w_{{{}}}$'.format(i) for i in range(numages)],
+                                      truths=np.r_[MCcoefs['TAUV'],MCcoefs['LIGHT_FRAC']])
+                                      #extents=[(0,3)] + numages*[(0,200)])
+                pp.savefig(fig)
+                plt.close(fig)
+            except:
+                pass
     if plot:
         pp.close()
 
@@ -200,7 +203,7 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     print '###', EMtheta
     stds = np.mean(S.flatchain,axis=0)
 
-    cents, lowCI, highCI = compute_theta_CI(S)
+    cents, lowCI, highCI = compute_theta_CI(S.flatchain)
     print '$$$', cents
     print lowCI
     print highCI
@@ -261,15 +264,15 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
 
     return fitcoefs[0], yfit, S
 
-def compute_theta_CI(S, bins=20):
+def compute_theta_CI(flatchain, bins=20):
 
-    numpar = S.flatchain.shape[1]
+    numpar = flatchain.shape[1]
     lowCI = np.zeros(numpar)
     highCI = np.zeros(numpar)
     cent = np.zeros(numpar)
 
     for p in range(numpar):
-        hist, b = np.histogram(S.flatchain[:,p],bins=bins)
+        hist, b = np.histogram(flatchain[:,p],bins=bins)
         cdf = np.cumsum(1.0*hist/np.sum(hist))
         bcent = 0.5*(b[1:] + b[:-1])
         cent[p] = np.interp(0.5,cdf,bcent)
@@ -277,6 +280,35 @@ def compute_theta_CI(S, bins=20):
         highCI[p] = np.interp(0.68,cdf,bcent)
 
     return cent, cent-lowCI, highCI-cent
+
+def combine_S_CI(Slist):
+    
+    #find the best
+    bestln = -np.inf
+    bestS = None
+    for S in Slist:
+        if np.max(S.flatlnprobability) > bestln:
+            bestln = np.max(S.flatlnprobability)
+            bestS = S
+    
+    #Compute the ln prob CI
+    hist, b = np.histogram(bestS.flatlnprobability,bins=100)
+    cdf = np.cumsum(1.0*hist/np.sum(hist))
+    bcent = 0.5*(b[1:] + b[:-1])
+    limit = np.interp(0.68,cdf,bcent)
+
+    newlnprob = np.array([])
+    newflatchain = np.zeros(bestS.flatchain.shape[1])
+
+    for i, S in enumerate(Slist):
+        idx = np.where(S.flatlnprobability > limit)[0]
+        if idx.size > 0:
+            print idx.shape
+            print i
+            newlnprob = np.r_[newlnprob, S.flatlnprobability[idx]]
+            newflatchain = np.vstack((newflatchain,S.flatchain[idx,:]))
+
+    return newlnprob, newflatchain[1:,:]
 
 def compute_MLWA_CI(S, wave, mlib, agearr, lightidx, nsample=None, bins=20):
 
