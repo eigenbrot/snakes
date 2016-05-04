@@ -549,16 +549,19 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
 def histogram_across_folders(folder_list, inputsuffix='allz2.dat', 
                              label='Mean Light Weighted Age [Gyr]', 
                              col=62, bins=10, ylims=None, xlims=None,
-                             exclude=[[],[],[],[],[],[]]):
+                             delta=False,exclude=[[],[],[],[],[],[]]):
     
     axlist = []
     
     plist = [6,3,4,2,1,5]
     #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
-    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid']
-    style_list = ['-','-','-','-','-','-']
+    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid','maroon']
+    style_list = ['-','-','-','-','-','-','-']
 
-    bigD = dict(zip(folder_list,[np.array([]) for i in range(6)]))
+    if not isinstance(col,list):
+        col = [col] * len(folder_list)
+    
+    bigD = dict(zip(folder_list,[np.array([]) for i in range(len(folder_list))]))
 
     for i in range(6):                
         pointing = plist[i]
@@ -576,7 +579,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             print dat
             print 'Excluding: ', exclude[pointing-1]
     
-            d = np.loadtxt(dat, usecols=(col,), unpack=True)
+            d = np.loadtxt(dat, usecols=(col[f],), unpack=True)
             
             exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
             d = np.delete(d,exarr)
@@ -584,7 +587,10 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             gidx = d == d
             d = d[gidx]
 
-            ax.hist(d, bins=bins, histtype='step', color=color, label=folder,alpha=1)
+            if delta:
+                d -= np.min(d)
+
+            ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.3)
             
             bigD[folder] = np.r_[bigD[folder], d]
 
@@ -605,7 +611,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
         color = color_list[f]
         style = style_list[f]
         
-        bigax.hist(bigD[folder], bins=bins, histtype='step', color=color, label=folder,alpha=1)
+        bigax.hist(bigD[folder], bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.3)
         
     bigax.legend(loc=0,numpoints=1)
     if xlims is not None:
