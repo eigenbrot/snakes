@@ -10,7 +10,7 @@ plt.ioff()
 def main(datafile, errorfile, location, coeffile, output,
          model='/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits',
          plot=True, wavemin=3800., wavemax=6800., fitregion=[3850.,6650.],
-         lightmin=5450., lightmax=5550., emmaskw=500.,
+         lightmin=5450., lightmax=5550., emmaskw=500., fitaps=None,
          nsample=1000, burn=100, nwalkers=256, threads=1):
 
     #read the models
@@ -88,7 +88,13 @@ def main(datafile, errorfile, location, coeffile, output,
     yfitfile = output.split('.')[0] + '.emceefit.fits'
     yfitarr = np.zeros((numfibers, wave.size))
 
-    for i in range(numfibers):
+    if fitaps is None:
+        fitaps = range(numfibers)
+    else:
+        #because ap numbers start at 1
+        fitaps = [i-1 for i in fitaps]
+
+    for i in fitaps:
 
         print "Doing fiber {}".format(i+1)
         flux = data[i,idx]*flux_factor
