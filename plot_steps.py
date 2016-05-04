@@ -282,7 +282,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
         MLWA, chi = np.loadtxt(stepfile,usecols=(col+offset[i], 12+offset[i],),unpack=True)
         idx = chi == chi
         chi = chi[idx]
-        MLWA = chi[idx]
+        MLWA = MLWA[idx]
         upperlim = np.median(chi) + 1.3*np.min(chi)
         if np.min(chi) < minchi:
             minchi = np.min(chi)
@@ -291,7 +291,6 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
         if upperlim > maxchi:
             maxchi = upperlim
 
-    print bestMLWA, bestnumfree
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
@@ -341,7 +340,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
     
     cutoff = ss.chi2.ppf(0.68,bestnumfree)/bestnumfree
     ax.axhline(cutoff,ls=':',color='k',alpha=0.6)
-    # ax.axvline(bestMLWA,ls='--',color='k',alpha=0.6)
+    # ax.axvline(bestMLWA,ls='-',color='k',alpha=0.6)
     # ax.text(np.mean(goodage),avgdiff*5*0.9,'{:} = {:3.1f}'.format(label,np.mean(goodage)),
     #         ha='right',va='bottom',fontsize=8)
 #    fig.show()
