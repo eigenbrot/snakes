@@ -97,10 +97,10 @@ def main(datafile, errorfile, location, coeffile, output,
         vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
         LMcoefs = coef_arr[i]
         
-        MCcoefs, yfit, S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
-                                 fitregion=fitregion,emmaskw=emmaskw,
-                                 lightidx=lightidx,nsample=nsample,
-                                 burn=burn,nwalkers=nwalkers,threads=threads)
+        MCcoefs, yfit, S, MLWA_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
+                                         fitregion=fitregion,emmaskw=emmaskw,
+                                         lightidx=lightidx,nsample=nsample,
+                                         burn=burn,nwalkers=nwalkers,threads=threads)
 
         outputarr[i] = MCcoefs
         yfitarr[i,:] = yfit/flux_factor
@@ -125,7 +125,7 @@ def main(datafile, errorfile, location, coeffile, output,
     fithdu.header.update('CRVAL1',wavemin)
     fithdu.writeto(yfitfile,clobber=True)
 
-    return MCcoefs, S
+    return MCcoefs, S, MLWA_S
 
 def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
           emmaskw=500., lightidx=None, threads=1,
@@ -208,8 +208,8 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     print lowCI
     print highCI
 
-    MLWA, MLWA_L, MLWA_H = compute_MLWA_CI(S, wave, custom_lib, 
-                                           model['AGE'][:,0]/1e9, lightidx)
+    MLWA, MLWA_L, MLWA_H, MLWA_samples = compute_MLWA_CI(S, wave, custom_lib, 
+                                                         model['AGE'][:,0]/1e9, lightidx)
     print MLWA, MLWA_L, MLWA_H
 
     yfit = mcombine(EMtheta,wave,custom_lib,LMcoefs['VSYS'])
@@ -262,7 +262,7 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     fitcoefs['bluechi'] = LMcoefs['bluechi']
     fitcoefs['hkchi'] = LMcoefs['hkchi']
 
-    return fitcoefs[0], yfit, S
+    return fitcoefs[0], yfit, S, MLWA_samples
 
 def compute_theta_CI(flatchain, bins=20):
 
@@ -330,7 +330,7 @@ def compute_MLWA_CI(S, wave, mlib, agearr, lightidx, nsample=None, bins=20):
     low = np.interp(0.32,cdf,bcent)
     high = np.interp(0.68,cdf,bcent)
 
-    return mid, mid - low, high - mid
+    return mid, mid - low, high - mid, MLWA_samples
 
 def compute_MLWA(theta, wave, mlib, agearr, lightidx):
     
