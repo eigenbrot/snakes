@@ -4,10 +4,11 @@ import pyfits
 import emcee
 import triangle
 import matplotlib.pyplot as plt
+import h5py
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
-def main(datafile, errorfile, location, coeffile, output,
+def main(datafile, errorfile, location, coeffile, outputpre,
          model='/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits',
          plot=True, wavemin=3800., wavemax=6800., fitregion=[3850.,6650.],
          lightmin=5450., lightmax=5550., emmaskw=500., fitaps=None,
@@ -46,14 +47,14 @@ def main(datafile, errorfile, location, coeffile, output,
     agearr = m['AGE']/1e9
     numages = agearr.shape[0]
 
-    # f = open(output,'w')
+    # f = open(outputpre,'w')
     # f.write('{:11}'.format('# Fiber Num'))
     # f.write((numages*'{:9.3f} Gyr').format(*agearr))
     # f.write('{:>10}{:>10}'.format('Tau_V, Vsys'))
     # f.write('\n#\n')
 
     if plot:
-        plotname = output.split('.')[0] + '_tri.pdf'
+        plotname = outputpre + '_tri.pdf'
         pp = PDF(plotname)
 
     flux_factor = 1e17
@@ -85,8 +86,10 @@ def main(datafile, errorfile, location, coeffile, output,
                                                      'f4',
                                                      'f4','f4','f4','f4']})
 
-    yfitfile = output.split('.')[0] + '.emceefit.fits'
+    yfitfile = outputpre + '.emceefit.fits'
     yfitarr = np.zeros((numfibers, wave.size))
+
+    h5file = h5py.File(outputpre + '_emcee.h5','w')
 
     if fitaps is None:
         fitaps = range(numfibers)
@@ -111,6 +114,12 @@ def main(datafile, errorfile, location, coeffile, output,
         outputarr[i] = MCcoefs
         yfitarr[i,:] = yfit/flux_factor
 
+        grp = h5file.create_group('Ap{}'.format(i+1))
+        grp.create_dataset('chain',data=S.chain,compression='gzip',compression_opts=9)
+        grp.create_dataset('lnprob',data=S.lnprobability,compression='gzip',compression_opts=9)
+        grp.create_dataset('MLWA_S',data=MLWA_S,compression='gzip',compression_opts=9)
+        h5file.flush()
+
         if plot:
             try:
                 fig = triangle.corner(S.flatchain*np.r_[1,np.ones(numages)*100.],
@@ -124,7 +133,9 @@ def main(datafile, errorfile, location, coeffile, output,
     if plot:
         pp.close()
 
-    pyfits.BinTableHDU(outputarr).writeto(output,clobber=True)
+    h5file.close()
+
+    pyfits.BinTableHDU(outputarr).writeto(outputpre + '.emceecoef.fits',clobber=True)
     fithdu = pyfits.PrimaryHDU(yfitarr)
     fithdu.header.update('CDELT1',CDELT)
     fithdu.header.update('CRPIX1',1)
