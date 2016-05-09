@@ -431,7 +431,8 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
 
 def height_plot_across_folders(folder_list, inputsuffix='allz2.dat', 
                                label='Mean Light Weighted Age [Gyr]', 
-                               col=6, order=5, ylims=None, bigpoints=False,
+                               col=6, errcol=None, lowhigh=False, 
+                               order=5, ylims=None, bigpoints=False,
                                binz=True, combine_all=False, plot_std=False,
                                exclude=[[],[],[],[],[],[]]):
 
@@ -463,13 +464,24 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             print loc
             print 'Excluding: ', exclude[pointing-1]
     
-            td = np.loadtxt(dat, usecols=(col[f],), unpack=True)
+            if errcol == None:
+                td = np.loadtxt(dat, usecols=(col[f],), unpack=True)
+            else:
+                if lowhigh:
+                    td, low, high = np.loadtxt(dat, usecols=(col[f],errcol,errcol+1), unpack=True)
+                    te = np.vstack((low,high))
+                else:
+                    td, te = np.loadtxt(dat, usecols=(col[f],errcol), unpack=True)                
             r, tz = np.loadtxt(loc, usecols=(4,5), unpack=True)
 
             exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
             td = np.delete(td,exarr)
             r = np.delete(r,exarr)
             tz = np.delete(tz,exarr)
+            if lowhigh:
+                te = np.delete(te,exarr,axis=1)
+            else:
+                te = np.delete(te,exarr)
 
             alpha=1.0
             if combine_all and f == 0:
@@ -491,7 +503,10 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             else:
                 z = tz
                 d = td
-                e = np.zeros(tz.size)
+                if errcol == None:
+                    e = np.zeros(tz.size)
+                else:
+                    e = te
 
             if combine_all:
                 bigD = np.vstack((bigD,d))
@@ -500,7 +515,10 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             gidx = d == d
             d = d[gidx]
             z = z[gidx]
-            e = e[gidx]
+            if lowhigh:
+                e = e[:,gidx]
+            else:
+                e = e[gidx]
 
             sidx = np.argsort(z)
             dp = np.r_[d[sidx][order::-1],d[sidx]]
@@ -512,10 +530,10 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             # mean = np.convolve(d[sidx],np.ones(order)/order,'same')
             # std = np.sqrt(np.convolve((d - mean)**2,np.ones(order)/order,'same'))
         
-            ax.plot(z[sidx],mean,color=color, ls=style, label=folder, alpha=alpha)
-            ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
+            # ax.plot(z[sidx],mean,color=color, ls=style, label=folder, alpha=alpha)
+            # ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
 
-            ax.errorbar(z, d, yerr=e, fmt='.', color=color,alpha=alpha,capsize=0)
+            ax.errorbar(z, d, yerr=e, fmt='.', color=color,alpha=alpha,capsize=0, label=folder)
 
         ax.set_xlim(-0.1,2.6)
         

@@ -345,7 +345,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
     #         ha='right',va='bottom',fontsize=8)
 #    fig.show()
         
-    return fig, bestMLWA, np.std(goodage), bigZ
+    return fig, bestMLWA, bestMLWA - np.min(goodage), np.max(goodage) - bestMLWA, bigZ
 
 
 def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,offset=0,
@@ -354,16 +354,16 @@ def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,o
     pp = PDF(output+'.pdf')
     txtfile = output+'.dat'
     with open(txtfile,'w') as f:
-        f.write('#{:>4}{:>10}{:>13}'.format('ap',label,'d'+label))
+        f.write('#{:>4}{:>10}{:>13}{:>13}'.format('ap',label,'l'+label,'h'+label))
         f.write(str('{:>7}Z'*len(Zlist)).format(*Zlist))
         f.write('\n#\n')
         for a in range(numaps):
-            fig, age, std, bigZ = plot_multifolder(folder_list, Zlist, pointing, a+1,
-                                                   numfree=numfree,offset=offset,
-                                                   col=col,label=label)
+            fig, age, low, high, bigZ = plot_multifolder(folder_list, Zlist, pointing, a+1,
+                                                         numfree=numfree,offset=offset,
+                                                         col=col,label=label)
             pp.savefig(fig)
             
-            f.write('{:5n}{:10.3f}{:13.4f}'.format(a+1,age,std))
+            f.write('{:5n}{:10.3f}{:13.4f}{:13.4f}'.format(a+1,age,low,high))
             f.write(str('{:8n}'*bigZ.size).format(*bigZ))
             f.write('\n')
 
