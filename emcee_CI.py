@@ -428,3 +428,24 @@ def plot_traces(S,output):
     pp.close()
 
     return
+
+def plot_distributions(file_list, apnum, distname, bins=100):
+
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel(distname)
+    ax.set_ylabel('N')
+
+    for f in file_list:
+        
+        ff= h5py.File(f,'r')
+        d = ff['Ap{}'.format(apnum)][distname]
+        if distname == 'lnprob':
+            d = np.reshape(d,(d.shape[0]*d.shape[1]))
+            d /= -1*(1334 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
+            ax.set_xlabel(r'$\chi_{\nu}^2$')
+
+        ax.hist(d,bins=bins,histtype='stepfilled',alpha=0.5,label=f)
+
+    ax.legend(loc=0)
+
+    return ax
