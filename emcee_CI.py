@@ -89,7 +89,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
     yfitfile = outputpre + '.emceefit.fits'
     yfitarr = np.zeros((numfibers, wave.size))
 
-    h5file = h5py.File(outputpre + '_emcee.h5','w')
+    h5file = h5py.File(outputpre + '_emcee.h5','a')
 
     if fitaps is None:
         fitaps = range(numfibers)
