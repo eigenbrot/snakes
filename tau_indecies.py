@@ -592,11 +592,11 @@ def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False,
     
     bandlist = ['Hb','HdA','HgA','HdF','HgF','Fe','MgFe','Mgb']
 
-    # ab = ['<Fe>','<MgFe>']
-    # o = [r'$H_{\delta,A}$']
-
     ab = ['<MgFe>','Mgb']
-    o = [r'$H_{\delta,A}$','<Fe>']
+    o = [r'$H_{\delta,A}$']
+
+    # ab = ['<MgFe>','Mgb']
+    # o = [r'$H_{\delta,A}$','<Fe>']
 
     axes = []
     
@@ -604,8 +604,8 @@ def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False,
         ax = fig.add_subplot(1,2,p+1)
         axes.append(ax)
 
-        bid1 = 6 + (p % 2)
-        bid2 = p*4 + 1
+        bid1 = 6 + 1*(p % 2)
+        bid2 = 1
         
         plot_model_grid(model_file,ax,
                         bid1,
@@ -669,7 +669,7 @@ def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False,
                 plot_contour_on_grid(ax,fits1,fits2,color='r')
 
         ax.set_xlabel(ab[p])
-        ax.set_ylabel(o[p])
+        ax.set_ylabel(o[0])
         # ax.set_xlim(0.87,1.05)
         # ax.set_ylim(0.728,1.197)
         # ax.set_xlim(-0.060,0.021)
@@ -680,11 +680,11 @@ def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False,
         # if p < 4:
         #     ax.set_xticklabels([])
         #     ax.set_xlabel('')
-        # if p % 2 == 1:
-        #     ax.set_yticklabels([])
-        #     ax.set_ylabel('')
+        if p % 2 == 1:
+            ax.set_yticklabels([])
+            ax.set_ylabel('')
 
-#    fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
+    fig.subplots_adjust(hspace=0.0001,wspace=0.0001)
     fig.suptitle('{}\nGenerated on {}'.format(output,time.asctime()))
     
     if not contour:
