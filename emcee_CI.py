@@ -1,4 +1,5 @@
 import time
+from glob import glob
 import numpy as np
 import pyfits
 import emcee
@@ -429,7 +430,7 @@ def plot_traces(S,output):
 
     return
 
-def plot_distributions(file_list, apnum, distname, bins=100):
+def plot_distributions(file_list, apnum, distname, bins=100, lims=[0,10]):
 
     ax = plt.figure().add_subplot(111)
     ax.set_xlabel(distname)
@@ -443,9 +444,46 @@ def plot_distributions(file_list, apnum, distname, bins=100):
             d = np.reshape(d,(d.shape[0]*d.shape[1]))
             d /= -1*(1334 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
             ax.set_xlabel(r'$\chi_{\nu}^2$')
+            d = d[np.where((d > lims[0]) & (d < lims[1]))]
 
         ax.hist(d,bins=bins,histtype='stepfilled',alpha=0.5,label=f)
+        ff.close()
 
     ax.legend(loc=0)
 
     return ax
+
+def reject_metal(folder_list, pointing, apnum, lims=[-1,10]):
+
+    ax = plt.figure().add_subplot(111)
+    ax.set_title('P{}.{}\n{}'.format(pointing,apnum,time.asctime()))
+    ax.set_xlabel(r'$\Delta\chi_{\nu}^2$')
+    ax.set_ylabel('N')
+    ax.set_xscale('log')
+
+    file_list = [glob('{}/*P{}*.h5'.format(f,pointing))[0] for f in folder_list]
+
+    dlist = []
+
+    #first, find the minimum
+    minchi = np.inf
+    for f in file_list:
+        ff = h5py.File(f,'r')
+        d = ff['Ap{}'.format(apnum)]['lnprob']
+        d = np.reshape(d,(d.shape[0]*d.shape[1]))
+        d /= -1*(1334 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
+        dlist.append(d)
+        if np.min(d) < minchi:
+            minchi = np.min(d)
+
+    for i, d in enumerate(dlist):
+        d -= minchi
+        d = d[np.where((d > lims[0]) & (d < lims[1]))]
+        ax.hist(d,bins=200,normed=True,histtype='stepfilled',
+                alpha=0.5,label=folder_list[i])
+
+    ax.axvline(1,ls=':',alpha=0.6,color='k')
+    ax.legend(loc=0)
+
+    return ax
+    
