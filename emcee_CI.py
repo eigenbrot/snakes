@@ -198,22 +198,24 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     ndim = nmodels + 1
     LMtheta = np.r_[LMcoefs['TAUV'],LMcoefs['LIGHT_FRAC']/light_factor]
     print LMtheta
-    p0 = [LMtheta + 1e-1*LMtheta*np.random.randn(ndim) for i in range(nwalkers)]
+    p0 = [LMtheta + 1e1*LMtheta*np.random.ranf(ndim) for i in range(nwalkers)]
     S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=threads, args=(fitwave,
                                                                              fitflux,
                                                                              fiterr,
                                                                              fitlib,
-                                                                             LMcoefs['VSYS']))
+                                                                             LMcoefs['VSYS'],
+                                                                             model['AGE'][:,0]/1e9, 
+                                                                             lightidx))
     #run
     print 'Burning...'
     t1 = time.time()
-    pos, prob, state = S.run_mcmc(p0,burn)
+    pos, prob, state, _ = S.run_mcmc(p0,burn)
     print 'Burned {} steps in {} s'.format(burn,time.time() - t1)
     
     S.reset()
     print 'Running...'
     t1 = time.time()
-    pos, prob, state = S.run_mcmc(pos,nsample)
+    pos, prob, state, _ = S.run_mcmc(pos,nsample)
     print 'Ran {} steps in {} s'.format(nsample,time.time() - t1)
 
     maxidx = np.argmax(S.flatlnprobability)
@@ -226,12 +228,18 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     print lowCI
     print highCI
 
-    MLWA, MLWA_L, MLWA_H, MLWA_samples = compute_MLWA_CI(S, wave, custom_lib, 
-                                                         model['AGE'][:,0]/1e9, lightidx)
+    MLWA_samples = np.vstack(S.blobs).T
+    print MLWA_samples.shape, S.chain.shape
+    flat_MLWA = np.reshape(MLWA_samples,(nwalkers*nsample))
+    print flat_MLWA.shape
+
+    MLWA, MLWA_L, MLWA_H  = compute_MLWA_CI(flat_MLWA)
     print MLWA, MLWA_L, MLWA_H
 
     yfit = mcombine(EMtheta,wave,custom_lib,LMcoefs['VSYS'])
-    chisq = lnprob(EMtheta, wave, flux, err, custom_lib, LMcoefs['VSYS'])
+    chisq, best_MLWA = lnprob(EMtheta, wave, flux, err, custom_lib, LMcoefs['VSYS'],
+                              model['AGE'][:,0]/1e9,lightidx)
+    print best_MLWA
 
     fitcoefs = np.zeros(1,dtype={'names':['VSYS',
                                           'FIXEDVBOOL',
@@ -328,17 +336,7 @@ def combine_S_CI(Slist):
 
     return newlnprob, newflatchain[1:,:]
 
-def compute_MLWA_CI(S, wave, mlib, agearr, lightidx, nsample=None, bins=20):
-
-    if nsample is None:
-        nsample = int(S.flatchain.shape[0]/10.)
-    
-    MLWA_samples = np.zeros(nsample)
-    ids = np.random.randint(0,S.flatchain.shape[0],nsample)
-
-    for i in range(nsample):
-        MLWA_samples[i] = compute_MLWA(S.flatchain[ids[i],:],
-                                       wave, mlib, agearr, lightidx)
+def compute_MLWA_CI(MLWA_samples, bins=200):
 
     hist, b = np.histogram(MLWA_samples,bins=bins)
     cdf = np.cumsum(1.0*hist/np.sum(hist))
@@ -348,7 +346,7 @@ def compute_MLWA_CI(S, wave, mlib, agearr, lightidx, nsample=None, bins=20):
     low = np.interp(0.32,cdf,bcent)
     high = np.interp(0.68,cdf,bcent)
 
-    return mid, mid - low, high - mid, MLWA_samples
+    return mid, mid - low, high - mid
 
 def compute_MLWA(theta, wave, mlib, agearr, lightidx):
     
@@ -378,14 +376,16 @@ def mcombine(theta, wave, mlib, vel):
 
     return y
 
-def lnprob(theta, wave, data, err, mlib, vel):
+def lnprob(theta, wave, data, err, mlib, vel, agearr, lightidx):
     
     lp = lnprior(theta)
     if not np.isfinite(lp):
-        return -np.inf
+        return -np.inf, 0
     
     model = mcombine(theta, wave, mlib, vel)
-    return lp - np.sum(((data - model)/err)**2)
+    MLWA = compute_MLWA(theta, wave, mlib, agearr, lightidx)
+
+    return lp - np.sum(((data - model)/err)**2), MLWA
 
 def lnprior(theta):
     tauV = theta[0]
