@@ -44,6 +44,7 @@ if keyword_set(fixvec) then begin
       endfor
    endif else begin
       print, 'Oops, fixvec had length ',n_elements(fixvec),' and it probably should have been ', npars
+      stop
    endelse
 endif
 
