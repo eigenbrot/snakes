@@ -15,6 +15,16 @@ plt.ioff()
 Zlist = [0.005,0.02,0.2,0.4,1,2.5]
 flist = ['{}Z/steps'.format(i) for i in Zlist]
 
+Zlist_all = [0.005,0.02,0.2,0.4,1,2.5,'all']
+flist_all = ['{}Z/steps'.format(i) for i in Zlist_all]
+offset_all = [0,0,0,0,0,0,20]
+numfree_all = [1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-25-1]
+
+Zlist_all2 = [0.005,0.02,0.2,0.4,1,2.5,'all','prior','mid']
+flist_all2 = ['{}Z/steps'.format(i) for i in Zlist_all2]
+offset_all2 = [0,0,0,0,0,0,20,20,20]
+numfree_all2 = [1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-25-1,1428-25-1,1428-25-1]
+
 def plot(stepfile, offset=0):
 
     MLWA, TAUV, Chi, blueChi = np.loadtxt(stepfile,usecols=(6+offset,
@@ -266,8 +276,9 @@ def plot_multifolder_old(folder_list, Zlist, pointing, ap):
         
     return fig, np.mean(goodage), np.std(goodage), bigZ
 
-def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=0,col=6,label='MLWA'):
+def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1428-5-1, offset=0,col=6,label='MLWA'):
     clist = ['blue','green','red','orange','purple','black','maroon']
+    clist = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6']
 
     if not isinstance(offset,list):
         offset = [offset] * len(folder_list)
@@ -350,7 +361,7 @@ def plot_multifolder(folder_list, Zlist, pointing, ap, numfree=1334-5-1, offset=
         np.max(goodage) - bestMLWA, minchi, bestZidx, bigZ
 
 
-def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1334-5-1,offset=0,
+def do_pointing(folder_list, Zlist, pointing, numaps, output, numfree=1428-5-1,offset=0,
                 col=6,label='MLWA'):
     #offset = 20 for multiZ
     pp = PDF(output+'.pdf')
