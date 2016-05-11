@@ -6,16 +6,38 @@ from glob import glob
 """For making big tables with all the CI stuff
 """
 
-uw_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/CI'
-I_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_weight'
-I15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF15'
-IP_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_prior'
-IP15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_P15'
-IA_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_all'
+# No allZ
+# uw_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/CI'
+# I_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_weight'
+# I15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF15'
+# IP_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_prior'
+# IP15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_P15'
+# IA_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/IRAF_all'
 
-FMT = '{:8n}{:10.3f}{:10.3f}' + str(' '+'{:10.3f}'*3)*6
+#with allZ
+uw_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/no_weight'
+I_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/IRAF_weight'
+I15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/IRAF15'
+IP_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/IRAF_prior'
+IP15_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/IRAF_P15'
+IA_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/full_CI/IRAF_all'
 
-def do_pointing(pointing,output):
+
+FMT = '{:8n}{:8n}{:8n}{:10.3f}{:10.3f}' + str(' '+'{:10.3f}'*3)*6
+
+def do_all(output):
+
+    with open(output,'w') as f:
+        write_header(f)
+        seq=0
+
+        for i in range(6):
+            seq = do_pointing(i+1,f,seq)
+
+
+    return
+
+def do_pointing(pointing,f,seq):
 
     loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
     r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
@@ -34,24 +56,23 @@ def do_pointing(pointing,output):
     IP_DC = compute_DC(pointing, IP_dir, uw_chi)
     IP15_DC = compute_DC(pointing, IP15_dir, uw_chi)
     IA_DC = compute_DC(pointing, IA_dir, uw_chi)
-    
-    with open(output,'w') as f:
+            
+    for a in range(numap):
+        f.write(FMT.format(seq+1,
+                           pointing,
+                           a+1,
+                           r[a],
+                           z[a],
+                           uw_chi[a], uw_t[a], uw_dt[a],
+                           I_DC[a], I_t[a], I_dt[a],
+                           I15_DC[a], I15_t[a], I15_dt[a],
+                           IP_DC[a], IP_t[a], IP_dt[a],
+                           IP15_DC[a], IP15_t[a], IP15_dt[a],
+                           IA_DC[a], IA_t[a], IA_dt[a]))
+        f.write('\n')
+        seq += 1
 
-        write_header(f,pointing)
-        
-        for a in range(numap):
-            f.write(FMT.format(a+1,
-                               r[a],
-                               z[a],
-                               uw_chi[a], uw_t[a], uw_dt[a],
-                               I_DC[a], I_t[a], I_dt[a],
-                               I15_DC[a], I15_t[a], I15_dt[a],
-                               IP_DC[a], IP_t[a], IP_dt[a],
-                               IP15_DC[a], IP15_t[a], IP15_dt[a],
-                               IA_DC[a], IA_t[a], IA_dt[a]))
-            f.write('\n')
-
-    return
+    return seq
 
 def get_basics(pointing, folder):
     
@@ -60,7 +81,7 @@ def get_basics(pointing, folder):
     
     t, lt, ht, chisq = np.loadtxt(CI_file, usecols=(1,2,3,4), unpack=True)
     
-    return chisq, t, ht - lt
+    return chisq, t, ht + lt
 
 def compute_DC(pointing, folder, uw_chi):
 
@@ -68,7 +89,7 @@ def compute_DC(pointing, folder, uw_chi):
     
     bestZ = np.loadtxt(CI_file, usecols=(5,), unpack=True, dtype=np.int)
     
-    fzlist = ['0.005Z','0.02Z','0.2Z','0.4Z','1Z','2.5Z']
+    fzlist = ['0.005Z','0.02Z','0.2Z','0.4Z','1Z','2.5Z','allZ']
 
     hdu = pyfits.open('NGC_891_P{}_bin30.mso.fits'.format(pointing))[0]
     head = hdu.header
@@ -98,46 +119,47 @@ def compute_DC(pointing, folder, uw_chi):
 
     return outarr
 
-def write_header(f, pointing):
+def write_header(f):
 
-    f.write('# Generated on {}\n'.format(time.asctime()))
-    f.write('# P{}\n#\n'.format(pointing))
+    f.write('# Generated on {}\n#\n'.format(time.asctime()))
     f.write('# Delta chisq is unweighted - XX\n')
-    f.write('# multiZ fits are NOT included\n#\n')
-    f.write("""#  1. Apnum
-#  2. r (kpc)
-#  3. z (kpz)
-#  4. unweighted chisq
-#  5. unweighted  MLWA
-#  6. unweighted dMLWA (min/max)
-#  7. IRAF weight (old) delta unweighted chisq
-#  8. IRAF weight  MLWA
-#  9. IRAF weight dMLWA
-# 10. IRAF weight (old) p=1.5 delta unweighted chisq
-# 11. IRAF weight p=1.5  MLWA
-# 12. IRAF weight p=1.5 dMLWA
-# 13. IRAF w/ priors delta unweighted chisq
-# 14. IRAF w/ priors  MLWA
-# 15. IRAF w/ priors dMLWA
-# 16. IRAF w/ priors p=1.5 delta unweighted chisq
-# 17. IRAF w/ priors p=1.5  MLWA
-# 18. IRAF w/ priors p=1.5 dMLWA
-# 19. IRAF w/ everything delta unweighted chisq
-# 20. IRAF w/ everything  MLWA
-# 21. IRAF w/ everything dMLWA
+    f.write('# allZ fits ARE included\n#\n')
+    f.write("""#  1. Running sequence
+#  2. Pointing
+#  3. Apnum
+#  4. r (kpc)
+#  5. z (kpz)
+#  6. unweighted chisq
+#  7. unweighted  MLWA
+#  8. unweighted dMLWA (min/max)
+#  9. IRAF weight (old) delta unweighted chisq
+# 10. IRAF weight  MLWA
+# 11. IRAF weight dMLWA
+# 12. IRAF weight (old) p=1.5 delta unweighted chisq
+# 13. IRAF weight p=1.5  MLWA
+# 14. IRAF weight p=1.5 dMLWA
+# 15. IRAF w/ priors delta unweighted chisq
+# 16. IRAF w/ priors  MLWA
+# 17. IRAF w/ priors dMLWA
+# 18. IRAF w/ priors p=1.5 delta unweighted chisq
+# 19. IRAF w/ priors p=1.5  MLWA
+# 20. IRAF w/ priors p=1.5 dMLWA
+# 21. IRAF w/ everything delta unweighted chisq
+# 22. IRAF w/ everything  MLWA
+# 23. IRAF w/ everything dMLWA
 """)
     f.write('#')
-    f.write(' '*27)
+    f.write(' '*43)
     f.write(' {:^30}'.format('unweighted'))
     f.write(' {:^30}'.format('I'))
     f.write(' {:^30}'.format('I15'))
     f.write(' {:^30}'.format('IP'))
     f.write(' {:^30}'.format('IP15'))
     f.write(' {:^30}\n'.format('IA'))
-    f.write('#'+' '*27)
+    f.write('#'+' '*43)
     f.write(str('   '+'-'*28)*6)
     f.write('\n')
-    f.write(str('#{:7n}{:10n}{:10n}' + str(' '+'{:10n}'*3)*6).format(*np.arange(21)+1))
+    f.write(str('#{:7n}{:8n}{:8n}{:10n}{:10n}' + str(' '+'{:10n}'*3)*6).format(*np.arange(23)+1))
     f.write('\n#\n')
 
     return
