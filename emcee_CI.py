@@ -471,7 +471,7 @@ def plot_distributions(file_list, apnum, distname, bins=100, lims=[0,10]):
         d = ff['Ap{}'.format(apnum)][distname]
         if distname == 'lnprob':
             d = np.reshape(d,(d.shape[0]*d.shape[1]))
-            d /= -1*(1334 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
+            #d /= -1*(1428 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
             ax.set_xlabel(r'$\chi_{\nu}^2$')
             d = d[np.where((d > lims[0]) & (d < lims[1]))]
 
@@ -482,37 +482,108 @@ def plot_distributions(file_list, apnum, distname, bins=100, lims=[0,10]):
 
     return ax
 
-def reject_metal(folder_list, pointing, apnum, lims=[-1,10]):
+def reject_metal(folder_list, pointing, apnum, lims=[-1,10], thin=1000):
 
+    clist = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
     ax = plt.figure().add_subplot(111)
     ax.set_title('P{}.{}\n{}'.format(pointing,apnum,time.asctime()))
-    ax.set_xlabel(r'$\Delta\chi_{\nu}^2$')
-    ax.set_ylabel('N')
-    ax.set_xscale('log')
+    ax.set_ylabel('lnprob')
+    ax.set_xlabel('MLWA')
 
     file_list = [glob('{}/*P{}*.h5'.format(f,pointing))[0] for f in folder_list]
 
     dlist = []
+    MLWAlist = []
 
     #first, find the minimum
-    minchi = np.inf
-    for f in file_list:
+    maxprob = -np.inf
+    maxi = 0
+    for i, f in enumerate(file_list):
+        print f
         ff = h5py.File(f,'r')
         d = ff['Ap{}'.format(apnum)]['lnprob']
         d = np.reshape(d,(d.shape[0]*d.shape[1]))
-        d /= -1*(1334 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
+        d /= (1428 - 1 - ff['Ap{}'.format(apnum)]['chain'].shape[2])
         dlist.append(d)
-        if np.min(d) < minchi:
-            minchi = np.min(d)
+        MLWA = ff['Ap{}'.format(apnum)]['MLWA_S']
+        MLWA = np.reshape(MLWA,(MLWA.size))
+        MLWAlist.append(MLWA)
+        if np.max(d) > maxprob:
+            maxi = i
+            maxprob = np.max(d)
+            bestMLWA = MLWA[np.argmax(d)]
+    
+    #Compute CI
+    print 'Found most likely model in', file_list[maxi]
+    best_dist, bbcent, bcdf = clean_cdf(dlist[maxi])
+    CI_cut = np.interp(0.68,bcdf,bbcent)
+    ax.axhline(CI_cut,ls=':',alpha=0.6,color='k')
 
-    for i, d in enumerate(dlist):
-        d -= minchi
-        d = d[np.where((d > lims[0]) & (d < lims[1]))]
-        ax.hist(d,bins=200,normed=True,histtype='stepfilled',
-                alpha=0.5,label=folder_list[i])
+    goodMLWA = np.array([])
 
-    ax.axvline(1,ls=':',alpha=0.6,color='k')
+    for i in range(len(dlist)):
+        dist = dlist[i]
+    
+        gidx = np.where(dist > CI_cut)[0]
+        if gidx.size > 0:
+            goodMLWA = np.r_[goodMLWA, MLWAlist[i][gidx]]
+
+        dist, bcent, cdf = clean_cdf(dist)
+
+        limit68 = np.interp(0.68,cdf,bcent)
+        limit10 = np.interp(0.1,cdf,bcent)
+        limit1 = np.interp(0.01,cdf,bcent)
+
+        d = dlist[i][::thin]
+        M = MLWAlist[i][::thin]
+        idx = np.where(d > limit1)[0]
+        if idx.size > 0:
+            ax.scatter(M[idx],d[idx],alpha=0.5,color=clist[i],edgecolors='none', label=folder_list[i])
+
+        # ax.hist(d,bins=200,normed=True,histtype='stepfilled',
+        #         alpha=0.5,label=folder_list[i])
+
+
     ax.legend(loc=0)
+    ax.axvline(np.max(goodMLWA),ls='--',color='k',alpha=0.4)
+    ax.axvline(np.min(goodMLWA),ls='--',color='k',alpha=0.4)
+    ax.axvline(bestMLWA,ls='-.',color='k',alpha=0.4)
+
+    print 'MLWA = {:4.3} + {:4.3} - {:4.3}'.format(bestMLWA,
+                                                   np.max(goodMLWA)-bestMLWA,
+                                                   bestMLWA-np.min(goodMLWA))
 
     return ax
     
+def clean_cdf(dist, bins=5000):
+
+    hist, b = np.histogram(dist, bins=bins)
+    cdf = np.cumsum(1.0*hist/np.sum(hist))
+    bcent = 0.5*(b[1:] + b[:-1])
+
+    low_limit = np.interp(0.1,cdf,bcent)
+    bidx = np.where(bcent > low_limit)[0]
+    print bcent.size, bidx.size
+
+    # cax = plt.figure().add_subplot(111)
+    # cax.plot(bcent,cdf)
+    # cax.axvline(low_limit,ls=':')
+    # cax.figure.show()
+
+    while bidx.size < bins/10.:
+        idx = np.where(dist > low_limit)[0]
+        dist = dist[idx]
+        hist, b = np.histogram(dist, bins=bins)
+        cdf = np.cumsum(1.0*hist/np.sum(hist))
+        bcent = 0.5*(b[1:] + b[:-1])
+        
+        low_limit = np.interp(0.05,cdf,bcent)
+        bidx = np.where(bcent > low_limit)[0]
+        print bidx.size
+
+        # cax = plt.figure().add_subplot(111)
+        # cax.plot(bcent,cdf)
+        # cax.axvline(low_limit,ls=':')
+        # cax.figure.show()
+
+    return dist, bcent, cdf
