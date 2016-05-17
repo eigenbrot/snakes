@@ -12,7 +12,7 @@ plt.ioff()
 def main(datafile, errorfile, location, coeffile, outputpre,
          model='/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits',
          plot=True, wavemin=3800., wavemax=6800., fitregion=[3850.,6650.],
-         lightmin=5450., lightmax=5550., emmaskw=500., fitaps=None,
+         lightmin=5450., lightmax=5550., emmaskw=500., fitaps=None, justMLWA=False,
          nsample=1000, burn=100, nwalkers=256, threads=1):
 
     #read the models
@@ -107,10 +107,25 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         vdidx = np.where(sizeidx == fiber_radii[i])[0][0]
         LMcoefs = coef_arr[i]
         
-        MCcoefs, yfit, S, MLWA_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
-                                         fitregion=fitregion,emmaskw=emmaskw,
-                                         lightidx=lightidx,nsample=nsample,
-                                         burn=burn,nwalkers=nwalkers,threads=threads)
+        if justMLWA:
+            print 'computing MLWA from prevchain'
+            grp = h5file['Ap{}'.format(i+1)]
+            chain = grp['chain']
+            flatchain = np.reshape(chain,(chain.shape[0]*chain.shape[1],chain.shape[2]))
+            MLWA_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
+                           fitregion=fitregion,emmaskw=emmaskw,
+                           lightidx=lightidx,nsample=nsample,
+                           prevchain= flatchain,
+                           burn=burn,nwalkers=nwalkers,threads=threads)
+            grp.create_dataset('MLWA_S2',data=MLWA_S,compression='gzip',compression_opts=0)
+            h5file.flush()
+            continue
+
+        else:
+            MCcoefs, yfit, S, MLWA_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
+                                             fitregion=fitregion,emmaskw=emmaskw,
+                                             lightidx=lightidx,nsample=nsample,
+                                             burn=burn,nwalkers=nwalkers,threads=threads)
 
         outputarr[i] = MCcoefs
         yfitarr[i,:] = yfit/flux_factor
@@ -136,6 +151,9 @@ def main(datafile, errorfile, location, coeffile, outputpre,
 
     h5file.close()
 
+    if justMLWA:
+        return
+
     pyfits.BinTableHDU(outputarr).writeto(outputpre + '.emceecoef.fits',clobber=True)
     fithdu = pyfits.PrimaryHDU(yfitarr)
     fithdu.header.update('CDELT1',CDELT)
@@ -146,7 +164,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
     return MCcoefs, S, MLWA_S
 
 def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
-          emmaskw=500., lightidx=None, threads=1,
+          emmaskw=500., lightidx=None, threads=1, prevchain=None,
           nsample = 1000, burn=100, nwalkers=256):
 
     nmodels = model['AGE'].shape[0]
@@ -194,6 +212,16 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     fitwave = wave[okidx[fitidx]]
     fitlib = custom_lib[:,okidx[fitidx]]
 
+    if prevchain is not None:
+        MLWA_samples = np.zeros(prevchain.shape[0])
+        for s in range(prevchain.shape[0]):
+            if s % 1000 == 0:
+                print s*1.0/prevchain.shape[0]
+            MLWA_samples[s] = compute_MLWA(prevchain[s,:],
+                                           fitwave, fitlib,
+                                           model['AGE'][:,0]/1e9, lightidx)
+        return MLWA_samples
+
     #Set up the emcee stuff
     ndim = nmodels + 1
     LMtheta = np.r_[LMcoefs['TAUV'],LMcoefs['LIGHT_FRAC']/light_factor]
@@ -206,6 +234,7 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
                                                                              LMcoefs['VSYS'],
                                                                              model['AGE'][:,0]/1e9, 
                                                                              lightidx))
+
     #run
     print 'Burning...'
     t1 = time.time()
