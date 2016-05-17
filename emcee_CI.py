@@ -122,10 +122,10 @@ def main(datafile, errorfile, location, coeffile, outputpre,
             continue
 
         else:
-            MCcoefs, yfit, S, MLWA_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
-                                             fitregion=fitregion,emmaskw=emmaskw,
-                                             lightidx=lightidx,nsample=nsample,
-                                             burn=burn,nwalkers=nwalkers,threads=threads)
+            MCcoefs, yfit, S, MLWA_S, MLWZ_S = EMfit(m, wave, flux, err, vdidx, LMcoefs,
+                                                     fitregion=fitregion,emmaskw=emmaskw,
+                                                     lightidx=lightidx,nsample=nsample,
+                                                     burn=burn,nwalkers=nwalkers,threads=threads)
 
         outputarr[i] = MCcoefs
         yfitarr[i,:] = yfit/flux_factor
@@ -134,6 +134,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         grp.create_dataset('chain',data=S.chain,compression='gzip',compression_opts=9)
         grp.create_dataset('lnprob',data=S.lnprobability,compression='gzip',compression_opts=9)
         grp.create_dataset('MLWA_S',data=MLWA_S,compression='gzip',compression_opts=9)
+        grp.create_dataset('MLWZ_S',data=MLWZ_S,compression='gzip',compression_opts=9)
         h5file.flush()
 
         if plot:
@@ -232,7 +233,8 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
                                                                              fiterr,
                                                                              fitlib,
                                                                              LMcoefs['VSYS'],
-                                                                             model['AGE'][:,0]/1e9, 
+                                                                             model['AGE'][:,0]/1e9,
+                                                                             model['Z'][:,0],
                                                                              lightidx))
 
     #run
@@ -257,18 +259,24 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     print lowCI
     print highCI
 
-    MLWA_samples = np.vstack(S.blobs).T
-    print MLWA_samples.shape, S.chain.shape
+    blobstack = np.dstack(S.blobs)
+    MLWA_samples = blobstack[:,0,:]
+    MLWZ_samples = blobstack[:,1,:]
     flat_MLWA = np.reshape(MLWA_samples,(nwalkers*nsample))
-    print flat_MLWA.shape
+    flat_MLWZ = np.reshape(MLWZ_samples,(nwalkers*nsample))
 
-    MLWA, MLWA_L, MLWA_H  = compute_MLWA_CI(flat_MLWA)
+    MLWA, MLWA_L, MLWA_H  = compute_MLW_CI(flat_MLWA)
     print MLWA, MLWA_L, MLWA_H
 
+    MLWZ, MLWZ_L, MLWZ_H  = compute_MLW_CI(flat_MLWZ)
+    print MLWZ, MLWZ_L, MLWZ_H
+
     yfit = mcombine(EMtheta,wave,custom_lib,LMcoefs['VSYS'])
-    chisq, best_MLWA = lnprob(EMtheta, wave, flux, err, custom_lib, LMcoefs['VSYS'],
-                              model['AGE'][:,0]/1e9,lightidx)
-    print best_MLWA
+    chisq, best_blob  = lnprob(EMtheta, wave, flux, err, custom_lib, LMcoefs['VSYS'],
+                               model['AGE'][:,0]/1e9,model['Z'][:,0],lightidx)
+    best_MLWA = best_blob[0]
+    best_MLWZ = best_blob[1]
+    print best_MLWA, best_MLWZ
 
     fitcoefs = np.zeros(1,dtype={'names':['VSYS',
                                           'FIXEDVBOOL',
@@ -280,7 +288,7 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
                                           'SNR',
                                           'MLWA','MLWA_L','MLWA_H',
                                           'MMWA',
-                                          'MLWZ',
+                                          'MLWZ','MLWZ_L','MLWZ_H',
                                           'MMWZ',
                                           'chisq','redchi','bluechi','hkchi'],
                                 'formats':['f4',
@@ -293,7 +301,7 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
                                            'f4',
                                            'f4','f4','f4',
                                            'f4',
-                                           'f4',
+                                           'f4','f4','f4',
                                            'f4',
                                            'f4','f4','f4','f4']})
 
@@ -311,13 +319,15 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     fitcoefs['MLWA_H'] = MLWA_H
     fitcoefs['MMWA'] = LMcoefs['MMWA']
     fitcoefs['MLWZ'] = LMcoefs['MLWZ']
+    fitcoefs['MLWZ_L'] = MLWZ_L
+    fitcoefs['MLWZ_H'] = MLWZ_H    
     fitcoefs['MMWZ'] = LMcoefs['MMWZ']
     fitcoefs['chisq'] = chisq
     fitcoefs['redchi'] = LMcoefs['redchi']
     fitcoefs['bluechi'] = LMcoefs['bluechi']
     fitcoefs['hkchi'] = LMcoefs['hkchi']
 
-    return fitcoefs[0], yfit, S, MLWA_samples
+    return fitcoefs[0], yfit, S, MLWA_samples, MLWZ_samples
 
 def compute_theta_CI(flatchain, bins=20):
 
@@ -365,11 +375,9 @@ def combine_S_CI(Slist):
 
     return newlnprob, newflatchain[1:,:]
 
-def compute_MLWA_CI(MLWA_samples, bins=200):
+def compute_MLW_CI(MLW_samples):
 
-    hist, b = np.histogram(MLWA_samples,bins=bins)
-    cdf = np.cumsum(1.0*hist/np.sum(hist))
-    bcent = 0.5*(b[1:] + b[:-1])
+    dist, bcent, cdf = clean_cdf(MLW_samples)
     
     mid = np.interp(0.5,cdf,bcent)
     low = np.interp(0.32,cdf,bcent)
@@ -388,6 +396,17 @@ def compute_MLWA(theta, wave, mlib, agearr, lightidx):
 
     return MLWA
 
+def compute_MLWZ(theta, wave, mlib, Zarr, lightidx):
+    
+    tauV = theta[0]
+    weights = theta[1:] * 100.
+
+    redd = np.exp(-1*tauV*(wave[lightidx]/5500.)**(-0.7))
+    light_weight = np.mean(mlib[:,lightidx] * redd, axis=1) * weights
+    MLWZ = np.sum(light_weight * Zarr)/np.sum(light_weight)
+
+    return MLWZ
+
 def mcombine(theta, wave, mlib, vel):
     
     light_factor = 100.
@@ -405,16 +424,17 @@ def mcombine(theta, wave, mlib, vel):
 
     return y
 
-def lnprob(theta, wave, data, err, mlib, vel, agearr, lightidx):
+def lnprob(theta, wave, data, err, mlib, vel, agearr, Zarr, lightidx):
     
     lp = lnprior(theta)
     if not np.isfinite(lp):
-        return -np.inf, 0
+        return -np.inf, [0, 0]
     
     model = mcombine(theta, wave, mlib, vel)
     MLWA = compute_MLWA(theta, wave, mlib, agearr, lightidx)
+    MLWZ = compute_MLWZ(theta, wave, mlib, Zarr, lightidx)
 
-    return lp - np.sum(((data - model)/err)**2), MLWA
+    return lp - np.sum(((data - model)/err)**2), [MLWA, MLWZ]
 
 def lnprior(theta):
     tauV = theta[0]
