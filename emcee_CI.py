@@ -607,3 +607,53 @@ def clean_cdf(dist, bins=5000):
         # cax.figure.show()
 
     return dist, bcent, cdf
+
+def A_and_Z(inputfile,ap,numpoints=1000):
+
+    import scipy.interpolate as spi
+
+    f = h5py.File(inputfile)
+    grp = f['Ap{}'.format(ap)]
+    
+    lnprob = grp['lnprob']
+    MLWA = grp['MLWA_S']
+    MLWZ = grp['MLWZ_S']
+    
+    numsamp = MLWA.size
+    
+    lnprob = np.reshape(lnprob,numsamp)
+    MLWA = np.reshape(MLWA,numsamp)
+    MLWZ = np.reshape(MLWZ,numsamp)
+
+    slnprob = np.sort(lnprob)
+    cdf = 1.0 * np.arange(numsamp)/(numsamp -1)
+
+    lowlim = np.interp(0.05,cdf,slnprob)
+    idx = np.where(lnprob > lowlim)
+    MLWA = MLWA[idx]
+    MLWZ = MLWZ[idx]
+    lnprob = lnprob[idx]
+
+    Ai = np.linspace(MLWA.min(),MLWA.max(),numpoints)
+    Zi = np.linspace(MLWZ.min(),MLWZ.max(),numpoints)
+
+    lni = spi.griddata((MLWA,MLWZ),
+                       lnprob,
+                       (Ai[None,:],Zi[:,None]),
+                       method='nearest',
+                       fill_value=np.inf)
+
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel('MLWA')
+    ax.set_ylabel('MLWZ')
+    
+    # im = ax.imshow(-lni,origin='lower',extent=(Ai.min(),Ai.max(),
+    #                                           Zi.min(),Zi.max()),
+    #                cmap='gnuplot',vmax=3300)
+
+    # cbar = ax.figure.colorbar(im)
+
+    ax.contour(lni,extent=(Ai.min(),Ai.max(),
+                           Zi.min(),Zi.max()))
+
+    return ax
