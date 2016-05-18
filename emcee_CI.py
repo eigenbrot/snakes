@@ -100,7 +100,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
 
     for i in fitaps:
 
-        print "Doing fiber {}".format(i+1)
+        print "Starting fiber {} on {}".format(i+1,time.asctime())
         flux = data[i,idx]*flux_factor
         err = error[i,idx]*flux_factor
 
