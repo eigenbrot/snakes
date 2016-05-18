@@ -6,6 +6,7 @@ import emcee
 import triangle
 import matplotlib.pyplot as plt
 import h5py
+import gc
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
 
@@ -89,8 +90,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
 
     yfitfile = outputpre + '.emceefit.fits'
     yfitarr = np.zeros((numfibers, wave.size))
-
-    h5file = h5py.File(outputpre + '_emcee.h5','a')
+    h5name = outputpre + '_emcee.h5'
 
     if fitaps is None:
         fitaps = range(numfibers)
@@ -99,6 +99,18 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         fitaps = [i-1 for i in fitaps]
 
     for i in fitaps:
+
+        #First, check if ap has already been run
+        h5file = h5py.File(h5name,'a')
+        if 'Ap{}'.format(i+1) in h5file.keys():
+            print "Fiber {} has already been run, moving on...".format(i+1)
+            h5file.close()
+            del h5file
+            continue
+            
+        #Close this file often to keep memory free
+        h5file.close()
+        del h5file
 
         print "Starting fiber {} on {}".format(i+1,time.asctime())
         flux = data[i,idx]*flux_factor
@@ -109,6 +121,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         
         if justMLWA:
             print 'computing MLWA from prevchain'
+            h5file = h5py.File(h5name,'a')
             grp = h5file['Ap{}'.format(i+1)]
             chain = grp['chain']
             flatchain = np.reshape(chain,(chain.shape[0]*chain.shape[1],chain.shape[2]))
@@ -119,6 +132,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
                            burn=burn,nwalkers=nwalkers,threads=threads)
             grp.create_dataset('MLWA_S2',data=MLWA_S,compression='gzip',compression_opts=0)
             h5file.flush()
+            h5file.close()
             continue
 
         else:
@@ -130,12 +144,22 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         outputarr[i] = MCcoefs
         yfitarr[i,:] = yfit/flux_factor
 
+        print "writing hdf5..."
+        h5file = h5py.File(h5name,'a')
         grp = h5file.create_group('Ap{}'.format(i+1))
         grp.create_dataset('chain',data=S.chain,compression='gzip',compression_opts=9)
         grp.create_dataset('lnprob',data=S.lnprobability,compression='gzip',compression_opts=9)
         grp.create_dataset('MLWA_S',data=MLWA_S,compression='gzip',compression_opts=9)
         grp.create_dataset('MLWZ_S',data=MLWZ_S,compression='gzip',compression_opts=9)
         h5file.flush()
+        h5file.close()
+        print "clearing memory"
+        del grp
+        del MLWA_S
+        del MLWZ_S
+        del S
+        del h5file
+        print gc.collect()
 
         if plot:
             try:
@@ -150,7 +174,12 @@ def main(datafile, errorfile, location, coeffile, outputpre,
     if plot:
         pp.close()
 
-    h5file.close()
+    try:
+        h5file.close()
+        print "H5 file was not closed for some reason"
+    except ValueError:
+        #File is already closed
+        pass
 
     if justMLWA:
         return
@@ -255,9 +284,9 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     stds = np.mean(S.flatchain,axis=0)
 
     cents, lowCI, highCI = compute_theta_CI(S.flatchain)
-    print '$$$', cents
-    print lowCI
-    print highCI
+    # print '$$$', cents
+    # print lowCI
+    # print highCI
 
     blobstack = np.dstack(S.blobs)
     MLWA_samples = blobstack[:,0,:]
@@ -266,17 +295,14 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     flat_MLWZ = np.reshape(MLWZ_samples,(nwalkers*nsample))
 
     MLWA, MLWA_L, MLWA_H  = compute_MLW_CI(flat_MLWA)
-    print MLWA, MLWA_L, MLWA_H
 
     MLWZ, MLWZ_L, MLWZ_H  = compute_MLW_CI(flat_MLWZ)
-    print MLWZ, MLWZ_L, MLWZ_H
 
     yfit = mcombine(EMtheta,wave,custom_lib,LMcoefs['VSYS'])
     chisq, best_blob  = lnprob(EMtheta, wave, flux, err, custom_lib, LMcoefs['VSYS'],
                                model['AGE'][:,0]/1e9,model['Z'][:,0],lightidx)
     best_MLWA = best_blob[0]
     best_MLWZ = best_blob[1]
-    print best_MLWA, best_MLWZ
 
     fitcoefs = np.zeros(1,dtype={'names':['VSYS',
                                           'FIXEDVBOOL',
