@@ -105,12 +105,10 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         if 'Ap{}'.format(i+1) in h5file.keys():
             print "Fiber {} has already been run, moving on...".format(i+1)
             h5file.close()
-            del h5file
             continue
             
         #Close this file often to keep memory free
         h5file.close()
-        del h5file
 
         print "Starting fiber {} on {}".format(i+1,time.asctime())
         flux = data[i,idx]*flux_factor
@@ -158,7 +156,6 @@ def main(datafile, errorfile, location, coeffile, outputpre,
         del MLWA_S
         del MLWZ_S
         del S
-        del h5file
         print gc.collect()
 
         if plot:
@@ -177,8 +174,10 @@ def main(datafile, errorfile, location, coeffile, outputpre,
     try:
         h5file.close()
         print "H5 file was not closed for some reason"
-    except ValueError:
+    except Exception as e:
         #File is already closed
+        print e
+        print "Probably because you deleted it"
         pass
 
     if justMLWA:
@@ -257,14 +256,21 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     LMtheta = np.r_[LMcoefs['TAUV'],LMcoefs['LIGHT_FRAC']/light_factor]
     print LMtheta
     p0 = [LMtheta + 1e1*LMtheta*np.random.ranf(ndim) for i in range(nwalkers)]
-    S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=threads, args=(fitwave,
-                                                                             fitflux,
-                                                                             fiterr,
-                                                                             fitlib,
-                                                                             LMcoefs['VSYS'],
-                                                                             model['AGE'][:,0]/1e9,
-                                                                             model['Z'][:,0],
-                                                                             lightidx))
+    
+    if threads > 1:
+        print "Creating pool with {} processes".format(threads)
+        pool = emcee.interruptible_pool.InterruptiblePool(processes=threads)
+    else:
+        pool = None
+
+    S = emcee.EnsembleSampler(nwalkers, ndim, lnprob, pool=pool, args=(fitwave,
+                                                                       fitflux,
+                                                                       fiterr,
+                                                                       fitlib,
+                                                                       LMcoefs['VSYS'],
+                                                                       model['AGE'][:,0]/1e9,
+                                                                       model['Z'][:,0],
+                                                                       lightidx))
 
     #run
     print 'Burning...'
@@ -352,6 +358,12 @@ def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
     fitcoefs['redchi'] = LMcoefs['redchi']
     fitcoefs['bluechi'] = LMcoefs['bluechi']
     fitcoefs['hkchi'] = LMcoefs['hkchi']
+
+    if threads > 1:
+        print "cleaning up pool..."
+        pool.close()
+        pool.join()
+        print "done"
 
     return fitcoefs[0], yfit, S, MLWA_samples, MLWZ_samples
 
