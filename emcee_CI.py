@@ -190,7 +190,7 @@ def main(datafile, errorfile, location, coeffile, outputpre,
     fithdu.header.update('CRVAL1',wavemin)
     fithdu.writeto(yfitfile,clobber=True)
 
-    return MCcoefs, S, MLWA_S
+    return
 
 def EMfit(model, wave, flux, err, vdidx, LMcoefs, fitregion=[3850.,6650.],
           emmaskw=500., lightidx=None, threads=1, prevchain=None,
@@ -646,7 +646,7 @@ def clean_cdf(dist, bins=5000):
 
     return dist, bcent, cdf
 
-def A_and_Z(inputfile,ap,numpoints=1000):
+def A_and_Z(inputfile,ap,numpoints=100):
 
     import scipy.interpolate as spi
 
@@ -663,10 +663,21 @@ def A_and_Z(inputfile,ap,numpoints=1000):
     MLWA = np.reshape(MLWA,numsamp)
     MLWZ = np.reshape(MLWZ,numsamp)
 
+    # ax = plt.figure().add_subplot(111)
+    # ax.scatter(MLWZ,lnprob)
+    # ax.figure.show()
+
+    fidx = np.isfinite(lnprob)
+    lnprob = lnprob[fidx]
+    MLWA = MLWA[fidx]
+    MLWZ = MLWZ[fidx]
+
+    numsamp = MLWA.size
+
     slnprob = np.sort(lnprob)
     cdf = 1.0 * np.arange(numsamp)/(numsamp -1)
 
-    lowlim = np.interp(0.03,cdf,slnprob)
+    lowlim = np.interp(0.05,cdf,slnprob)
     idx = np.where(lnprob > lowlim)
     MLWA = MLWA[idx]
     MLWZ = MLWZ[idx]
@@ -678,62 +689,106 @@ def A_and_Z(inputfile,ap,numpoints=1000):
     lni = spi.griddata((MLWA,MLWZ),
                        lnprob,
                        (Ai[None,:],Zi[:,None]),
-                       method='linear',
+                       method='nearest',
                        fill_value=np.nan)
 
     fig = plt.figure()
-    # ax = fig.add_axes([0.1,0.1,0.6,0.6])
-    ax = fig.add_subplot(111)
+    ax = fig.add_axes([0.1,0.1,0.6,0.6])
+    # ax = fig.add_subplot(111)
     ax.set_xlabel('MLWA')
     ax.set_ylabel('MLWZ')
-    ax.set_title('{} Ap# {}\n{}'.format(inputfile,ap,time.asctime()))
     
     im = ax.imshow(-lni,origin='lower',extent=(Ai.min(),Ai.max(),
                                               Zi.min(),Zi.max()),
                    cmap='gray',aspect='auto')
 
-    # cbar = ax.figure.colorbar(im)
-
     levels = [np.interp(i,cdf,slnprob) for i in [0.32,0.68,0.9]]
-    # lni /= np.max(lni)
-    print np.max(lni)
-    print levels
     c = ax.contour(Ai, Zi, lni, levels, colors='k', linestyles='solid')
 
-    CI_idx = np.where(lnprob > levels[1])
-    MLWA_CI = MLWA[CI_idx]
-    MLWZ_CI = MLWZ[CI_idx]
-    MLWA_L = np.min(MLWA_CI)
-    MLWA_H = np.max(MLWA_CI)
-    MLWZ_L = np.min(MLWZ_CI)
-    MLWZ_H = np.max(MLWZ_CI)
-    MLWA_M = MLWA[np.argmax(lnprob)]
-    MLWZ_M = MLWZ[np.argmax(lnprob)]
+    for dist, margdim, ls, rect in zip([Ai,Zi],
+                                       [0,1],
+                                       [':','--'],
+                                       [[0.1,0.71,0.6,0.22],[0.71,0.1,0.22,0.6]]):
+
+        hist = np.nansum(lni,axis=margdim)
+        shist = np.sort(hist)
+        macdf = 1.0 * np.arange(shist.size)/(shist.size - 1)
+        CIlim = np.interp(0.32,macdf,shist)
+        CIidx = np.where(hist > CIlim)
+        L = np.min(dist[CIidx])
+        H = np.max(dist[CIidx])
+        M = dist[np.argmax(hist)]
+        
+        maax = fig.add_axes(rect)
+        maax.set_xticklabels([])
+        maax.set_yticklabels([])
+        
+        if margdim == 0:
+            maax.plot(dist,hist,drawstyle='steps-mid',color='k')
+            maax.axvline(L,ls=ls,color='k')
+            maax.axvline(H,ls=ls,color='k')
+            maax.axvline(M,ls='-',color='k')
+            maax.set_xlim(ax.get_xlim()) 
+            maax.set_ylabel('lnprob')
+            
+            MLWA_L = L
+            MLWA_H = H
+            MLWA_M = M
+        else:
+            maax.plot(hist,dist,drawstyle='steps-mid',color='k')
+            maax.axhline(L,ls=ls,color='k')
+            maax.axhline(H,ls=ls,color='k')
+            maax.axhline(M,ls='-',color='k')
+            maax.set_ylim(ax.get_ylim()) 
+            maax.set_xlabel('lnprob')
+            
+            MLWZ_L = L
+            MLWZ_H = H
+            MLWZ_M = M
+            
     min_age, max_age = ax.get_xlim()
     min_Z, max_Z = ax.get_ylim()
 
-    ax.vlines([MLWA_L,MLWA_H],[min_Z, min_Z],[MLWZ_H,MLWZ_L],colors='k',linestyles=':')
-    ax.hlines([MLWZ_L,MLWZ_H],[min_age, min_age],[MLWA_H,MLWA_L],colors='k',linestyles='--')
-    ax.vlines([MLWA_M],[min_Z],[MLWZ_M],colors='k',linestyles='-')
-    ax.hlines([MLWZ_M],[min_age],[MLWA_M],colors='k',linestyles='-')
     ax.scatter([MLWA_M],[MLWZ_M],s=40,c='none',edgecolors='b',linewidths=2)
     ax.set_xlim(min_age,max_age)
     ax.set_ylim(min_Z,max_Z)
 
-    # Aax = fig.add_axes([0.1,0.73,0.6,0.3])
-    # Aax.set_ylabel('lnprob')
-    # Aax.set_xticklabels([])
-    # #Aax.scatter(MLWA,lnprob,color='k',s=5)
-    # Aax.hist(MLWA,bins=50,histtype='step',color='k')
-    # Aax.set_xlim(ax.get_xlim())
-
-    print 'MLWA = {:4.3f} + {:4.3f} - {:4.3f} Gyr'.format(MLWA_M,
+    MLWA_string = 'MLWA = {:4.3f} + {:4.3f} - {:4.3f} Gyr'.format(MLWA_M,
                                                           MLWA_M - MLWA_L,
                                                           MLWA_H - MLWA_M)
-    print 'MLWZ = {:4.3f} + {:4.3f} - {:4.3f} Zsol'.format(MLWZ_M,
+
+    MLWZ_string = 'MLWZ = {:4.3f} + {:4.3f} - {:4.3f} Zsol'.format(MLWZ_M,
                                                            MLWZ_M - MLWZ_L,
                                                            MLWZ_H - MLWZ_M)
+
+    fig.text(0.71,0.93,
+             '{} Ap# {}\n{}'.format(inputfile,ap,time.asctime()),
+             fontsize=8,va='top')
+    fig.text(0.71,0.8, MLWA_string, fontsize=8)
+    fig.text(0.71,0.75, MLWZ_string, fontsize=8)
+
+    print MLWA_string
+    print MLWZ_string
 
     f.close()
 
     return ax, c
+
+def AZ_pointing(inputfile, output):
+    
+    pp = PDF(output)
+
+    i = 1
+    while True:
+        print i
+        try:
+            ax, c = A_and_Z(inputfile,i)
+            pp.savefig(ax.figure)
+            plt.close(ax.figure)
+            i += 1
+        except KeyError:
+            break
+
+    pp.close()
+
+    return
