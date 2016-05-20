@@ -400,6 +400,18 @@ def do_all_pointings(suff='',folder_list=flist, Zlist=Zlist,
 
     return
 
+def plot_all_pointings(output,suff='',label='MLWA'):
+    
+    import plot_allZ2 as pa2
+
+    pp = PDF(output)
+    al = pa2.plot_heights_with_err('*'+suff,label=label,col=1,errcol=2, ylims=[0,11],
+                                   plotfit=False,exclude=pa2.exclude)
+    [pp.savefig(a.figure) for a in al]
+    pp.close()
+
+    return
+
 if __name__ == '__main__':
     
     plot(sys.argv[1])
