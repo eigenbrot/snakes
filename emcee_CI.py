@@ -375,12 +375,11 @@ def compute_theta_CI(flatchain, bins=20):
     cent = np.zeros(numpar)
 
     for p in range(numpar):
-        hist, b = np.histogram(flatchain[:,p],bins=bins)
-        cdf = np.cumsum(1.0*hist/np.sum(hist))
-        bcent = 0.5*(b[1:] + b[:-1])
-        cent[p] = np.interp(0.5,cdf,bcent)
-        lowCI[p] = np.interp(0.32,cdf,bcent)
-        highCI[p] = np.interp(0.68,cdf,bcent)
+        sortchain = np.sort(flatchain[:,p])
+        cdf = np.arange(sortchain.size*1.0)/(sortchain.size - 1)
+        cent[p] = np.interp(0.5,cdf,sortchain)
+        lowCI[p] = np.interp(0.32,cdf,sortchain)
+        highCI[p] = np.interp(0.68,cdf,sortchain)
 
     return cent, cent-lowCI, highCI-cent
 
@@ -415,11 +414,15 @@ def combine_S_CI(Slist):
 
 def compute_MLW_CI(MLW_samples):
 
-    dist, bcent, cdf = clean_cdf(MLW_samples)
+    fidx = np.isfinite(MLW_samples)
+    MLW_samples = MLW_samples[fidx]
     
-    mid = np.interp(0.5,cdf,bcent)
-    low = np.interp(0.32,cdf,bcent)
-    high = np.interp(0.68,cdf,bcent)
+    sS = np.sort(MLW_samples)
+    cdf = np.arange(sS.size*1.0)/(sS.size - 1)
+
+    mid = np.interp(0.5,cdf,sS)
+    low = np.interp(0.32,cdf,sS)
+    high = np.interp(0.68,cdf,sS)
 
     return mid, mid - low, high - mid
 
@@ -485,6 +488,106 @@ def lnprior(theta):
             return -np.inf
 
     return 0.0
+
+def make_coeffile(pointing,suffix='allZ'):
+    #I'll assume all the names are defaults here, because I'm lazy
+    
+    prevcoef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(pointing)
+    emceefile = 'em_P{}_{}_emcee.h5'.format(pointing,suffix)
+    newcoef = 'em_P{}_{}.emceecoef.fits'.format(pointing,suffix)
+
+    print prevcoef
+    print emceefile
+    print newcoef
+
+    f = h5py.File(emceefile,'r')
+    numap = len(f.keys())
+    numages = f['Ap1']['chain'].shape[2] - 1
+    
+    LMdata = pyfits.open(prevcoef)[1].data
+
+    light_factor = 100.
+
+    dtype = {'names':['VSYS',
+                      'FIXEDVBOOL',
+                      'TAUV',
+                      'TAUV_ERR',
+                      'emmaskw',
+                      'LIGHT_FRAC',
+                      'LIGHT_FRAC_ERR',
+                      'SNR',
+                      'MLWA','MLWA_L','MLWA_H',
+                      'MMWA',
+                      'MLWZ','MLWZ_L','MLWZ_H',
+                      'MMWZ',
+                      'chisq','redchi','bluechi','hkchi'],
+             'formats':['f4',
+                        'i8',
+                        'f4',
+                        'f4',
+                        'f4',
+                        '{}f4'.format(numages),
+                        '{}f4'.format(numages),
+                        'f4',
+                        'f4','f4','f4',
+                        'f4',
+                        'f4','f4','f4',
+                        'f4',
+                        'f4','f4','f4','f4']}
+
+    outputarr = np.zeros(numap,dtype=dtype)
+
+    for i in range(numap):
+        print i+1
+        fitcoefs = np.zeros(1,dtype=dtype)
+        LMcoefs = LMdata[i]
+
+        grp = f['Ap{}'.format(i+1)]
+        print "\treshaping..."
+        flatlnprob = np.reshape(grp['lnprob'],grp['lnprob'].size)
+        flatchain = np.reshape(grp['chain'],
+                               (grp['chain'].shape[0]*grp['chain'].shape[1],
+                                grp['chain'].shape[2]))
+        
+        flat_MLWA = np.reshape(grp['MLWA_S'],grp['MLWA_S'].size)
+        flat_MLWZ = np.reshape(grp['MLWZ_S'],grp['MLWZ_S'].size)
+
+        maxidx = np.argmax(flatlnprob)
+        EMtheta = flatchain[maxidx]
+        stds = np.mean(flatchain,axis=0)
+        
+        print "\tcomputing CI's..."
+        cents, lowCI, highCI = compute_theta_CI(flatchain)
+        MLWA, MLWA_L, MLWA_H  = compute_MLW_CI(flat_MLWA)
+        MLWZ, MLWZ_L, MLWZ_H  = compute_MLW_CI(flat_MLWZ)
+
+        fitcoefs['VSYS'] = LMcoefs['VSYS']
+        fitcoefs['emmaskw'] = LMcoefs['emmaskw']
+        fitcoefs['TAUV'] = EMtheta[0]
+        fitcoefs['TAUV_ERR'] = stds[0]
+        fitcoefs['LIGHT_FRAC'] = EMtheta[1:]*light_factor
+        fitcoefs['LIGHT_FRAC_ERR'] = stds[1:]*light_factor
+        
+        fitcoefs['FIXEDVBOOL'] = 1
+        fitcoefs['SNR'] = LMcoefs['SNR']
+        fitcoefs['MLWA'] = MLWA
+        fitcoefs['MLWA_L'] = MLWA_L
+        fitcoefs['MLWA_H'] = MLWA_H
+        fitcoefs['MMWA'] = LMcoefs['MMWA']
+        fitcoefs['MLWZ'] = LMcoefs['MLWZ']
+        fitcoefs['MLWZ_L'] = MLWZ_L
+        fitcoefs['MLWZ_H'] = MLWZ_H    
+        fitcoefs['MMWZ'] = LMcoefs['MMWZ']
+        fitcoefs['chisq'] = -1*np.max(flatlnprob)
+        fitcoefs['redchi'] = LMcoefs['redchi']
+        fitcoefs['bluechi'] = LMcoefs['bluechi']
+        fitcoefs['hkchi'] = LMcoefs['hkchi']
+
+        outputarr[i] = fitcoefs[0]
+
+    pyfits.BinTableHDU(outputarr).writeto(newcoef,clobber=True)
+
+    return
 
 def plot_traces(S,output):
     
