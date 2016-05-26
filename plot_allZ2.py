@@ -307,8 +307,8 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
     return axlist
 
 def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
-                          col=1, errcol=2, order=5, bigorder=60, s=None,
-                          ylims=None, labelr=False, bigpoints=False,
+                          col=1, errcol=2, lowhigh=False, order=5, bigorder=60, 
+                          s=None, ylims=None, labelr=False, bigpoints=False,
                           plotfit=True, exclude=[[],[],[],[],[],[]]):
 
     zz = np.array([])
@@ -336,7 +336,11 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         print 'Excluding: ', exclude[pointing-1]
     
         if errcol is not None:
-            data, err = np.loadtxt(dat, usecols=(col,errcol), unpack=True)
+            if lowhigh:
+                data, Lerr, Herr = np.loadtxt(dat, usecols=(col,errcol,errcol+1), unpack=True)
+                err = np.vstack((Lerr,Herr))
+            else:
+                data, err = np.loadtxt(dat, usecols=(col,errcol), unpack=True)
         else:
             data = np.loadtxt(dat, usecols=(col,), unpack=True)
             err = np.ones(data.size)*0.01
@@ -478,10 +482,11 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
             td = np.delete(td,exarr)
             r = np.delete(r,exarr)
             tz = np.delete(tz,exarr)
-            if lowhigh:
-                te = np.delete(te,exarr,axis=1)
-            else:
-                te = np.delete(te,exarr)
+            if errcol != None:
+                if lowhigh:
+                    te = np.delete(te,exarr,axis=1)
+                else:
+                    te = np.delete(te,exarr)
 
             alpha=1.0
             if combine_all and f == 0:
@@ -532,6 +537,11 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
         
             # ax.plot(z[sidx],mean,color=color, ls=style, label=folder, alpha=alpha)
             # ax.fill_between(z[sidx],mean-std,mean+std, alpha=0.1, color=color)
+
+            # print d.shape, np.sum(e,axis=0).shape
+            # d = d/np.sum(e,axis=0)
+            # e = np.diff(e,axis=0)[0]
+            # print e.shape
 
             ax.errorbar(z, d, yerr=e, fmt='.', color=color,alpha=alpha,capsize=0, label=folder)
 
