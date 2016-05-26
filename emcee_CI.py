@@ -895,3 +895,88 @@ def AZ_pointing(inputfile, output):
     pp.close()
 
     return
+
+def plot_ages(output,
+              plot_LM = False,
+              exclude = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]):
+
+    axlist = []
+    bigax = plt.figure().add_subplot(111)
+    bigax.set_xlabel('|Height [kpc]|')
+    bigax.set_ylabel('MLWA')
+
+    plist = [6,3,4,2,1,5]
+    color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
+    style_list = ['-','-','-','--','--','--']
+
+    for i in range(6):
+        pointing = plist[i]
+        color = color_list[i]
+        style = style_list[i]
+
+        print 'em_P{}_allZ*.emceecoef.fits'.format(pointing)
+        coef = glob('em_P{}_allZ*.emceecoef.fits'.format(pointing))[0]
+        loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+
+        print coef
+        print loc
+
+        c_data = pyfits.open(coef)[1].data
+        MLWA = c_data['MLWA']
+        MLWA_L = c_data['MLWA_L']
+        MLWA_H = c_data['MLWA_H']
+        err = np.vstack((MLWA_L,MLWA_H))
+
+        if plot_LM:
+            LM_dat = glob('NGC_891_P{}_*CI*dat'.format(pointing))[0]
+            print LM_dat
+            LM, LM_L, LM_H = np.loadtxt(LM_dat, usecols=(1,2,3), unpack=True)
+            LM_err = np.vstack((LM_L,LM_H))
+            # LM = np.loadtxt(LM_dat, usecols=(26,), unpack=True)
+            # LM_err = np.zeros((2,LM.size))
+
+        r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+        avgr = np.mean(r)
+
+        ax = plt.figure().add_subplot(111)
+        ax.set_xlabel('|Height [kpc]|')
+        ax.set_ylabel('MLWA')
+        ax.set_title('{:}\nP{:} ({:3.1f} kpc)'.format(time.asctime(),pointing,avgr))
+        
+        exarr = np.array(exclude[pointing-1]) - 1
+        MLWA = np.delete(MLWA,exarr)
+        err = np.delete(err,exarr,axis=1)
+        r = np.delete(r,exarr)
+        z = np.delete(z,exarr)
+        if plot_LM:
+            LM = np.delete(LM, exarr)
+            LM_err = np.delete(LM_err, exarr, axis=1)
+
+        bigax.errorbar(np.abs(z), MLWA, yerr=err, fmt='.', label='P{}'.format(pointing),
+                       color=color,capsize=0)
+        ax.errorbar(np.abs(z), MLWA, yerr=err, fmt='.', color=color, capsize=0)
+        if plot_LM:
+            blme = bigax.errorbar(np.abs(z), LM, yerr=LM_err, fmt='s', mfc='none', mec=color,
+                                  lw=0.1,ms=3,color=color, capsize=0)
+            lme = ax.errorbar(np.abs(z), LM, yerr=LM_err, fmt='s', mfc='none', mec=color, 
+                              lw=0.2,ms=5, color=color, capsize=0)
+            blme[-1][0].set_linestyle(':')
+            lme[-1][0].set_linestyle(':')
+
+        ax.set_xlim(-0.1,2.6)
+        ax.set_ylim(0,11)
+        axlist.append(ax)
+
+    bigax.set_title(time.asctime())
+    bigax.legend(loc=0, numpoints=1, scatterpoints=1)
+    bigax.set_xlim(-0.1,2.6)
+    bigax.set_ylim(0,11)
+
+    axlist = [bigax] + axlist
+
+    pp = PDF(output)
+    [pp.savefig(a.figure) for a in axlist]
+    pp.close()
+    plt.close('all')
+
+    return
