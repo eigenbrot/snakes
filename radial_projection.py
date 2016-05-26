@@ -1,4 +1,5 @@
 import numpy as np
+import pyfits
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.transforms import Affine2D
@@ -26,7 +27,51 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3):
 
     return r, phi*180./np.pi
 
-def plot_rphi(r,phi,data,rlim=(0,10)):
+def compute_rphi_tau(location, coeffile, scale=30./1001.):
+
+    rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
+    coefs = pyfits.open(coeffile)[1].data
+    tau = coefs['TAUV']
+    
+    R = 15.
+
+    size = int(R*2/scale) #size of array, in pixels
+    if size % 2 == 0:
+        size += 1
+
+    idvec = np.indices((size,size), dtype=np.float32)
+    radii = scale*((size/2. - idvec[0,:])**2 + (size/2. - idvec[1,:])**2)**0.5
+
+    hz = 0.29 #For dust,
+    hr = 7.68 # from Xilouris '99
+    kappa0 = 0.85/2./hz #from Xilouris '99
+
+    kaparray = np.exp(-1*(radii/hr))
+    kaparray *= kappa0 / np.max(kaparray)
+    
+    print kappa0, kaparray[size/2,size/2]
+    
+    r = np.zeros(rho.size)
+    phi = np.zeros(rho.size)
+
+    for i in range(rho.size):
+        tkap = kaparray*np.exp(-1*np.abs(z[i])/hz)
+        kapcum = np.cumsum(tkap,axis=0) #still in pixels
+        tauarray = scale*kapcum #times the ds of each pixel = integral!
+        col = int(size/2 + rho[i]/scale)
+        tau_loc = np.interp(tau[i],
+                            tauarray[:,col],
+                            np.arange(size)*scale)
+        # print tauarray[:,col], tau[i], tau_loc
+        if tau_loc > R:
+            phi[i] = 270 - np.arctan(rho[i]/(tau_loc - R))*180./np.pi #+ 180 because 0 is the approaching side
+        else:
+            phi[i] = 90 + np.arctan(rho[i]/(R - tau_loc))*180./np.pi #+ 90 because 0 is the approaching side
+        r[i] = np.sqrt(rho[i]**2 + (R - tau_loc)**2)
+
+    return r, phi
+
+def plot_rphi(r,phi,data,rlim=(0,10),thlim=(0,180)):
 
     fig = plt.figure()
     # ax = fig.add_subplot(111, projection='polar')
@@ -35,7 +80,7 @@ def plot_rphi(r,phi,data,rlim=(0,10)):
     #                   edgecolors='none', alpha=0.6)
 
     rmax = rlim[1]
-    ax = fractional_polar_axes(fig,rlim=rlim,step=(45,round(rmax/4)),
+    ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
                                ticklabels=False, thlabel='', rlabel='')
     ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
     ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
@@ -49,7 +94,7 @@ def plot_rphi(r,phi,data,rlim=(0,10)):
 
     return ax, scat
 
-def plot_galaxy(rlim=(0,12)):
+def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
 
     rr = np.array([])
     pphi = np.array([])
@@ -60,7 +105,12 @@ def plot_galaxy(rlim=(0,12)):
         loc = 'NGC_891_P{}_bin30_locations.dat'.format(i+1)
         vel = 'NGC_891_P{}_bin30_velocities.dat'.format(i+1)
         rho, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
-        r, phi = compute_rphi(loc,vel)
+
+        if tau:
+            coef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(i+1)
+            r, phi = compute_rphi_tau(loc,coef)
+        else:
+            r, phi = compute_rphi(loc,vel)
 
         rr = np.r_[rr,r]
         pphi = np.r_[pphi, phi]
@@ -68,7 +118,7 @@ def plot_galaxy(rlim=(0,12)):
 
         plims.append([-1*rho.min(),-1*np.mean(rho),-1*rho.max()])
 
-    ax, scat = plot_rphi(rr,pphi,zz,rlim=rlim)
+    ax, scat = plot_rphi(rr,pphi,zz,rlim=rlim,thlim=thlim)
     
     ax.set_ylim(0,20)
     rmax = rlim[1]
