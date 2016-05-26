@@ -818,10 +818,16 @@ def A_and_Z(inputfile,ap,numpoints=100):
         macdf = 1.0 * np.arange(shist.size)/(shist.size - 1)
         CIlim = np.interp(0.32,macdf,shist)
         CIidx = np.where(hist > CIlim)
-        L = np.min(dist[CIidx])
-        H = np.max(dist[CIidx])
-        M = dist[np.argmax(hist)]
-        
+
+        try:
+            L = np.min(dist[CIidx])
+            H = np.max(dist[CIidx])
+            M = dist[np.argmax(hist)]
+        except ValueError:
+            L = dist[np.argmin(hist)]
+            H = dist[np.argmax(hist)]
+            M = dist[np.argmax(hist)]
+
         maax = fig.add_axes(rect)
         maax.set_xticklabels([])
         maax.set_yticklabels([])
