@@ -313,7 +313,10 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
 
     zz = np.array([])
     dd = np.array([])
-    ee = np.array([])
+    if lowhigh:
+        ee = np.array([[],[]])
+    else:
+        ee = np.array([])
     axlist = []
 
     bigax = plt.figure().add_subplot(111)
@@ -360,19 +363,23 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
 
         exarr = np.array(exclude[pointing-1])-1 #becuase aps are 1-indexed
         data = np.delete(data,exarr)
-        err = np.delete(err,exarr)
         r = np.delete(r,exarr)
         z = np.delete(z,exarr)
 
         gidx = data == data
         data = data[gidx]
         z = z[gidx]
-        err = err[gidx]
+        if lowhigh:
+            err = np.delete(err,exarr,axis=1)
+            err = err[:,gidx]
+            ee = np.hstack((ee,err))
+        else:
+            err = np.delete(err,exarr)
+            err = err[gidx]
+            ee = np.r_[ee,err]
         
         zz = np.r_[zz,z]
         dd = np.r_[dd,data]
-        ee = np.r_[ee,err]
-
         sidx = np.argsort(z)
         data_pad = np.r_[data[sidx][order::-1],data[sidx]]
         z_pad = np.r_[z[sidx][order::-1],z[sidx]]
