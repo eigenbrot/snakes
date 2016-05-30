@@ -136,7 +136,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
         ab = np.array([3820.4, 3835.4,      3889.0,     3933.7, 3968.5, 3970.18,         4304.4,   4341.,       5175.3, 5894.0, 4861.,  4102., 3820.4])
         absnam = ['L',   r'H$\eta$', r'H$\zeta$', 'K',   'H'   , r'H$\epsilon$',    'G',     r'H$\gamma$',  'Mg',   'Na',   r'H$\beta$',   r'H$\delta$',  'L']
         
-        balm = np.array([6563, 4861, 4341, 4102, 3970])
+        balm = 1.*np.array([6563, 4861, 4341, 4102, 3970])
         
         try:
             dz = coefs['EMMASKW']/3e5
