@@ -118,6 +118,54 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60], N =
 
     return ratios, errs, SNlist, taulist, fig
 
+def plot_covariance(SN, taulist = [0.1,1,2,4,10], N = 30, output = None):
+
+    big_age = np.zeros((len(taulist),N))
+    big_Av = np.zeros(big_age.shape)
+    big_Z = np.zeros(big_age.shape)
+    agelist = np.zeros(len(taulist))
+
+    fig = plt.figure(figsize=(8,8))
+    age_Av_ax = fig.add_subplot(221)
+    age_Z_ax = fig.add_subplot(223)
+    Av_Z_ax = fig.add_subplot(224)
+    colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
+
+    direc = 'SN{}'.format(SN)
+    for t, tau in enumerate(taulist):
+        tmp_age = np.zeros(N)
+        tmp_Av = np.zeros(N)
+        tmp_Z = np.zeros(N)
+        for i in range(N):
+            model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
+                         format(direc,SN,tau,i+1)
+            fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
+                       format(direc,SN,tau,i+1)
+            print model_name
+            mMMWA, mMLWA = np.loadtxt(model_name,
+                                      usecols=(11,12),unpack=True)
+            fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
+            print fZ
+            tmp_age[i] = 1 - fMLWA/mMLWA
+            tmp_Av[i] = 1 - ftauV/1.5
+            tmp_Z[i] = 1 - fZ/0.4
+                
+        age_Av_ax.scatter(tmp_age, tmp_Av, color=colors[t], label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(tau,mMLWA))
+        age_Z_ax.scatter(tmp_age, tmp_Z, color=colors[t])
+        Av_Z_ax.scatter(tmp_Av, tmp_Z, color=colors[t])
+
+    # Av_Z_ax.set_ylim(-0.1,0.1)
+    # age_Z_ax.set_ylim(*Av_Z_ax.get_ylim())
+    age_Av_ax.set_xticklabels([])
+    Av_Z_ax.set_yticklabels([])
+    age_Av_ax.set_ylabel('$A_V$')
+    age_Z_ax.set_ylabel('$Z$')
+    age_Z_ax.set_xlabel(r'$\tau_L$')
+    Av_Z_ax.set_xlabel('$A_V$')
+    fig.subplots_adjust(hspace=0.001,wspace=0.001)
+
+    return fig
+    
 def get_metal(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                N = 100):
 
