@@ -1,10 +1,12 @@
+import matplotlib
+#matplotlib.use('agg')
 import numpy as np
 import tau_model as tm
-import matplotlib
-matplotlib.use('agg')
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages as PDF
 import os
 import time
+plt.ioff()
 
 def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                N = 10, SNmin = 5450., SNmax = 5550., lightmin = 5450., lightmax = 5550.):
@@ -42,7 +44,7 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
         f.close()
     return
 
-def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
+def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60], N = 30, output=None, quant='t'):
 
     ratios = np.zeros((len(SNlist),len(taulist)))
     errs = np.zeros(ratios.shape)
@@ -61,42 +63,58 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60], N = 10):
                 mMMWA, mMLWA = np.loadtxt(model_name,
                                           usecols=(11,12),unpack=True)
                 fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
-                tmp[i] = 1 - fMLWA/mMLWA
+                if quant == 't':
+                    tmp[i] = 1 - fMLWA/mMLWA
+                elif quant == 'a':
+                    tmp[i] = 1 - ftauV/1.5
+                elif quant == 'z':
+                    tmp[i] = 1 - fZ/0.4
                 # tmp[i] = 1 - fMMWA/mMMWA
-                # tmp[i] = 1 - ftauV/1.5
-                # tmp[i] = 1 - fZ/0.4
 
-            agelist[t] = mMMWA
+            agelist[t] = mMLWA
             ratios[s,t] = np.mean(tmp)
             errs[s,t] = np.sqrt(np.mean((tmp - np.mean(tmp))**2))
 
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(211)
     eax = fig.add_subplot(212)
-    colors = ['r','g','c','b','m']
+    colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
     for i in range(len(taulist)):
-        ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], color=colors[i], 
-                    label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
+        ax.plot(SNlist, ratios[:,i], color=colors[i], lw=1.5,
+                label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
+        # ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], color=colors[i], 
+        #             label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
         # ax.plot(SNlist,errs[:,i], label=taulist[i])
 
-        eax.plot(SNlist, errs[:,i], color=colors[i])
+        eax.plot(SNlist, errs[:,i], color=colors[i], lw=1.5)
 
     fig.subplots_adjust(hspace=0.0001)
     ax.set_xticklabels([])
     ax.set_xlim(0,70)
-    ax.set_ylim(ax.get_ylim()[0]*0.9,ax.get_ylim()[1])
+    if quant == 't':
+        ax.set_ylim(0.04,1)
+        ax.set_ylabel(r'$1 - \tau_{L,\mathrm{fit}}/\tau_{L,\mathrm{true}}$')
+    elif quant == 'a':
+        ax.set_ylim(-0.31,0)
+        ax.set_ylabel(r'$1 - A_{V,\mathrm{fit}}/A_{V,\mathrm{true}}$')
+    elif quant == 'z':
+        ax.set_ylabel(r'$1 - Z_\mathrm{fit}/Z_\mathrm{true}$')
+
     eax.set_xlim(ax.get_xlim())
     eax.set_ylim(eax.get_ylim()[0],eax.get_ylim()[1]*0.9)
+#    eax.set_ylim(-0.1,2)
 #    ax.set_xlabel('SNR')
-    ax.set_ylabel('1 - MLWA$_{fit}$/MLWA$_{true}$')
 #    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
-#    ax.set_ylabel(r'1 - $\tau_\mathrm{V,fit}$/$\tau_\mathrm{V,true}$')
-#    ax.set_ylabel(r'1 - Z$_\mathrm{fit}$/Z$_\mathrm{true}$')
 #    ax.set_ylim(-2,0.5)
-    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}\Rightarrow\mathrm{MMWA}$')
+    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}\Rightarrow\tau_L$')
 
     eax.set_xlabel('SNR')
     eax.set_ylabel('RMS')
+
+    if output is not None:
+        pp = PDF(output)
+        pp.savefig(fig)
+        pp.close()
 
     return ratios, errs, SNlist, taulist, fig
 
