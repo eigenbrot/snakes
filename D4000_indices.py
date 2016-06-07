@@ -347,8 +347,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], plot_r = False,
         z = np.loadtxt(loc,usecols=(5,),unpack=True)
         vmx = 2.5
 
-    res = np.delete(res,exclude,axis=0)
-    z = np.delete(z,exclude)
+    exar = np.array(exclude) - 1
+    res = np.delete(res,exar,axis=0)
+    z = np.delete(z,exar)
 
     idx = np.where((z >= zcut[0]) & (z < zcut[1]))[0]
     res = res[idx,:]
