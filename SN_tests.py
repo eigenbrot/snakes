@@ -44,14 +44,18 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
         f.close()
     return
 
-def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60], N = 30, output=None, quant='t'):
+def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60], 
+               dirpre = '', N = 30, output=None, quant='t'):
 
     ratios = np.zeros((len(SNlist),len(taulist)))
     errs = np.zeros(ratios.shape)
     agelist = np.zeros(len(taulist))
 
+    if len(dirpre) > 0 and dirpre[-1] != '/':
+        dirpre += '/'
+
     for s, SN in enumerate(SNlist):
-        direc = 'SN{}'.format(SN)
+        direc = '{}SN{}'.format(dirpre,SN)
         for t, tau in enumerate(taulist):
             tmp = np.zeros(N)
             for i in range(N):
