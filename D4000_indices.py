@@ -477,7 +477,6 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
 def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
 
-    numax = (len(zcuts)+1) * (len(rcuts)+1)
     fig = plt.figure()
     lax = fig.add_subplot(111)
     lax.spines['top'].set_visible(False)
@@ -505,7 +504,7 @@ def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
                 print data_file
                 scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, zcut=zc, rcut=rc)
-            ax.text(2.5,8,'${}\leq |z| <{}$\n${}\leq |r| <{}$'.format(*(zc+rc)),ha='right',va='center')
+            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)
             if i < 4:
@@ -515,6 +514,11 @@ def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
     return fig
 
 def plot_all_pointing_grid(output, plotdata=True, plotfits=False, 
