@@ -334,30 +334,37 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
 
     return
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], plot_r = False,
-                       zcut=[-99,99], size=40, marker='o', alpha=0.7):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], plot_r = False, nocolor=False,
+                       zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
     loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
-    if plot_r:
-        z = np.loadtxt(loc,usecols=(4,),unpack=True)
-        vmx = 10
-    else:
-        z = np.loadtxt(loc,usecols=(5,),unpack=True)
-        vmx = 2.5
+    r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+    r = np.abs(r)
+    z = np.abs(z)
 
     exar = np.array(exclude) - 1
     res = np.delete(res,exar,axis=0)
     z = np.delete(z,exar)
+    r = np.delete(r,exar)
+    if plot_r:
+        d = np.abs(r)
+        vmx = 10
+    else:
+        d = np.abs(z)
+        vmx = 2.5
 
-    idx = np.where((z >= zcut[0]) & (z < zcut[1]))[0]
+    idx = np.where((z >= zcut[0]) & (z < zcut[1])
+                   & (r >= rcut[0]) & (r < rcut[1]))[0]
     res = res[idx,:]
-    z = z[idx]
+    d = d[idx]
+    if nocolor:
+        d = 'k'
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=vmx,
-                      c=np.abs(z), alpha=alpha, cmap=plt.cm.gnuplot2)
+                      c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
 
     return scat
 
@@ -419,12 +426,12 @@ def plot_index_grid(model_data_file,data_file,output,exclude=[],ma11=False,bestf
     plt.close(fig)
     return 
 
-def plot_D4000(data_file, output, exclude=[]):
+def plot_D4000(data_file, output, exclude=[], zcut=[-99,99]):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude,
-                              marker='o', size=40)
+                              marker='o', size=40, zcut=zcut)
 
     ax.set_ylabel(r'$H_{\delta,A}$')
     ax.set_xlabel('Dn4000')
@@ -438,20 +445,22 @@ def plot_D4000(data_file, output, exclude=[]):
 
     return
 
-def plot_all_pointing_D4000(output, exclude=excl, r=False):
+def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[-99,99]):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plot_model_grid('BC03_Dn4000.fits',ax,1,0)
+#    plot_model_grid('BC03_Dn4000.fits',ax,1,0)
     for p in range(6):
     
         data_file = 'NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(p+1)
         print data_file
         scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude[p],
-                                  marker='o', size=40, plot_r=r)
+                                  marker='o', size=40, plot_r=r, zcut=zcut, rcut=rcut)
 
     ax.set_ylabel(r'$H_{\delta,A}$')
     ax.set_xlabel('Dn4000')
+    ax.set_xlim(0.8,2.6)
+    ax.set_ylim(-6,10)
     cb = fig.colorbar(scat)
     if r:
         cb.set_label('|r| [kpc]')
@@ -465,6 +474,48 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False):
     plt.close(fig)
 
     return
+
+def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
+
+    numax = (len(zcuts)+1) * (len(rcuts)+1)
+    fig = plt.figure()
+    lax = fig.add_subplot(111)
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_xlabel('Dn4000')
+    lax.set_ylabel(r'$H_{\delta,A}$')
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for z in range(len(zcuts) + 1):
+        zc = [bigz[-z-2], bigz[-z-1]]
+        for r in range(len(rcuts) + 1):
+            rc = [bigr[r], bigr[r+1]]
+            print zc, rc
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            for p in range(6):
+                data_file = 'NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(p+1)
+                print data_file
+                scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude[p], nocolor=True,
+                                          marker='o', size=40, plot_r=False, zcut=zc, rcut=rc)
+            ax.text(2.5,8,'${}\leq |z| <{}$\n${}\leq |r| <{}$'.format(*(zc+rc)),ha='right',va='center')
+            ax.set_ylim(-4,9.7)
+            ax.set_xlim(0.82,2.66)
+            if i < 4:
+                ax.set_xticklabels([])
+            if i % 3 != 1:
+                ax.set_yticklabels([])
+            i += 1
+
+    fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    return fig
 
 def plot_all_pointing_grid(output, plotdata=True, plotfits=False, 
                            ma11=False, exclude=excl, contour=False,
