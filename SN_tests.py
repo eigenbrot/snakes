@@ -79,18 +79,19 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60],
             ratios[s,t] = np.mean(tmp)
             errs[s,t] = np.sqrt(np.mean((tmp - np.mean(tmp))**2))
 
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure()
     ax = fig.add_subplot(211)
     eax = fig.add_subplot(212)
     colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
     for i in range(len(taulist)):
-        ax.plot(SNlist, ratios[:,i], color=colors[i], lw=1.5,
-                label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
+        ax.plot(SNlist, ratios[:,i], color=colors[i], lw=1.5)
+                
         # ax.errorbar(SNlist, ratios[:,i], yerr=errs[:,i], color=colors[i], 
         #             label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
         # ax.plot(SNlist,errs[:,i], label=taulist[i])
 
-        eax.plot(SNlist, errs[:,i], color=colors[i], lw=1.5)
+        eax.plot(SNlist, errs[:,i], color=colors[i], lw=1.5,
+                 label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(taulist[i],agelist[i]))
 
     fig.subplots_adjust(hspace=0.0001)
     ax.set_xticklabels([])
@@ -110,7 +111,7 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60],
 #    ax.set_xlabel('SNR')
 #    ax.set_ylabel('1 - MMWA$_{fit}$/MMWA$_{true}$')
 #    ax.set_ylim(-2,0.5)
-    ax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}\Rightarrow\tau_L$')
+    eax.legend(loc=0,numpoints=1,scatterpoints=1,frameon=False,title=r'$\tau_{sf}\Rightarrow\tau_L$')
 
     eax.set_xlabel('SNR')
     eax.set_ylabel('RMS')
