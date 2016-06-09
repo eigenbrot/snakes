@@ -1,4 +1,5 @@
 import numpy as np
+import re
 import pyfits
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
@@ -49,10 +50,20 @@ def cut_pointing(pointing, zcut=0.5):
     """
     
     loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+    log = 'NGC_891_P{}_bin30.log'.format(pointing)
     dfile = 'NGC_891_P{}_bin30.msoz.fits'.format(pointing)
-    print loc, dfile
+    print loc, log, dfile
     z = np.loadtxt(loc, usecols=(5,), unpack=True)
     z = np.abs(z)
+
+    ss = re.compile(r'(\d+): \[(.*)\], SNR: (\d+\.\d+)')    
+    SN = np.zeros(z.size)
+    with open(log,'r') as lff:
+        lf = lff.readlines()
+    for i, l in enumerate(lf):
+        grp = ss.search(l).groups()
+        SN[i] = float(grp[2])
+
     hdu = pyfits.open(dfile)[0]
     data = hdu.data
     header = hdu.header    
@@ -64,13 +75,14 @@ def cut_pointing(pointing, zcut=0.5):
 
     exar = np.array(exclude[pointing - 1]) - 1
     z = np.delete(z,exar)
+    SN = np.delete(SN,exar)
     data = np.delete(data,exar,axis=0)
 
     zhidx = np.where(z >= zcut)[0]
     zlidx = np.where(z < zcut)[0]
 
-    low_d = np.mean(data[zlidx,:], axis=0)
-    high_d = np.mean(data[zhidx,:], axis=0)
+    low_d = np.sum(data[zlidx,:]*SN[zlidx,None], axis=0)/np.sum(SN[zlidx])
+    high_d = np.sum(data[zhidx,:]*SN[zhidx,None], axis=0)/np.sum(SN[zhidx])
 
     return wave, low_d, high_d
 
