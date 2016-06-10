@@ -509,7 +509,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
             ax.set_xlim(0.82,2.66)
             if i < 4:
                 ax.set_xticklabels([])
-            if i % 3 != 1:
+            if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
             i += 1
 
