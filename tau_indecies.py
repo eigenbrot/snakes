@@ -367,24 +367,37 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], 
-                       zcut=[-99,99], size=40, marker='o', alpha=0.7):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False,
+                       nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
-    loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
-    z = np.loadtxt(loc,usecols=(5,),unpack=True)
+    loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
+    r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+    r = np.abs(r)
+    z = np.abs(z)
 
-    res = np.delete(res,exclude,axis=0)
-    z = np.delete(z,exclude)
+    exar = np.array(exclude) - 1
+    res = np.delete(res,exar,axis=0)
+    z = np.delete(z,exar)
+    r = np.delete(r,exar)
+    if plot_r:
+        d = np.abs(r)
+        vmx = 10
+    else:
+        d = np.abs(z)
+        vmx = 2.5
 
-    idx = np.where((z >= zcut[0]) & (z < zcut[1]))[0]
+    idx = np.where((z >= zcut[0]) & (z < zcut[1])
+                   & (r >= rcut[0]) & (r < rcut[1]))[0]
     res = res[idx,:]
-    z = z[idx]
+    d = d[idx]
+    if nocolor:
+        d = 'k'
 
     scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
-                      marker=marker, vmin=-0.1, vmax=2.5,
-                      c=np.abs(z), alpha=alpha, cmap=plt.cm.gnuplot2)
+                      marker=marker, vmin=-0.1, vmax=vmx,
+                      c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
 
     return scat
 
@@ -576,6 +589,63 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
     pp.close()
     plt.close(fig)
     return 
+
+def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
+
+    band_d = {'Hb': {'label': r'$H\beta$', 'num': 0},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1},
+              'HgA': {'label': r'$H\gamma_A$', 'num': 2},
+              'HdF': {'label': r'$H\delta_F$', 'num': 3},
+              'HgF': {'label': r'$H\gamma_F$', 'num': 4},
+              'Fe': {'label': r'<Fe>', 'num': 5},
+              'MgFe': {'label': r'<MgFe>', 'num': 6},
+              'Mgb': {'label': r'Mg$b$', 'num': 7}}
+
+    fig = plt.figure()
+    lax = fig.add_subplot(111)
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_xlabel(band_d[x]['label'])
+    lax.set_ylabel(band_d[y]['label'])
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for z in range(len(zcuts) + 1):
+        zc = [bigz[-z-2], bigz[-z-1]]
+        for r in range(len(rcuts) + 1):
+            rc = [bigr[r], bigr[r+1]]
+            print zc, rc
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            for p in range(6):
+                data_file = '{}/NGC_891_P{}_bin30.msoz.bands.dat'.format(basedir,p+1)
+                print data_file
+                scat = plot_quick_on_grid(data_file, ax, band_d[x]['num'], band_d[y]['num'], 
+                                          exclude=exclude[p], nocolor=True,
+                                          marker='o', size=40, plot_r=False, 
+                                          zcut=zc, rcut=rc, basedir=basedir)
+            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
+            # ax.set_ylim(-4,9.7)
+            # ax.set_xlim(0.82,2.66)
+            if i < 4:
+                ax.set_xticklabels([])
+            if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
+                ax.set_yticklabels([])
+            i += 1
+
+    fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return fig
 
 def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False, 
                                 ma11=False, exclude=excl, contour=False,
