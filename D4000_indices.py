@@ -334,12 +334,12 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
 
     return
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], plot_r = False, nocolor=False,
-                       zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, 
+                       nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
     res = quick_eat(datafile)
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
-    loc = 'NGC_891_P{}_bin30_locations.dat'.format(pointing)
+    loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
     r = np.abs(r)
     z = np.abs(z)
@@ -475,7 +475,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
 
     fig = plt.figure()
     lax = fig.add_subplot(111)
@@ -500,10 +500,10 @@ def plot_cuts_D4000(output, exclude=excl, zcuts=[0.4], rcuts=[3,8]):
             print zc, rc
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             for p in range(6):
-                data_file = 'NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(p+1)
+                data_file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(basedir,p+1)
                 print data_file
                 scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude[p], nocolor=True,
-                                          marker='o', size=40, plot_r=False, zcut=zc, rcut=rc)
+                                          marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
             ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)

@@ -87,7 +87,7 @@ def cut_pointing(pointing, zcut=0.5):
 
     return wave, low_d, high_d
 
-def get_all_data(exclude=exclude):
+def get_all_data(basedir='.', exclude=exclude):
     
     biglist = []
     bigr = []
@@ -96,9 +96,9 @@ def get_all_data(exclude=exclude):
     ss = re.compile(r'(\d+): \[(.*)\], SNR: (\d+\.\d+)')    
     
     for p in range(6):
-        loc = 'NGC_891_P{}_bin30_locations.dat'.format(p+1)
-        log = 'NGC_891_P{}_bin30.log'.format(p+1)
-        dfile = 'NGC_891_P{}_bin30.msoz.fits'.format(p+1)
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        log = '{}/NGC_891_P{}_bin30.log'.format(basedir,p+1)
+        dfile = '{}/NGC_891_P{}_bin30.msoz.fits'.format(basedir,p+1)
         print loc, log, dfile
         r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
         z = np.abs(z)
@@ -152,7 +152,7 @@ def plot_cut_all(wave, r, z, sn, data, ax = None, zcut=[0,2.7], rcut=[0,11]):
 
     return ax, avg
 
-def plot_cut_grid(output, zcuts=[0.4], rcuts=[3,8], exclude=exclude):
+def plot_cut_grid(output, basedir='.', zcuts=[0.4], rcuts=[3,8], exclude=exclude):
 
     fig = plt.figure()
     lax = fig.add_subplot(111)
@@ -169,7 +169,7 @@ def plot_cut_grid(output, zcuts=[0.4], rcuts=[3,8], exclude=exclude):
     bigz = [0] + zcuts + [2.6]
     bigr = [0] + rcuts + [11]
 
-    w, r, z, sn, data = get_all_data(exclude=exclude)
+    w, r, z, sn, data = get_all_data(exclude=exclude,basedir=basedir)
 
     i = 1
     for zz in range(len(zcuts) + 1):
