@@ -934,7 +934,7 @@ def plot_ages(output,
         err = np.vstack((MLWA_L,MLWA_H))
 
         if plot_LM:
-            LM_dat = glob('NGC_891_P{}_*CI*dat'.format(pointing))[0]
+            LM_dat = glob('NGC_891_P{}_fullCI*dat'.format(pointing))[0]
             print LM_dat
             LM, LM_L, LM_H = np.loadtxt(LM_dat, usecols=(1,2,3), unpack=True)
             LM_err = np.vstack((LM_L,LM_H))

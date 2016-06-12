@@ -210,16 +210,16 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     oldAvg = np.mean(bigD[:,2:,:],axis=1)
     youngAvg = np.mean(bigD[:,:2,:],axis=1)
     print bigD[0,:,:].shape, ageAvg[0].shape, (bigD[0,:,:] - ageAvg[0]).shape
-    saverms = np.sqrt(np.mean((bigD[3,:,:] - ageAvg[3])**2,axis=0))
+    # saverms = np.sqrt(np.mean((bigD[3,:,:] - ageAvg[3])**2,axis=0))
     for z in range(nmetal):
-        # if z == 0:
-        #     rms = np.sqrt(np.mean((bigD[z,2:,:] - oldAvg[z])**2,axis=0))
-        # elif z >=1 and z < 4:
-        #     rms = np.sqrt(np.mean((bigD[z,:,:] - ageAvg[z])**2,axis=0))            
-        # else:
-        #     rms = np.sqrt(np.mean((bigD[z,:2,:] - youngAvg[z])**2,axis=0))
-        rms = np.sqrt(np.mean((bigD[z,:,:] - ageAvg[z])**2,axis=0))            
-        rms /= saverms
+        if z == 0:
+            rms = np.sqrt(np.mean((bigD[z,2:,:] - oldAvg[z])**2,axis=0))
+        elif z >=1 and z < 4:
+            rms = np.sqrt(np.mean((bigD[z,:,:] - ageAvg[z])**2,axis=0))            
+        else:
+            rms = np.sqrt(np.mean((bigD[z,:2,:] - youngAvg[z])**2,axis=0))
+        # rms = np.sqrt(np.mean((bigD[z,:,:] - ageAvg[z])**2,axis=0))            
+        # rms /= saverms
         rms = np.convolve(rms,np.ones(20)/20.,'same')
         ax.plot(wave, rms,label='{}$Z_{{\odot}}$'.format(Zlist[z]),color=clist[z])
         # ax.plot(wave, np.mean(bigD[z,:,:],axis=0),':')
@@ -231,7 +231,7 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ax.set_xlim(3400,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    mfig.savefig('A_rms_IRAF_prior_norm.png',dpi=200)
+    mfig.savefig('A_rms_IRAF_prior2.png',dpi=200)
 
     #Age axis
     afig = plt.figure()
@@ -242,14 +242,14 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ZAvg = np.mean(bigD,axis=0)
     highZAvg = np.mean(bigD[1:,:,:],axis=0)
     lowZAvg = np.mean(bigD[:4,:,:],axis=0)
-    saverms = np.sqrt(np.mean((bigD[:,2,:] - ZAvg[2])**2,axis=0))
+    # saverms = np.sqrt(np.mean((bigD[:,2,:] - ZAvg[2])**2,axis=0))
     for a in range(nage):
-        # if a < 2:
-        #     rms = np.sqrt(np.mean((bigD[1:,a,:] - highZAvg[a])**2,axis=0))
-        # else:
-        #     rms = np.sqrt(np.mean((bigD[:4,a,:] - lowZAvg[a])**2,axis=0))
-        rms = np.sqrt(np.mean((bigD[:,a,:] - ZAvg[a])**2,axis=0))
-        rms /= saverms
+        if a < 2:
+            rms = np.sqrt(np.mean((bigD[1:,a,:] - highZAvg[a])**2,axis=0))
+        else:
+            rms = np.sqrt(np.mean((bigD[:4,a,:] - lowZAvg[a])**2,axis=0))
+        # rms = np.sqrt(np.mean((bigD[:,a,:] - ZAvg[a])**2,axis=0))
+        # rms /= saverms
         rms = np.convolve(rms,np.ones(20)/20.,'same')
         ax.plot(wave, rms, label='{:7.4f} Gyr'.format(age[a]))
         rms_Z += rms**2
@@ -259,10 +259,8 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ax.set_xlim(3500,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    afig.savefig('Z_rms_IRAF_prior_norm.png',dpi=200)
+    afig.savefig('Z_rms_IRAF_prior2.png',dpi=200)
     
-    return
-
     #All
     bigfig = plt.figure()
     ax = bigfig.add_subplot(111)
@@ -279,7 +277,7 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ax.legend(loc=0)
     add_line_labels(ax)    
 #    bigfig.show()
-    bigfig.savefig('big_RMS_IRAF_prior.png',dpi=200)
+    bigfig.savefig('big_RMS_IRAF_prior2.png',dpi=200)
 
     return wave, rms, rms_Z, rms_A
 
