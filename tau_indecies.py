@@ -592,17 +592,17 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
 
-    band_d = {'Hb': {'label': r'$H\beta$', 'num': 0},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1},
-              'HgA': {'label': r'$H\gamma_A$', 'num': 2},
-              'HdF': {'label': r'$H\delta_F$', 'num': 3},
-              'HgF': {'label': r'$H\gamma_F$', 'num': 4},
-              'Fe': {'label': r'<Fe>', 'num': 5},
-              'MgFe': {'label': r'<MgFe>', 'num': 6},
-              'Mgb': {'label': r'Mg$b$', 'num': 7}}
+    band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3,8.4]},
+              'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
+              'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
+              'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
+              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4]},
+              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0,3.9]},
+              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4]}}
 
     fig = plt.figure()
-    lax = fig.add_subplot(111)
+    lax = fig.add_subplot(111, label='biglabel') #label is necessary if len(zcuts) == len(rcuts) == 0
     lax.spines['top'].set_visible(False)
     lax.spines['right'].set_visible(False)
     lax.spines['bottom'].set_visible(False)
@@ -630,10 +630,12 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                                           exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, 
                                           zcut=zc, rcut=rc, basedir=basedir)
-            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
-            # ax.set_ylim(-4,9.7)
-            # ax.set_xlim(0.82,2.66)
-            if i < 4:
+            ax.text(band_d[x]['lim'][1]*0.9,
+                    band_d[y]['lim'][1]*0.9,
+                    '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
+            ax.set_ylim(*band_d[y]['lim'])
+            ax.set_xlim(*band_d[x]['lim'])
+            if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
