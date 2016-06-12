@@ -521,3 +521,79 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
 
     return fig
 
+def plot_MgFe_D4000(output, basedir='.', exclude=excl,zcuts=[],rcuts=[]):
+    
+    import tau_indecies as ti
+
+    tmpMgFe = []
+    tmpD4000 = []
+    r = []
+    z = []
+    for p in range(6):
+        bandfile = '{}/NGC_891_P{}_bin30.msoz.bands.dat'.format(basedir,p+1)
+        D4000file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(basedir,p+1)
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        tmpr, tmpz = np.loadtxt(loc, usecols=(4,5), unpack=True)
+        tmpr = np.abs(tmpr)
+        tmpz = np.abs(tmpz)
+
+        D4000 = quick_eat(D4000file)[:,1]
+        MgFe = ti.quick_eat(bandfile)[:,6]
+
+        exar = np.array(exclude[p]) - 1
+        D4000 = np.delete(D4000, exar)
+        MgFe = np.delete(MgFe, exar)
+        tmpr = np.delete(tmpr, exar)
+        tmpz = np.delete(tmpz, exar)
+        
+        tmpMgFe.append(MgFe)
+        tmpD4000.append(D4000)
+        r.append(tmpr)
+        z.append(tmpz)
+
+    bigD4000 = np.hstack(tmpD4000)
+    bigMgFe = np.hstack(tmpMgFe)
+    r = np.hstack(r)
+    z = np.hstack(z)
+
+    fig = plt.figure()
+    lax = fig.add_subplot(111, label='biglabel') #label is necessary if len(zcuts) == len(rcuts) == 0
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_xlabel('<MgFe>')
+    lax.set_ylabel('Dn4000')
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for zz in range(len(zcuts) + 1):
+        zc = [bigz[-zz-2], bigz[-zz-1]]
+        for rr in range(len(rcuts) + 1):
+            rc = [bigr[rr], bigr[rr+1]]
+            print zc, rc
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            idx = np.where((z >= zc[0]) & (z < zc[1])
+                           & (r >= rc[0]) & (r < rc[1]))[0]
+            ax.scatter(bigMgFe[idx],bigD4000[idx],s=40,linewidths=0,marker='o',alpha=0.7,c='k')
+            ax.set_xlim(0,3.9)
+            ax.set_ylim(0.82,2.66)
+            ax.text(3.5,2.4,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
+            if i <= (len(zcuts)) * (len(rcuts) + 1):
+                ax.set_xticklabels([])
+            if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
+                ax.set_yticklabels([])
+            i += 1
+            
+    fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+
+    pp = PDF(output)
+    pp.savefig(ax.figure)
+    pp.close()
+    plt.close(ax.figure)
+    return
