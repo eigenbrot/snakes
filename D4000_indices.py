@@ -120,18 +120,14 @@ def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
 
     return
 
-def prep_all_data(emcorr=False):
+def prep_all_data(bs=''):
 
-    # if not emcorr:
-    #     bs = '_balmsub'
-    # else:
-    bs = ''
     
     for i in range(6):
         
-        output = 'NGC_891_P{}_bin30.msoz.fits'.format(i+1)
+        output = 'NGC_891_P{}_bin30{}.msoz.fits'.format(i+1,bs)
         data_prep('NGC_891_P{}_bin30{}.mso.fits'.format(i+1,bs),
-                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=emcorr)
+                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=False)
 
     return
 
@@ -481,7 +477,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
 
     fig = plt.figure()
-    lax = fig.add_subplot(111)
+    lax = fig.add_subplot(111, label='bigax')
     lax.spines['top'].set_visible(False)
     lax.spines['right'].set_visible(False)
     lax.spines['bottom'].set_visible(False)
@@ -503,17 +499,21 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
             print zc, rc
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             for p in range(6):
-                data_file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(basedir,p+1)
+                data_file = glob('{}/NGC_891_P{}_bin30*.msoz.Dn4000.dat'.format(basedir,p+1))[0]
                 print data_file
                 scat = plot_quick_on_grid(data_file, ax, 2, 0, exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
             ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)
-            if i < 4:
+            
+            ax.axvline(1.5,color='k',alpha=0.6,ls='--')
+            ax.axhline(2,color='k',alpha=0.6,ls='--')
+
+            if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
-                ax.set_yticklabels([])
+                ax.set_yticklabels([])            
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)

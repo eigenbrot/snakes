@@ -593,12 +593,12 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3,8.4]},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3,8.4], 'break': 2},
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4]},
-              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0,3.9]},
+              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0,3.9], 'break': 2},
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4]}}
 
     fig = plt.figure()
@@ -635,6 +635,16 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
+            
+            try:
+                ax.axvline(band_d[x]['break'],alpha=0.6,ls='--',color='k')
+            except KeyError:
+                pass
+            try:
+                ax.axhline(band_d[y]['break'],alpha=0.6,ls='--',color='k')
+            except KeyError:
+                pass
+            
             if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
