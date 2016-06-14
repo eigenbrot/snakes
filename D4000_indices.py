@@ -203,7 +203,7 @@ def combine_sbands(output,numaps=len(deftlst),ma11 = False):
 
     return
 
-def quick_eat(datafile, numbands=2):
+def quick_eat(datafile, numbands=3):
 
     data = np.loadtxt(datafile,usecols=(0,1,5,6),
                       dtype={'names':('aps','bands','index','eqwidth'),
@@ -291,16 +291,19 @@ def bc03_compare(databands, bc03bands, outputprefix):
 def eat_index(index):
     #Assumes order is:
     #0 HdA
-    #1 Dn4000
+    #1 HdF
+    #2 Dn4000
     #
     # Output is:
     #0 HdA
-    #1 Dn4000
+    #1 HdF
+    #2 Dn4000
 
     HdA = index['eqwidth'][0]
-    Dn4 = index['index'][1]
+    HdF = index['eqwidth'][1]
+    Dn4 = index['index'][2]
     
-    return np.array([HdA,Dn4])
+    return np.array([HdA,HdF,Dn4])
 
 def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
 
@@ -502,7 +505,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
             for p in range(6):
                 data_file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(basedir,p+1)
                 print data_file
-                scat = plot_quick_on_grid(data_file, ax, 1, 0, exclude=exclude[p], nocolor=True,
+                scat = plot_quick_on_grid(data_file, ax, 2, 0, exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
             ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
