@@ -597,9 +597,9 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
-              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4]},
-              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0,3.9], 'break': 2},
-              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4]}}
+              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6},
+              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0.2,3.9], 'break': 2},
+              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4}}
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='biglabel') #label is necessary if len(zcuts) == len(rcuts) == 0
@@ -632,7 +632,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                                           zcut=zc, rcut=rc, basedir=basedir)
             ax.text(band_d[x]['lim'][1]*0.9,
                     band_d[y]['lim'][1]*0.9,
-                    '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
+                    '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='top')
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
@@ -658,6 +658,49 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
     pp.close()
 
     return fig
+
+def plot_z_index(output, basedir='.', exclude=excl):
+    
+    fig = plt.figure()
+    Feax = fig.add_subplot(311)
+    Feax.set_ylabel(r'<Fe>')
+    Feax.set_xticklabels([])
+    MgFeax = fig.add_subplot(312)
+    MgFeax.set_ylabel('[MgFe]')
+    MgFeax.set_xticklabels([])
+    Mgbax = fig.add_subplot(313)
+    Mgbax.set_xlabel('|$z$| [kpc]')
+    Mgbax.set_ylabel('Mg$b$')
+
+    for p in range(6):
+        datafile = glob('{}/NGC_891_P{}_bin30.*bands.dat'.format(basedir,p+1))[0]
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        res = quick_eat(datafile)
+        r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+        r = np.abs(r)
+        z = np.abs(z)
+        
+        exar = np.array(exclude[p]) - 1
+        res = np.delete(res,exar,axis=0)
+        z = np.delete(z,exar)
+        r = np.delete(r,exar)
+        
+        Feax.plot(z, res[:,5], '.', color='k')
+        MgFeax.plot(z, res[:,6], '.', color='k')
+        Mgbax.plot(z, res[:,7], '.', color='k')
+
+    Feax.set_ylim(-0.2,3)
+    MgFeax.set_ylim(-0.2,3.7)
+    Mgbax.set_ylim(0.5,5.2)
+    Feax.set_xlim(*Mgbax.get_xlim())
+    MgFeax.set_xlim(*Mgbax.get_xlim())
+
+    fig.subplots_adjust(hspace=0.00001)
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
 
 def plot_all_pointing_smallgrid(output, plotdata=True, plotfits=False, 
                                 ma11=False, exclude=excl, contour=False,

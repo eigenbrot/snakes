@@ -524,6 +524,126 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
 
     return fig
 
+def plot_z_D4000(output, basedir='.', exclude=excl):
+
+    fig = plt.figure()
+    Dax = fig.add_subplot(212)
+    Dax.set_xlabel('|$z$| [kpc]')
+    Dax.set_ylabel('Dn4000')
+    Hax = fig.add_subplot(211)
+    Hax.set_ylabel(r'H$\delta_A$')
+    Hax.set_xticklabels([])
+
+    for p in range(6):
+        datafile = glob('{}/NGC_891_P{}_bin30.*Dn4000.dat'.format(basedir,p+1))[0]
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        res = quick_eat(datafile)
+        r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+        r = np.abs(r)
+        z = np.abs(z)
+        
+        exar = np.array(exclude[p]) - 1
+        res = np.delete(res,exar,axis=0)
+        z = np.delete(z,exar)
+        r = np.delete(r,exar)
+        
+        Dax.plot(z, res[:,2], '.', color='k')
+        Hax.plot(z, res[:,0], '.', color='k')
+
+    Dax.set_ylim(1,2.3)
+    Hax.set_ylim(-2.5,8)
+    Hax.set_xlim(*Dax.get_xlim())
+
+    fig.subplots_adjust(hspace=0.00001)
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
+
+def plot_z_all(output, basedir='.', exclude=excl):
+
+    import tau_indecies as ti
+
+    fig = plt.figure()
+    Hax = fig.add_subplot(324)
+    Hax.set_ylabel(r'H$\delta_A$')
+    Hax.set_xticklabels([])
+    Hax.yaxis.tick_right()
+    Hax.yaxis.set_label_position('right')
+    Hax.yaxis.set_ticks_position('both')
+    Dax = fig.add_subplot(326)
+    Dax.set_xlabel('|$z$| [kpc]')
+    Dax.set_ylabel('Dn4000')
+    Dax.yaxis.tick_right()
+    Dax.yaxis.set_label_position('right')
+    Dax.yaxis.set_ticks_position('both')
+
+    MgFeax = fig.add_subplot(321)
+    MgFeax.set_ylabel('[MgFe]')
+    MgFeax.set_xticklabels([])
+    Feax = fig.add_subplot(323)
+    Feax.set_ylabel(r'<Fe>')
+    Feax.set_xticklabels([])
+    Mgbax = fig.add_subplot(325)
+    Mgbax.set_xlabel('|$z$| [kpc]')
+    Mgbax.set_ylabel('Mg$b$')
+
+
+    for p in range(6):
+        datafile = glob('{}/NGC_891_P{}_bin30.*Dn4000.dat'.format(basedir,p+1))[0]
+        tidatfile = glob('{}/NGC_891_P{}_bin30.*bands.dat'.format(basedir,p+1))[0]
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        res = quick_eat(datafile)
+        tires = ti.quick_eat(tidatfile)
+        r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+        r = np.abs(r)
+        z = np.abs(z)
+        
+        exar = np.array(exclude[p]) - 1
+        res = np.delete(res,exar,axis=0)
+        tires = np.delete(tires,exar,axis=0)
+        z = np.delete(z,exar)
+        r = np.delete(r,exar)
+        
+        Dax.plot(z, res[:,2], '.', color='k')
+        Hax.plot(z, res[:,0], '.', color='k')
+
+        Feax.plot(z, tires[:,5], '.', color='k')
+        MgFeax.plot(z, tires[:,6], '.', color='k')
+        Mgbax.plot(z, tires[:,7], '.', color='k')
+
+    Dax.axvline(0.4,ls=':',alpha=0.6,color='k')
+    Dax.axvline(1,ls=':',alpha=0.6,color='k')
+    Hax.axvline(0.4,ls=':',alpha=0.6,color='k')
+    Hax.axvline(1,ls=':',alpha=0.6,color='k')
+
+    Dax.set_xlim(-0.3,2.7)
+    Dax.set_ylim(1,2.3)
+    Hax.set_ylim(-2.5,8)
+    Hax.set_xlim(*Dax.get_xlim())
+
+    Feax.set_ylim(-0.2,3)
+    MgFeax.set_ylim(-0.2,3.7)
+    Mgbax.set_ylim(0.5,5.2)
+    Feax.set_xlim(*Dax.get_xlim())
+    MgFeax.set_xlim(*Dax.get_xlim())
+    Mgbax.set_xlim(*Dax.get_xlim())
+
+    Feax.axvline(0.4,ls=':',alpha=0.6,color='k')
+    Feax.axvline(1,ls=':',alpha=0.6,color='k')
+    MgFeax.axvline(0.4,ls=':',alpha=0.6,color='k')
+    MgFeax.axvline(1,ls=':',alpha=0.6,color='k')
+    Mgbax.axvline(0.4,ls=':',alpha=0.6,color='k')
+    Mgbax.axvline(1,ls=':',alpha=0.6,color='k')
+
+    fig.subplots_adjust(hspace=0.00001,wspace=0.05)
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
+
 def plot_MgFe_D4000(output, basedir='.', exclude=excl,zcuts=[],rcuts=[]):
     
     import tau_indecies as ti
