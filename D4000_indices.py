@@ -194,7 +194,8 @@ def combine_sbands(output,numaps=len(deftlst),ma11 = False):
     outhdu.header.update('d1','Z')
     outhdu.header.update('d2','index')
     outhdu.header.update('i0','HdA')
-    outhdu.header.update('i1','Dn4000')
+    outhdu.header.update('i1','HdF')
+    outhdu.header.update('i2','Dn4000')
     outhdu.writeto(output,clobber=True)
 
     return
@@ -301,7 +302,7 @@ def eat_index(index):
     
     return np.array([HdA,HdF,Dn4])
 
-def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
+def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, alpha=1):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -318,15 +319,15 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
     for t in range(numtau):
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-k')
+                '-k',alpha=0.5)
         ax.text(modeldata[t,-1,band1],
                 modeldata[t,-1,band2],
-                '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=14,ha='left')
+                '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
 
     for z in range(numZ):
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
-                ':k')
+                ':k',alpha=0.5)
         ax.text(modeldata[-1,z,band1],
                 modeldata[-1,z,band2],
                 '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
@@ -474,7 +475,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -503,17 +504,34 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8])
                 print data_file
                 scat = plot_quick_on_grid(data_file, ax, 2, 0, exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
-            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
+#            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)
             
             ax.axvline(1.5,color='k',alpha=0.6,ls='--')
             ax.axhline(2,color='k',alpha=0.6,ls='--')
+        
+            if i % (len(rcuts) + 1) == 0:
+                tax = ax.twinx()
+                tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_ylim(*ax.get_ylim())
+                tax.set_yticklabels([])
+
+            if i <= len(rcuts) + 1:
+                tax = ax.twiny()
+                tax.set_xlabel('${}\leq |r| <{}$ kpc'.format(*rc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_xlim(*ax.get_xlim())
+                tax.set_xticklabels([])
 
             if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
-                ax.set_yticklabels([])            
+                ax.set_yticklabels([])
+            if grid:
+                model_file = 'BC03_Dn4000.fits'
+                plot_model_grid(model_file, ax, 2, 0, alpha=0.5)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
