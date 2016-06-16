@@ -320,7 +320,8 @@ def eat_index(index):
                      index[2], index[3], 
                      FeAvg, MgFe, index[4]])
 
-def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
+def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
+                    ma11 = False):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -337,7 +338,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
     for t in range(numtau):
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-k')
+                '-k',alpha=alpha)
         if t == 0:
             ax.text(modeldata[t,-1,band1],
                     modeldata[t,-1,band2],
@@ -350,7 +351,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False):
     for z in range(numZ):
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
-                ':k')
+                ':k',alpha=alpha)
         ax.text(modeldata[-1,z,band1],
                 modeldata[-1,z,band2],
                 '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
@@ -590,7 +591,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
     plt.close(fig)
     return 
 
-def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8]):
+def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3,8.4], 'break': 2},
@@ -598,7 +599,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6},
-              'MgFe': {'label': r'<MgFe>', 'num': 6, 'lim': [0.2,3.9], 'break': 2},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [0.2,3.9], 'break': 2},
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4}}
 
     fig = plt.figure()
@@ -649,6 +650,9 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
+            if grid:
+                model_file = 'BC03_bands.fits'
+                plot_model_grid(model_file,ax,band_d[x]['num'],band_d[y]['num'],alpha=0.5)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
