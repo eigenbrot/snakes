@@ -605,13 +605,31 @@ def plot_z_all(output, basedir='.', exclude=excl):
         tires = np.delete(tires,exar,axis=0)
         z = np.delete(z,exar)
         r = np.delete(r,exar)
-        
-        Dax.plot(z, res[:,2], '.', color='k')
-        Hax.plot(z, res[:,0], '.', color='k')
+        rid1 = np.where(r < 3)[0]
+        rid2 = np.where((r >= 3) & (r < 8))[0]
+        rid3 = np.where(r >= 8)[0]
 
-        Feax.plot(z, tires[:,5], '.', color='k')
-        MgFeax.plot(z, tires[:,6], '.', color='k')
-        Mgbax.plot(z, tires[:,7], '.', color='k')
+        colors = ['#1b9e77','#d95f02','#7570b3']
+        colors = ['r','g','b']
+
+        Dax.plot(z[rid1], res[rid1,2], '.', color=colors[0])
+        Hax.plot(z[rid1], res[rid1,0], '.', color=colors[0])
+        Feax.plot(z[rid1], tires[rid1,5], '.', color=colors[0])
+        MgFeax.plot(z[rid1], tires[rid1,6], '.', color=colors[0])
+        Mgbax.plot(z[rid1], tires[rid1,7], '.', color=colors[0])
+
+        Dax.plot(z[rid2], res[rid2,2], '.', color=colors[1])
+        Hax.plot(z[rid2], res[rid2,0], '.', color=colors[1])
+        Feax.plot(z[rid2], tires[rid2,5], '.', color=colors[1])
+        MgFeax.plot(z[rid2], tires[rid2,6], '.', color=colors[1])
+        Mgbax.plot(z[rid2], tires[rid2,7], '.', color=colors[1])
+
+        Dax.plot(z[rid3], res[rid3,2], '.', color=colors[2])
+        Hax.plot(z[rid3], res[rid3,0], '.', color=colors[2])
+        Feax.plot(z[rid3], tires[rid3,5], '.', color=colors[2])
+        MgFeax.plot(z[rid3], tires[rid3,6], '.', color=colors[2])
+        Mgbax.plot(z[rid3], tires[rid3,7], '.', color=colors[2])
+
 
     Dax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Dax.axvline(1,ls=':',alpha=0.6,color='k')
@@ -636,6 +654,10 @@ def plot_z_all(output, basedir='.', exclude=excl):
     MgFeax.axvline(1,ls=':',alpha=0.6,color='k')
     Mgbax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Mgbax.axvline(1,ls=':',alpha=0.6,color='k')
+
+    Hax.text(0.3,1.8,r'$r < 3$ kpc',color=colors[0], transform=Hax.transAxes)
+    Hax.text(0.3,1.6,r'$3 \leq r < 8$ kpc',color=colors[1], transform=Hax.transAxes)
+    Hax.text(0.3,1.4,r'$r \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.05)
     pp = PDF(output)
