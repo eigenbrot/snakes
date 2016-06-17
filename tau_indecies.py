@@ -15,6 +15,7 @@ iraf.noao(_doprint=0)
 iraf.onedspec(_doprint=0)
 
 deftlst = [-1,-3,-9,13,5,3,1]
+deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -330,6 +331,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
     fraclist = np.sort(fraclist)
     
     tausf_list = np.array(deftlst)
+    mlwa_list = np.array(deftmlwa)
 
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
@@ -339,22 +341,20 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
                 '-k',alpha=alpha)
-        if t == 0:
+
+        if t % 3 == 1:
             ax.text(modeldata[t,-1,band1],
                     modeldata[t,-1,band2],
-                    r'$\tau_{{\mathrm{{SF}}}}={:4.1f}$ Gyr'.format(tausf_list[t]),fontsize=6,ha='left')
-        else:
-            ax.text(modeldata[t,-1,band1],
-                    modeldata[t,-1,band2],
-                    '{:4.1f} Gyr'.format(tausf_list[t]),fontsize=6,ha='left')
+                    '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
 
     for z in range(numZ):
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
                 ':k',alpha=alpha)
-        ax.text(modeldata[-1,z,band1],
-                modeldata[-1,z,band2],
-                '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
+        if z % 2 == 0:
+            ax.text(modeldata[-1,z,band1],
+                    modeldata[-1,z,band2],
+                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
 
     return
 
@@ -601,12 +601,12 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3,8.4], 'break': 2},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.8,8.4], 'break': 2},
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [0.2,3.9], 'break': 2},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [0.2,3.9], 'break': 2, 'ticks': [1,2,3]},
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4}}
 
     fig = plt.figure()
@@ -653,6 +653,11 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             except KeyError:
                 pass
             
+            try:
+                ax.set_xticks(band_d[x]['ticks'])
+            except KeyError:
+                pass
+
             if i % (len(rcuts) + 1) == 0:
                 tax = ax.twinx()
                 tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))

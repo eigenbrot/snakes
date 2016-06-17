@@ -302,7 +302,8 @@ def eat_index(index):
     
     return np.array([HdA,HdF,Dn4])
 
-def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, alpha=1):
+def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, 
+                    alpha=1, labelZ = True):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -320,17 +321,23 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, alpha=1):
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
                 '-k',alpha=0.5)
-        ax.text(modeldata[t,-1,band1],
-                modeldata[t,-1,band2],
-                '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
+        if t % 3 == 1:
+            ax.text(modeldata[t,-1,band1]+0.1,
+                    modeldata[t,-1,band2],
+                    '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
+
+    # ax.annotate('', xytext=(modeldata[0,-1,band1]+0.4, modeldata[0,-1,band2]+2),
+    #             xy=(modeldata[4,-1,band1]+0.4,modeldata[4,-1,band2]+2),
+    #             arrowprops=dict(arrowstyle="->"))
 
     for z in range(numZ):
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
                 ':k',alpha=0.5)
-        ax.text(modeldata[-1,z,band1],
-                modeldata[-1,z,band2],
-                '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
+        if labelZ:
+            ax.text(modeldata[-1,z,band1],
+                    modeldata[-1,z,band2],
+                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
 
     return
 
@@ -539,7 +546,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                 ax.set_yticklabels([])
             if grid:
                 model_file = '{}/BC03_Dn4000.fits'.format(basedir)
-                plot_model_grid(model_file, ax, 2, 0, alpha=0.5)
+                plot_model_grid(model_file, ax, 2, 0, alpha=0.5, labelZ=False)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
