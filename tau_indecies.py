@@ -631,9 +631,9 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                                           exclude=exclude[p], nocolor=True,
                                           marker='o', size=40, plot_r=False, 
                                           zcut=zc, rcut=rc, basedir=basedir)
-            ax.text(band_d[x]['lim'][1]*0.9,
-                    band_d[y]['lim'][1]*0.9,
-                    '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='top')
+            # ax.text(band_d[x]['lim'][1]*0.9,
+            #         band_d[y]['lim'][1]*0.9,
+            #         '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='top')
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
@@ -646,12 +646,26 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             except KeyError:
                 pass
             
+            if i % (len(rcuts) + 1) == 0:
+                tax = ax.twinx()
+                tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_ylim(*ax.get_ylim())
+                tax.set_yticklabels([])
+
+            if i <= len(rcuts) + 1:
+                tax = ax.twiny()
+                tax.set_xlabel('${}\leq |r| <{}$ kpc'.format(*rc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_xlim(*ax.get_xlim())
+                tax.set_xticklabels([]) 
+            
             if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
             if grid:
-                model_file = 'BC03_bands.fits'
+                model_file = '{}/BC03_bands.fits'.format(basedir)
                 plot_model_grid(model_file,ax,band_d[x]['num'],band_d[y]['num'],alpha=0.5)
             i += 1
 

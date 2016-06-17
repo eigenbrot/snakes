@@ -162,7 +162,7 @@ def run_sbands(findstr,
 
 def combine_sbands(output,numaps=len(deftlst),ma11 = False):
 
-    numbands = 2
+    numbands = 3
     if ma11:
         fraclist = ma11_fraclist
     else:
@@ -530,7 +530,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
             if grid:
-                model_file = 'BC03_Dn4000.fits'
+                model_file = '{}/BC03_Dn4000.fits'.format(basedir)
                 plot_model_grid(model_file, ax, 2, 0, alpha=0.5)
             i += 1
 
@@ -673,9 +673,9 @@ def plot_z_all(output, basedir='.', exclude=excl):
     Mgbax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Mgbax.axvline(1,ls=':',alpha=0.6,color='k')
 
-    Hax.text(0.3,1.8,r'$r < 3$ kpc',color=colors[0], transform=Hax.transAxes)
+    Hax.text(0.3,1.7,r'$r < 3$ kpc',color=colors[0], transform=Hax.transAxes)
     Hax.text(0.3,1.6,r'$3 \leq r < 8$ kpc',color=colors[1], transform=Hax.transAxes)
-    Hax.text(0.3,1.4,r'$r \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
+    Hax.text(0.3,1.5,r'$r \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.05)
     pp = PDF(output)
