@@ -39,13 +39,62 @@ def get_all_data(basedir='.'):
 
     return wave, z, data
 
+def add_line_labels(ax):
+
+    lines = [3820.4,
+             3835.4,
+             3889.0,
+             3933.7,
+             3968.5,
+#             3970.18,
+             4304.4,
+             4341.,
+             5175.3,
+             5894.0,
+             4861.,
+             4102.,
+             3820.4]
+    names = ['L',
+             r'H$\eta$',
+             r'H$\zeta$',
+             'K',
+             r'H/H$\epsilon$',
+#             r'H$\epsilon$',
+             'G',
+             r'H$\gamma$',
+             'Mg',
+             'Na',
+             r'H$\beta$',
+             r'H$\delta$',
+             'L']
+    bumps = np.array([0,
+                      1,
+                      0,
+                      1,
+                      0,
+                      1,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0])*0.03
+
+    yrange = np.diff(ax.get_ylim())
+    ypos = ax.get_ylim()[1] + yrange*0.02
+
+    for l, n, b in zip(lines,names,bumps):
+        ax.text(l,ypos + yrange*b,n,ha='center',va='bottom', fontsize=9)
+
+    return
+
 def make_plot(output, basedir='.'):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
     wave, z, data = get_all_data(basedir)
-    widx = np.where(wave < 4250)[0]
+    widx = np.where(wave < 5500)[0]
     plotz = np.linspace(z.min(),z.max(),300)
 
     nd = data[:,widx]/np.mean(data[:,widx],axis=1)[:,None]
@@ -64,10 +113,12 @@ def make_plot(output, basedir='.'):
     ax.imshow(plotd, cmap=plt.cm.gnuplot2, origin='lower', 
               interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
               extent=(wave.min(), wave[widx].max(), plotz.min(), plotz.max()))
-    ax.axhline(0.4, color='r', linewidth=2, ls=':')
+    ax.axhline(0.4, color='lime', linewidth=2, ls='--')
     
     ax.set_xlabel('$\AA$')
     ax.set_ylabel(r'|$z$| [kpc]')
+
+    add_line_labels(ax)
 
     pp = PDF(output)
     pp.savefig(fig)
@@ -82,7 +133,7 @@ def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     
     wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
     
-    widx = np.where((wave >= 3800) & (wave < 4250))[0]
+    widx = np.where((wave >= 3800) & (wave < 5500))[0]
     wave = wave[widx]
     data = data[:,widx]
 
@@ -96,7 +147,9 @@ def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     ax.imshow(data, cmap=plt.cm.gnuplot2, origin='lower', 
               interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
               extent=(wave.min(), wave.max(), 0, 0.01*data.shape[0]))
-    ax.axhline(0.4, color='r', linewidth=2, ls=':')
+    ax.axhline(0.4, color='lime', linewidth=2, ls='--')
+
+    add_line_labels(ax)
 
     pp = PDF(output)
     pp.savefig(fig)
