@@ -341,6 +341,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
     loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
+    fullr = r
     r = np.abs(r)
     z = np.abs(z)
 
@@ -359,13 +360,20 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
                    & (r >= rcut[0]) & (r < rcut[1]))[0]
     res = res[idx,:]
     d = d[idx]
+    fullr = fullr[idx]
+    posidx = np.where(fullr >= 0)[0]
+    negidx = np.where(fullr < 0)[0]
+
     if nocolor:
         d = 'k'
 
-    scat = ax.scatter(res[:,band1], res[:,band2], s=size, linewidths=0,
+    scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=vmx,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
-
+    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
+                      marker='s', vmin=-0.1, vmax=vmx, facecolors='none',
+                      c=d,alpha=alpha, cmap=plt.cm.gnuplot2)
+        
     return scat
 
 def prep_contour_data(datafile, band1, band2, exclude=[], zcut=[-99,99]):
