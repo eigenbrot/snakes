@@ -94,7 +94,7 @@ def make_plot(output, basedir='.'):
     ax = fig.add_subplot(111)
 
     wave, z, data = get_all_data(basedir)
-    widx = np.where(wave < 5500)[0]
+    widx = np.where(wave < 4500)[0]
     plotz = np.linspace(z.min(),z.max(),300)
 
     nd = data[:,widx]/np.mean(data[:,widx],axis=1)[:,None]
@@ -133,7 +133,7 @@ def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     
     wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
     
-    widx = np.where((wave >= 3800) & (wave < 5500))[0]
+    widx = np.where((wave >= 3800) & (wave < 4500))[0]
     wave = wave[widx]
     data = data[:,widx]
 
@@ -155,4 +155,67 @@ def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     pp.savefig(fig)
     pp.close()
     
+    return 
+
+def model_spec_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.fits'):
+    
+    hdu = pyfits.open(infile)[0]
+    data = hdu.data
+    
+    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
+    
+    widx = np.where((wave >= 3800) & (wave < 4500))[0]
+    wave = wave[widx]
+    data = data[:,widx]
+
+    data /= np.mean(data,axis=1)[:,None]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Wavelength [$\AA$]')
+    ax.set_ylabel('Normalized Flux + offset')
+
+    ax.plot(wave,data[16,:], 'k') #0.16 kpc
+    ax.plot(wave,data[32,:] + 1, 'k') #0.32 kpc
+    ax.plot(wave,data[60,:] + 2, 'k') #0.6 kpc
+    
+    ax.text(3850,1.1,'0.16 kpc',ha='center',va='bottom',fontsize=10)
+    ax.text(3850,1.9,'0.32 kpc',ha='center',va='bottom',fontsize=10)
+    ax.text(3850,2.8,'0.6 kpc',ha='center',va='bottom',fontsize=10)
+
+    lines = [3820.4,
+             3835.4,
+             3889.0,
+             3933.7,
+             3968.5,
+#             3970.18,
+             4304.4,
+             4341.,
+             5175.3,
+             5894.0,
+             4861.,
+             4102.,
+             3820.4]
+    names = ['L',
+             r'H$\eta$',
+             r'H$\zeta$',
+             'K',
+             r'H/H$\epsilon$',
+#             r'H$\epsilon$',
+             'G',
+             r'H$\gamma$',
+             'Mg',
+             'Na',
+             r'H$\beta$',
+             r'H$\delta$',
+             'L']
+
+    ypos = 3.8
+    for l, n in zip(lines,names):
+        ax.text(l,ypos,n,ha='center',va='top', fontsize=9)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
     return 
