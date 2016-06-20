@@ -341,8 +341,8 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
                 '-k',alpha=alpha)
-
-        if t % 3 == 1:
+        
+        if ax.get_subplotspec().get_geometry()[2] == 6:
             ax.text(modeldata[t,-1,band1],
                     modeldata[t,-1,band2],
                     '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
@@ -351,10 +351,11 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
                 ':k',alpha=alpha)
-        if z % 2 == 0:
+
+        if ax.get_subplotspec().get_geometry()[2] == 6:
             ax.text(modeldata[-1,z,band1],
                     modeldata[-1,z,band2],
-                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
+                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='right',va='top')
 
     return
 
@@ -598,15 +599,15 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
     plt.close(fig)
     return 
 
-def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False):
+def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, line=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.8,8.4], 'break': 2},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'break': 2},
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [0.2,3.9], 'break': 2, 'ticks': [1,2,3]},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.4,4.8], 'break': 2, 'ticks': [1,2,3,4]},
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4}}
 
     fig = plt.figure()
@@ -644,15 +645,18 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
-            try:
-                ax.axvline(band_d[x]['break'],alpha=0.6,ls='--',color='k')
-            except KeyError:
-                pass
-            try:
-                ax.axhline(band_d[y]['break'],alpha=0.6,ls='--',color='k')
-            except KeyError:
-                pass
-            
+            if not line:
+                try:
+                    ax.axvline(band_d[x]['break'],alpha=0.6,ls='--',color='k')
+                except KeyError:
+                    pass
+                try:
+                    ax.axhline(band_d[y]['break'],alpha=0.6,ls='--',color='k')
+                except KeyError:
+                    pass
+            else:
+                ax.plot([-0.2,8.8],[0,6],'--',color='k', alpha=0.6)
+
             try:
                 ax.set_xticks(band_d[x]['ticks'])
             except KeyError:

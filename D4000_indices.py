@@ -316,28 +316,42 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
 
+    colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
 
     for t in range(numtau):
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-k',alpha=0.5)
-        if t % 3 == 1:
-            ax.text(modeldata[t,-1,band1]+0.1,
-                    modeldata[t,-1,band2],
-                    '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
+                '-',color=colors[t],alpha=1,lw=1.2)
+        if ax.get_subplotspec().get_geometry()[2] == 0:
+            ax.text(0.9,0.9 - t*0.072, '{:4.1f} Gyr'.format(mlwa_list[t]),
+                    transform=ax.transAxes,fontsize=9,ha='right',color=colors[t])
+        
+            if t == numtau - 1:
+                ax.text(modeldata[-1,0,band1],
+                        modeldata[-1,0,band2],
+                        '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=8,ha='left',va='center')
+                ax.text(modeldata[-1,-1,band1],
+                        modeldata[-1,-1,band2],
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=8,ha='left',va='center')
+            
+
+        # if t % 3 == 1:
+        #     ax.text(modeldata[t,-1,band1]+0.1,
+        #             modeldata[t,-1,band2],
+        #             '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left',color=colors[t])
 
     # ax.annotate('', xytext=(modeldata[0,-1,band1]+0.4, modeldata[0,-1,band2]+2),
     #             xy=(modeldata[4,-1,band1]+0.4,modeldata[4,-1,band2]+2),
     #             arrowprops=dict(arrowstyle="->"))
 
-    for z in range(numZ):
-        ax.plot(modeldata[:,z,band1],
-                modeldata[:,z,band2],
-                ':k',alpha=0.5)
-        if labelZ:
-            ax.text(modeldata[-1,z,band1],
-                    modeldata[-1,z,band2],
-                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
+    # for z in range(numZ):
+    #     ax.plot(modeldata[:,z,band1],
+    #             modeldata[:,z,band2],
+    #             '-',color=colors[z],alpha=1)
+    #     if labelZ:
+    #         ax.text(modeldata[-1,z,band1],
+    #                 modeldata[-1,z,band2],
+    #                 '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='center',va='top')
 
     return
 
