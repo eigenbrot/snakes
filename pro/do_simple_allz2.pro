@@ -25,7 +25,7 @@ case Pnum of
    4: subidx = P4subset
    5: subidx = P5subset
    6: subidx = P6subset
-   else: stop
+   else: print, "Couldn't identify pointing"
 endcase   
 
 ;defplotcolors
@@ -102,7 +102,7 @@ printf, lun, '# Fiber Num',colarr,'MMWA [Gyr]','MLWA [Gyr]',$
         format='(A-11,'+string(numages + 5)+'A13,2A11,4A25)'
 printf, lun, '#'
 
-fitsfile = (strsplit(output,'.',/extract))[0] + '.coef.fits'
+fitsfile = strjoin((strsplit(output,'.',/extract))[0:-2],'.') + '.coef.fits'
 outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                VELSTART: velstart, FIXEDVBOOL: 0, emmaskw: 0.0, $
                LIGHT_FRAC: dblarr(numages),$

@@ -1,4 +1,5 @@
 import matplotlib
+import pyfits
 #matplotlib.use('agg')
 import numpy as np
 import tau_model as tm
@@ -11,7 +12,8 @@ plt.ioff()
 def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                N = 10, SNmin = 5450., SNmax = 5550., lightmin = 5450., lightmax = 5550.):
     
-    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    # modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    DFK_model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits'
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
     if type(N) is not list:
@@ -39,8 +41,9 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                 else:
                     tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,SNmin = SNmin, SNmax = SNmax,
                                    makeplot=False)
-                for z in range(fraclist.size):
-                    f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
+                f.write("do_simple_allZ2, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_fit.dat', wavemin=3800., wavemax=6800., fitregion=[3850., 6650.], emmaskw=500., lightmin={1:}, lightmax={2:}, model='{3:}'\n".format(os.path.basename(name),lightmin,lightmax,DFK_model))
+                # for z in range(fraclist.size):
+                    # f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
         f.close()
     return
 
@@ -61,12 +64,19 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60],
             for i in range(N):
                 model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
                              format(direc,SN,tau,i+1)
-                fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
+                # fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
+                #            format(direc,SN,tau,i+1)
+                fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.coef.fits'.\
                            format(direc,SN,tau,i+1)
                 print model_name
                 mMMWA, mMLWA = np.loadtxt(model_name,
                                           usecols=(11,12),unpack=True)
-                fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
+                coefs = pyfits.open(fit_name)[1].data
+                # fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
+                fMMWA = coefs['MMWA']
+                fMLWA = coefs['MLWA']
+                ftauV = coefs['TAUV']
+                fZ = coefs['MLWZ']
                 if quant == 't':
                     tmp[i] = 1 - fMLWA/mMLWA
                 elif quant == 'a':
@@ -97,7 +107,7 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60],
     ax.set_xticklabels([])
     ax.set_xlim(0,70)
     if quant == 't':
-        ax.set_ylim(0.04,1)
+#        ax.set_ylim(0.04,1)
         ax.set_ylabel(r'$1 - \tau_{L,\mathrm{fit}}/\tau_{L,\mathrm{true}}$')
     elif quant == 'a':
         ax.set_ylim(-0.31,0)
@@ -155,22 +165,45 @@ def plot_covariance(SN, taulist = [0.1,1,2,4,10], N = 30, output = None):
             tmp_Av[i] = 1 - ftauV/1.5
             tmp_Z[i] = 1 - fZ/0.4
                 
-        age_Av_ax.scatter(tmp_age, tmp_Av, color=colors[t], label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(tau,mMLWA))
-        age_Z_ax.scatter(tmp_age, tmp_Z, color=colors[t])
-        Av_Z_ax.scatter(tmp_Av, tmp_Z, color=colors[t])
+        age_Av_ax.scatter(tmp_age, tmp_Av, color=colors[t], s=20, alpha=0.7, linewidths=0,
+                          label='{:} $\Rightarrow$ {:4.2f} Gyr'.format(tau,mMLWA))
+        age_Z_ax.scatter(tmp_age, tmp_Z, color=colors[t], s=20, alpha=0.7,linewidths=0)
+        Av_Z_ax.scatter(tmp_Av, tmp_Z, color=colors[t], s=20, alpha=0.7,linewidths=0)
 
-    # Av_Z_ax.set_ylim(-0.1,0.1)
-    # age_Z_ax.set_ylim(*Av_Z_ax.get_ylim())
+    Av_Z_ax.set_ylim(-6,1.8)
+    Av_Z_ax.set_xlim(-0.89,0.6)
+    age_Av_ax.set_xlim(-1,1.3)
+    age_Z_ax.set_xlim(*age_Av_ax.get_xlim())
+    age_Z_ax.set_ylim(*Av_Z_ax.get_ylim())
+    age_Av_ax.set_ylim(*Av_Z_ax.get_xlim())
+
     age_Av_ax.set_xticklabels([])
     Av_Z_ax.set_yticklabels([])
-    age_Av_ax.set_ylabel('$A_V$')
-    age_Z_ax.set_ylabel('$Z$')
-    age_Z_ax.set_xlabel(r'$\tau_L$')
-    Av_Z_ax.set_xlabel('$A_V$')
+    age_Av_ax.set_ylabel('$A_V$ frac. offset')
+    age_Z_ax.set_ylabel('$Z$ frac. offset')
+    age_Z_ax.set_xlabel(r'$\tau_L$ frac. offset')
+    Av_Z_ax.set_xlabel('$A_V$ frac. offset')
     fig.subplots_adjust(hspace=0.001,wspace=0.001)
+    
+    age_Av_ax.legend(loc='center', bbox_to_anchor=(1.5,0.5), title=r'$\tau_{SF}\Rightarrow\tau_L$',
+                     frameon=False, numpoints=1, scatterpoints=1)
+    age_Av_ax.text(1.5,1,'SN = {}'.format(SN), ha='center',va='center',
+                   transform=age_Av_ax.transAxes)
 
     return fig
     
+def plot_all_covar(output, SNlist = [3,5,7,10,15,20,30,40,60]):
+
+    pp = PDF(output)
+    for SN in SNlist:
+        fig = plot_covariance(SN)
+        pp.savefig(fig)
+        
+    pp.close()
+
+    return
+    
+
 def get_metal(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                N = 100):
 
