@@ -2,12 +2,14 @@ from glob import glob
 import os
 import re
 import numpy as np
+import bottleneck as bn
 import pyfits
 import tau_model as tm
 from pyraf import iraf
 import time
 import prep_balmer as pb
 import scipy.stats as ss
+import scipy.interpolate as spi
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -355,6 +357,18 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
 
     return
 
+def get_mab_data(DIfile = 'zmod.const.norm_hr.ospec.Dn4000.dat',
+                 tifile = 'zmod.const.norm_hr.ospec.bands.dat'):
+
+    import tau_indecies as ti
+
+    Dres = quick_eat(DIfile)
+    Tres = ti.quick_eat(tifile)
+    
+    z = np.arange(Dres.shape[0])*0.01
+
+    return z, Dres, Tres
+
 def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, 
                        nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
@@ -608,7 +622,7 @@ def plot_z_D4000(output, basedir='.', exclude=excl):
 
     return
 
-def plot_z_all(output, basedir='.', exclude=excl):
+def plot_z_all(output, basedir='.', exclude=excl, window=10):
 
     import tau_indecies as ti
 
@@ -636,6 +650,27 @@ def plot_z_all(output, basedir='.', exclude=excl):
     Mgbax.set_xlabel('|$z$| [kpc]')
     Mgbax.set_ylabel('Mg$b$')
 
+    z1 = np.array([])
+    z2 = np.array([])
+    z3 = np.array([])
+
+    D41 = np.array([])
+    HdA1 = np.array([])
+    MgFe1 = np.array([])
+    Mgb1 = np.array([])
+    Fe1 = np.array([])
+
+    D42 = np.array([])
+    HdA2 = np.array([])
+    MgFe2 = np.array([])
+    Mgb2 = np.array([])
+    Fe2 = np.array([])
+
+    D43 = np.array([])
+    HdA3 = np.array([])
+    MgFe3 = np.array([])
+    Mgb3 = np.array([])
+    Fe3 = np.array([])
 
     for p in range(6):
         datafile = glob('{}/NGC_891_P{}_bin30.*Dn4000.dat'.format(basedir,p+1))[0]
@@ -655,10 +690,32 @@ def plot_z_all(output, basedir='.', exclude=excl):
         rid1 = np.where(r < 3)[0]
         rid2 = np.where((r >= 3) & (r < 8))[0]
         rid3 = np.where(r >= 8)[0]
+        
+        z1 = np.r_[z1,z[rid1]]
+        z2 = np.r_[z2,z[rid2]]
+        z3 = np.r_[z3,z[rid3]]
+
+        D41 = np.r_[D41,res[rid1,2]]
+        HdA1 = np.r_[HdA1,res[rid1,0]]
+        MgFe1 = np.r_[MgFe1,tires[rid1,6]]
+        Mgb1 = np.r_[Mgb1,tires[rid1,7]]
+        Fe1 = np.r_[Fe1,tires[rid1,5]]
+
+        D42 = np.r_[D42,res[rid2,2]]
+        HdA2 = np.r_[HdA2,res[rid2,0]]
+        MgFe2 = np.r_[MgFe2,tires[rid2,6]]
+        Mgb2 = np.r_[Mgb2,tires[rid2,7]]
+        Fe2 = np.r_[Fe2,tires[rid2,5]]
+
+        D43 = np.r_[D43,res[rid3,2]]
+        HdA3 = np.r_[HdA3,res[rid3,0]]
+        MgFe3 = np.r_[MgFe3,tires[rid3,6]]
+        Mgb3 = np.r_[Mgb3,tires[rid3,7]]
+        Fe3 = np.r_[Fe3,tires[rid3,5]]
 
         colors = ['#1b9e77','#d95f02','#7570b3']
         colors = ['r','g','b']
-
+        
         Dax.plot(z[rid1], res[rid1,2], '.', color=colors[0])
         Hax.plot(z[rid1], res[rid1,0], '.', color=colors[0])
         Feax.plot(z[rid1], tires[rid1,5], '.', color=colors[0])
@@ -677,6 +734,71 @@ def plot_z_all(output, basedir='.', exclude=excl):
         MgFeax.plot(z[rid3], tires[rid3,6], '.', color=colors[2])
         Mgbax.plot(z[rid3], tires[rid3,7], '.', color=colors[2])
 
+    sidx1 = np.argsort(z1)
+    sidx2 = np.argsort(z2)
+    sidx3 = np.argsort(z3)
+
+    mz = np.linspace(0,z.max(),100)
+    intD41 = np.interp(mz,z1[sidx1],D41[sidx1])
+    intHdA1 = np.interp(mz,z1[sidx1],HdA1[sidx1])
+    intMgFe1 = np.interp(mz,z1[sidx1],MgFe1[sidx1])
+    intFe1 = np.interp(mz,z1[sidx1],Fe1[sidx1])
+    intMgb1 = np.interp(mz,z1[sidx1],Mgb1[sidx1])
+
+    intD42 = np.interp(mz,z2[sidx2],D42[sidx2])
+    intHdA2 = np.interp(mz,z2[sidx2],HdA2[sidx2])
+    intMgFe2 = np.interp(mz,z2[sidx2],MgFe2[sidx2])
+    intFe2 = np.interp(mz,z2[sidx2],Fe2[sidx2])
+    intMgb2 = np.interp(mz,z2[sidx2],Mgb2[sidx2])
+
+    intD43 = np.interp(mz,z3[sidx3],D43[sidx3])
+    intHdA3 = np.interp(mz,z3[sidx3],HdA3[sidx3])
+    intMgFe3 = np.interp(mz,z3[sidx3],MgFe3[sidx3])
+    intFe3 = np.interp(mz,z3[sidx3],Fe3[sidx3])
+    intMgb3 = np.interp(mz,z3[sidx3],Mgb3[sidx3])
+    
+    spD41 = spi.UnivariateSpline(z1[sidx1],D41[sidx1],k=3)
+    spHdA1 = spi.UnivariateSpline(z1[sidx1],HdA1[sidx1],k=3)
+    spMgFe1 = spi.UnivariateSpline(z1[sidx1],MgFe1[sidx1],k=3)
+    spFe1 = spi.UnivariateSpline(z1[sidx1],Fe1[sidx1],k=3)
+    spMgb1 = spi.UnivariateSpline(z1[sidx1],Mgb1[sidx1],k=3)
+
+    spD42 = spi.UnivariateSpline(z2[sidx2],D42[sidx2],k=3)
+    spHdA2 = spi.UnivariateSpline(z2[sidx2],HdA2[sidx2],k=3,s=150)
+    spMgFe2 = spi.UnivariateSpline(z2[sidx2],MgFe2[sidx2],k=3)
+    spFe2 = spi.UnivariateSpline(z2[sidx2],Fe2[sidx2],k=3)
+    spMgb2 = spi.UnivariateSpline(z2[sidx2],Mgb2[sidx2],k=3)
+
+    spD43 = spi.UnivariateSpline(z3[sidx3],D43[sidx3],k=3)
+    spHdA3 = spi.UnivariateSpline(z3[sidx3],HdA3[sidx3],k=3,s=90)
+    spMgFe3 = spi.UnivariateSpline(z3[sidx3],MgFe3[sidx3],k=3)
+    spFe3 = spi.UnivariateSpline(z3[sidx3],Fe3[sidx3],k=3)
+    spMgb3 = spi.UnivariateSpline(z3[sidx3],Mgb3[sidx3],k=3)
+
+    Dax.plot(mz,spD41(mz),color=colors[0],lw=1.2)
+    Hax.plot(mz,spHdA1(mz),color=colors[0],lw=1.2)
+    Feax.plot(mz,spFe1(mz),color=colors[0],lw=1.2)
+    MgFeax.plot(mz,spMgFe1(mz),color=colors[0],lw=1.2)
+    Mgbax.plot(mz,spMgb1(mz),color=colors[0],lw=1.2)
+
+    Dax.plot(mz,spD42(mz),color=colors[1],lw=1.2)
+    Hax.plot(mz,spHdA2(mz),color=colors[1],lw=1.2)
+    Feax.plot(mz,spFe2(mz),color=colors[1],lw=1.2)
+    MgFeax.plot(mz,spMgFe2(mz),color=colors[1],lw=1.2)
+    Mgbax.plot(mz,spMgb2(mz),color=colors[1],lw=1.2)
+
+    Dax.plot(mz,spD43(mz),color=colors[2],lw=1.2)
+    Hax.plot(mz,spHdA3(mz),color=colors[2],lw=1.2)
+    Feax.plot(mz,spFe3(mz),color=colors[2],lw=1.2)
+    MgFeax.plot(mz,spMgFe3(mz),color=colors[2],lw=1.2)
+    Mgbax.plot(mz,spMgb3(mz),color=colors[2],lw=1.2)
+
+    # mabz, mabD, mabT = get_mab_data()
+    # Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
+    # Hax.plot(mabz,mabD[:,0],color='k',lw=1.2)
+    # Feax.plot(mabz,mabT[:,5],color='k',lw=1.2)
+    # MgFeax.plot(mabz,mabT[:,6],color='k',lw=1.2)
+    # Mgbax.plot(mabz,mabT[:,7],color='k',lw=1.2)
 
     Dax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Dax.axvline(1,ls=':',alpha=0.6,color='k')
@@ -702,9 +824,9 @@ def plot_z_all(output, basedir='.', exclude=excl):
     Mgbax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Mgbax.axvline(1,ls=':',alpha=0.6,color='k')
 
-    Hax.text(0.3,1.7,r'$r < 3$ kpc',color=colors[0], transform=Hax.transAxes)
-    Hax.text(0.3,1.6,r'$3 \leq r < 8$ kpc',color=colors[1], transform=Hax.transAxes)
-    Hax.text(0.3,1.5,r'$r \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
+    Hax.text(0.3,1.7,r'$|r| < 3$ kpc',color=colors[0], transform=Hax.transAxes)
+    Hax.text(0.3,1.6,r'$3 \leq |r| < 8$ kpc',color=colors[1], transform=Hax.transAxes)
+    Hax.text(0.3,1.5,r'$|r| \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.05)
     pp = PDF(output)
