@@ -219,3 +219,87 @@ def model_spec_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plo
     pp.close()
 
     return 
+
+def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.fits'):
+
+    #Img
+    hdu = pyfits.open(infile)[0]
+    data = hdu.data
+    
+    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
+    
+    widx = np.where((wave >= 3800) & (wave < 4500))[0]
+    wave = wave[widx]
+    data = data[:,widx]
+
+    data /= np.mean(data,axis=1)[:,None]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    # ax.set_xlabel('$\AA$')
+    ax.set_xticklabels([])
+    ax.set_ylabel('|$z$| [kpc]')
+
+    ax.imshow(data, cmap=plt.cm.gnuplot2, origin='lower', 
+              interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
+              extent=(wave.min(), wave.max(), 0, 0.01*data.shape[0]))
+    ax.axhline(0.4, color='lime', linewidth=2, ls='--')
+
+    add_line_labels(ax)
+
+    ax1 = fig.add_subplot(212)
+    ax1.set_xlabel('Wavelength [$\AA$]')
+    ax1.set_ylabel('Normalized Flux + offset')
+
+    ax1.plot(wave,data[16,:], 'k') #0.16 kpc
+    ax1.plot(wave,data[32,:] + 1, 'k') #0.32 kpc
+    ax1.plot(wave,data[60,:] + 2, 'k') #0.6 kpc
+    
+    ax1.text(3870,1.1,'0.16 kpc',ha='center',va='bottom',fontsize=12)
+    ax1.text(3870,1.95,'0.32 kpc',ha='center',va='bottom',fontsize=12)
+    ax1.text(3870,2.9,'0.6 kpc',ha='center',va='bottom',fontsize=12)
+
+    lines = [3820.4,
+             3835.4,
+             3889.0,
+             3933.7,
+             3968.5,
+#             3970.18,
+             4304.4,
+             4341.,
+             5175.3,
+             5894.0,
+             4861.,
+             4102.,
+             3820.4]
+    names = ['L',
+             r'H$\eta$',
+             r'H$\zeta$',
+             'K',
+             r'H/H$\epsilon$',
+#             r'H$\epsilon$',
+             'G',
+             r'H$\gamma$',
+             'Mg',
+             'Na',
+             r'H$\beta$',
+             r'H$\delta$',
+             'L']
+
+    ypos = 3.8
+    for l, n in zip(lines,names):
+        if n in ['L','K']:
+            b = 0.2
+        else:
+            b = 0
+        ax1.text(l,ypos+b,n,ha='center',va='top', fontsize=11)
+
+    ax1.set_ylim(0,4.6)
+    ax.set_xlim(*ax1.get_xlim())
+    fig.subplots_adjust(hspace=0.0001)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
