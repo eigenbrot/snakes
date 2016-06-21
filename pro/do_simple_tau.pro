@@ -127,6 +127,8 @@ for i = 0, numfibers - 1 DO BEGIN
       print, 'Using mode '+models[i]
    endif
 
+   vd = 200.
+
    if keyword_set(location) then begin
       lidx = where(sizeidx eq fiber_radii[i])
       vd = vdisp[lidx]
@@ -148,6 +150,8 @@ for i = 0, numfibers - 1 DO BEGIN
    endif else begin
       savestep = 0
    endelse
+   
+   print, '#########', vd
 
 ; fit continuum
    coef = bc_continuum_tau(m, wave, flux, err, vd, $

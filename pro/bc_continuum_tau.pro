@@ -54,6 +54,7 @@ function bc_continuum_tau, model, restwl, flux, err, vdisp, emmaskw=emmaskw, $
                            savestep=savestep, lun=lun, lightidx=lightidx, $
                            fmt=fmt
 
+print, '%%%%%%%%%%%', vdisp
 if n_elements(savestep) eq 0 then savestep = 0
 
 ; width of emission line masks in km/s

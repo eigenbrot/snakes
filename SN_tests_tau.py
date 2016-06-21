@@ -12,8 +12,7 @@ plt.ioff()
 def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                N = 10, SNmin = 5450., SNmax = 5550., lightmin = 5450., lightmax = 5550.):
     
-    # modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
-    DFK_model = '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits'
+    modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
     fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
     ssp = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_008Z_ChabIMF.fits'
     if type(N) is not list:
@@ -41,9 +40,8 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                 else:
                     tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,SNmin = SNmin, SNmax = SNmax,
                                    makeplot=False)
-                f.write("do_simple_allZ2, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_fit.dat', wavemin=3800., wavemax=6800., fitregion=[3850., 6650.], emmaskw=500., lightmin={1:}, lightmax={2:}, model='{3:}'\n".format(os.path.basename(name),lightmin,lightmax,DFK_model))
-                # for z in range(fraclist.size):
-                    # f.write("do_simple, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
+                for z in range(fraclist.size):
+                    f.write("do_simple_tau, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}, /plot'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
         f.close()
     return
 
