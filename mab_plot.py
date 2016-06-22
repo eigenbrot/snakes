@@ -52,8 +52,7 @@ def add_line_labels(ax):
              5175.3,
              5894.0,
              4861.,
-             4102.,
-             3820.4]
+             4102.]
     names = ['L',
              r'H$\eta$',
              r'H$\zeta$',
@@ -65,18 +64,16 @@ def add_line_labels(ax):
              'Mg',
              'Na',
              r'H$\beta$',
-             r'H$\delta$',
-             'L']
-    bumps = np.array([0,
+             r'H$\delta$']
+    bumps = np.array([1,
+                      0,
+                      0,
                       1,
                       0,
                       1,
                       0,
                       1,
-                      0,
-                      0,
-                      0,
-                      0,
+                      1,
                       0,
                       0])*0.03
 
@@ -247,6 +244,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
 
     add_line_labels(ax)
 
+    #Spec
     ax1 = fig.add_subplot(212)
     ax1.set_xlabel('Wavelength [$\AA$]')
     ax1.set_ylabel('Normalized Flux + offset')
@@ -288,7 +286,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
 
     ypos = 3.8
     for l, n in zip(lines,names):
-        if n in ['L','K']:
+        if n[0] != r'H':
             b = 0.2
         else:
             b = 0
@@ -297,6 +295,101 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     ax1.set_ylim(0,4.6)
     ax.set_xlim(*ax1.get_xlim())
     fig.subplots_adjust(hspace=0.0001)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
+
+def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
+
+    #Img
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+
+    wave, z, data = get_all_data(basedir)
+    widx = np.where(wave < 4500)[0]
+    plotz = np.linspace(z.min(),z.max(),300)
+
+    nd = data[:,widx]/np.mean(data[:,widx],axis=1)[:,None]
+
+    # dfunc = spi.interp2d(wave[widx], z, nd, kind='linear')
+    # plotd = dfunc(wave[widx],plotz)
+
+    ww, zz = np.meshgrid(wave[widx],z)
+
+    plotd = spi.griddata((ww.ravel(),zz.ravel()), nd.ravel(),
+                         (wave[widx][None,:],plotz[:,None]),
+                         method='nearest')
+
+    ax.imshow(plotd, cmap=plt.cm.gnuplot2, origin='lower', 
+              interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
+              extent=(wave.min(), wave[widx].max(), plotz.min(), plotz.max()))
+    ax.axhline(0.4, color='lime', linewidth=2, ls='--')
+    
+    # ax.set_xlabel('$\AA$')
+    ax.set_xticklabels([])
+    ax.set_ylabel(r'|$z$| [kpc]')
+
+    add_line_labels(ax)
+
+    #Spec
+    ax1 = fig.add_subplot(212)
+    ax1.set_xlabel('Wavelength [$\AA$]')
+    ax1.set_ylabel('Normalized Flux + Offset')
+    ax1.set_ylim(0,5.4)
+
+    id1 = np.argmin(np.abs(z - 0.3))
+    id2 = np.argmin(np.abs(z - 0.6))
+    id3 = np.argmin(np.abs(z - 1.5))
+
+    ax1.plot(wave[widx], nd[id1,:], 'k')
+    ax1.plot(wave[widx], nd[id2,:] + 1.5, 'k')
+    ax1.plot(wave[widx], nd[id3,:] + 2.7, 'k')
+    
+    ax1.text(3870,1,'0.3 kpc',ha='center',va='bottom',fontsize=12)
+    ax1.text(3870,2.4,'0.6 kpc',ha='center',va='bottom',fontsize=12)
+    ax1.text(3870,3.8,'1.5 kpc',ha='center',va='bottom',fontsize=12)
+
+    ax1.set_xlim(ax.get_xlim())
+
+    lines = [3820.4,
+             3835.4,
+             3889.0,
+             3933.7,
+             3968.5,
+#             3970.18,
+             4304.4,
+             4341.,
+             5175.3,
+             5894.0,
+             4861.,
+             4102.,
+             3820.4]
+    names = ['L',
+             r'H$\eta$',
+             r'H$\zeta$',
+             'K',
+             r'H/H$\epsilon$',
+#             r'H$\epsilon$',
+             'G',
+             r'H$\gamma$',
+             'Mg',
+             'Na',
+             r'H$\beta$',
+             r'H$\delta$',
+             'L']
+
+    ypos = 4.8
+    for l, n in zip(lines,names):
+        if n[0] != r'H':
+            b = 0.3
+        else:
+            b = 0
+        ax1.text(l,ypos+b,n,ha='center',va='top', fontsize=11)
+        
+    fig.subplots_adjust(hspace=0.001)
 
     pp = PDF(output)
     pp.savefig(fig)

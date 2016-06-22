@@ -162,7 +162,7 @@ def plot_covariance(SN, taulist = [0.1,1,2,4,10], N = 30, output = None):
 
     Av_Z_ax.set_ylim(-6,1.8)
     Av_Z_ax.set_xlim(-0.89,0.6)
-    # age_Av_ax.set_xlim(-1,1.3)
+    age_Av_ax.set_xlim(-1,1.3)
     age_Z_ax.set_xlim(*age_Av_ax.get_xlim())
     age_Z_ax.set_ylim(*Av_Z_ax.get_ylim())
     age_Av_ax.set_ylim(*Av_Z_ax.get_xlim())
