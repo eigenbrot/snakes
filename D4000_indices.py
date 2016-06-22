@@ -10,6 +10,7 @@ import time
 import prep_balmer as pb
 import scipy.stats as ss
 import scipy.signal as ssig
+import scipy.ndimage as spnd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -119,6 +120,35 @@ def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
 
     header.update('CRVAL1', 3800.)
     pyfits.PrimaryHDU(shift,header).writeto(output,clobber=True)
+
+    return
+
+def mab_prep(inputfile, outputfile):
+    #for mab's zmod*fits heating models
+    #we'll make the spectral resolution 300 b/c that's kind of the median for our data
+    
+    hdu = pyfits.open(inputfile)[0]
+    data = hdu.data
+    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
+    sigma = 6 #300/3e5*5500, close enough
+
+    sd = spnd.filters.gaussian_filter1d(data,sigma,axis=0)
+    iwave = np.arange(3800,6800,2.1)
+    output = np.zeros((data.shape[0],iwave.size))
+    for i in range(data.shape[0]):
+        output[i,:] = np.interp(iwave,wave,sd[i,:])
+        
+    outhdu = pyfits.PrimaryHDU(output)
+    outhdu.header.update('CTYPE1','LINEAR')
+    outhdu.header.update('CDELT1',2.1)
+    outhdu.header.update('CRPIX1',1)
+    outhdu.header.update('CRVAL1',3800)
+    outhdu.header.update('CTYPE2','LINEAR')
+    outhdu.header.update('CDELT2',1)
+    outhdu.header.update('CRPIX2',1)
+    outhdu.header.update('CRVAL2',1)
+
+    outhdu.writeto(outputfile,clobber=True)
 
     return
 
@@ -357,8 +387,8 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
 
     return
 
-def get_mab_data(DIfile = 'zmod.const.norm_hr.ospec.Dn4000.dat',
-                 tifile = 'zmod.const.norm_hr.ospec.bands.dat'):
+def get_mab_data(DIfile = 'zmod.const.norm_hr.ospec.prep.Dn4000.dat',
+                 tifile = 'zmod.const.norm_hr.ospec.prep.bands.dat'):
 
     import tau_indecies as ti
 
@@ -622,7 +652,7 @@ def plot_z_D4000(output, basedir='.', exclude=excl):
 
     return
 
-def plot_z_all(output, basedir='.', exclude=excl, window=10):
+def plot_z_all(output, basedir='.', exclude=excl, window=55):
 
     import tau_indecies as ti
 
@@ -793,12 +823,12 @@ def plot_z_all(output, basedir='.', exclude=excl, window=10):
     MgFeax.plot(mz,ssig.savgol_filter(intMgFe3,window,3),color=colors[2],lw=1.2)
     Mgbax.plot(mz,ssig.savgol_filter(intMgb3,window,3),color=colors[2],lw=1.2)
 
-    # mabz, mabD, mabT = get_mab_data()
-    # Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
-    # Hax.plot(mabz,mabD[:,0],color='k',lw=1.2)
-    # Feax.plot(mabz,mabT[:,5],color='k',lw=1.2)
-    # MgFeax.plot(mabz,mabT[:,6],color='k',lw=1.2)
-    # Mgbax.plot(mabz,mabT[:,7],color='k',lw=1.2)
+    mabz, mabD, mabT = get_mab_data()
+    Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
+    Hax.plot(mabz,mabD[:,0],color='k',lw=1.2)
+    Feax.plot(mabz,mabT[:,5],color='k',lw=1.2)
+    MgFeax.plot(mabz,mabT[:,6],color='k',lw=1.2)
+    Mgbax.plot(mabz,mabT[:,7],color='k',lw=1.2)
 
     Dax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Dax.axvline(1,ls=':',alpha=0.6,color='k')
