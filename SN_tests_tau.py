@@ -41,7 +41,7 @@ def make_monte(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                     tm.make_galaxy(name,SSPs=ssp,SN=SN,tau_sf=tau,lightmin = lightmin, lightmax = lightmax,SNmin = SNmin, SNmax = SNmax,
                                    makeplot=False)
                 for z in range(fraclist.size):
-                    f.write("do_simple_tau, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}, /plot'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
+                    f.write("do_simple_tau, '{0:}.ms_lin.fits', '{0:}.me_lin.fits', '{0:}_Z{1:04}_fit.dat', wavemin=3750., wavemax=6800., lightmin={2:}, lightmax={3:}, model='{4:}'\n".format(os.path.basename(name),int(fraclist[z]*1000),lightmin,lightmax,modellist[z]))
         f.close()
     return
 
@@ -62,19 +62,12 @@ def compare_SN(taulist = [0.1,1,2,4,10], SNlist = [3,5,7,10,15,20,30,40,60],
             for i in range(N):
                 model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
                              format(direc,SN,tau,i+1)
-                # fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
-                #            format(direc,SN,tau,i+1)
-                fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.coef.fits'.\
+                fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
                            format(direc,SN,tau,i+1)
                 print model_name
                 mMMWA, mMLWA = np.loadtxt(model_name,
                                           usecols=(11,12),unpack=True)
-                coefs = pyfits.open(fit_name)[1].data
-                # fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
-                fMMWA = coefs['MMWA']
-                fMLWA = coefs['MLWA']
-                ftauV = coefs['TAUV']
-                fZ = coefs['MLWZ']
+                fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
                 if quant == 't':
                     tmp[i] = 1 - fMLWA/mMLWA
                 elif quant == 'a':
@@ -152,19 +145,12 @@ def plot_covariance(SN, taulist = [0.1,1,2,4,10], N = 30, output = None):
         for i in range(N):
             model_name = '{}/SN{:02}_t{:03}_N{:03}_model.dat'.\
                          format(direc,SN,tau,i+1)
-            fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.coef.fits'.\
+            fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
                        format(direc,SN,tau,i+1)
-            # fit_name = '{}/SN{:02}_t{:03}_N{:03}_fit.dat'.\
-            #            format(direc,SN,tau,i+1)
             print model_name
             mMMWA, mMLWA = np.loadtxt(model_name,
                                       usecols=(11,12),unpack=True)
-            # fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
-            coefs = pyfits.open(fit_name)[1].data
-            fMMWA = coefs['MMWA']
-            fMLWA = coefs['MLWA']
-            ftauV = coefs['TAUV']
-            fZ = coefs['MLWZ']
+            fMMWA, fMLWA, ftauV, fZ = np.loadtxt(fit_name,usecols=(11,12,13,17),unpack=True)
             tmp_age[i] = 1 - fMLWA/mMLWA
             tmp_Av[i] = 1 - ftauV/1.5
             tmp_Z[i] = 1 - fZ/0.4
@@ -176,7 +162,7 @@ def plot_covariance(SN, taulist = [0.1,1,2,4,10], N = 30, output = None):
 
     Av_Z_ax.set_ylim(-6,1.8)
     Av_Z_ax.set_xlim(-0.89,0.6)
-    age_Av_ax.set_xlim(-1,1.3)
+    # age_Av_ax.set_xlim(-1,1.3)
     age_Z_ax.set_xlim(*age_Av_ax.get_xlim())
     age_Z_ax.set_ylim(*Av_Z_ax.get_ylim())
     age_Av_ax.set_ylim(*Av_Z_ax.get_xlim())
@@ -218,7 +204,7 @@ def get_metal(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
         direc = 'SN{}'.format(SN)
         for tau in taulist:
             for i in range(N):
-                tmp = np.zeros((fraclist.size,18))
+                tmp = np.zeros((fraclist.size,21))
                 for z in range(fraclist.size):
                     name = '{}/SN{:02}_t{:03}_N{:03}_Z{:04}_fit.dat'.format(direc,SN,tau,i+1,int(fraclist[z]*1000))
                     print name
@@ -230,8 +216,9 @@ def get_metal(taulist = [0.1,1,2,4,10], SNlist = [5,10,20,40,60],
                 f = open('{}/SN{:02}_t{:03}_N{:03}_fit.dat'.format(direc,SN,tau,i+1),'w')
                 f.write('# Generated on {}\n'.format(time.asctime()))
                 f.write(head)
-                f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+2*'{:12.3e}').format(*tmp[bdx][:-1]))
-                f.write('{:10.3f}\n'.format(fraclist[bdx]))
+                f.write(str('{:11n}'+12*'{:13.3e}'+'{:7.2f}{:12.3f}'+2*'{:12.3e}').format(*tmp[bdx][:-4]))
+                f.write('{:10.3f}'.format(fraclist[bdx]))
+                f.write('{:10.3e}{:10.3f}{:10.3f}\n'.format(*tmp[bdx][-3:]))
                 f.close()
                 h.close()
     return
