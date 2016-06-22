@@ -9,7 +9,7 @@ from pyraf import iraf
 import time
 import prep_balmer as pb
 import scipy.stats as ss
-import scipy.interpolate as spi
+import scipy.signal as ssig
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -757,41 +757,41 @@ def plot_z_all(output, basedir='.', exclude=excl, window=10):
     intFe3 = np.interp(mz,z3[sidx3],Fe3[sidx3])
     intMgb3 = np.interp(mz,z3[sidx3],Mgb3[sidx3])
     
-    spD41 = spi.UnivariateSpline(z1[sidx1],D41[sidx1],k=3)
-    spHdA1 = spi.UnivariateSpline(z1[sidx1],HdA1[sidx1],k=3)
-    spMgFe1 = spi.UnivariateSpline(z1[sidx1],MgFe1[sidx1],k=3)
-    spFe1 = spi.UnivariateSpline(z1[sidx1],Fe1[sidx1],k=3)
-    spMgb1 = spi.UnivariateSpline(z1[sidx1],Mgb1[sidx1],k=3)
+    # spD41 = spi.UnivariateSpline(z1[sidx1],D41[sidx1],k=3)
+    # spHdA1 = spi.UnivariateSpline(z1[sidx1],HdA1[sidx1],k=3)
+    # spMgFe1 = spi.UnivariateSpline(z1[sidx1],MgFe1[sidx1],k=3)
+    # spFe1 = spi.UnivariateSpline(z1[sidx1],Fe1[sidx1],k=3)
+    # spMgb1 = spi.UnivariateSpline(z1[sidx1],Mgb1[sidx1],k=3)
 
-    spD42 = spi.UnivariateSpline(z2[sidx2],D42[sidx2],k=3)
-    spHdA2 = spi.UnivariateSpline(z2[sidx2],HdA2[sidx2],k=3,s=150)
-    spMgFe2 = spi.UnivariateSpline(z2[sidx2],MgFe2[sidx2],k=3)
-    spFe2 = spi.UnivariateSpline(z2[sidx2],Fe2[sidx2],k=3)
-    spMgb2 = spi.UnivariateSpline(z2[sidx2],Mgb2[sidx2],k=3)
+    # spD42 = spi.UnivariateSpline(z2[sidx2],D42[sidx2],k=3)
+    # spHdA2 = spi.UnivariateSpline(z2[sidx2],HdA2[sidx2],k=3,s=150)
+    # spMgFe2 = spi.UnivariateSpline(z2[sidx2],MgFe2[sidx2],k=3)
+    # spFe2 = spi.UnivariateSpline(z2[sidx2],Fe2[sidx2],k=3)
+    # spMgb2 = spi.UnivariateSpline(z2[sidx2],Mgb2[sidx2],k=3)
 
-    spD43 = spi.UnivariateSpline(z3[sidx3],D43[sidx3],k=3)
-    spHdA3 = spi.UnivariateSpline(z3[sidx3],HdA3[sidx3],k=3,s=90)
-    spMgFe3 = spi.UnivariateSpline(z3[sidx3],MgFe3[sidx3],k=3)
-    spFe3 = spi.UnivariateSpline(z3[sidx3],Fe3[sidx3],k=3)
-    spMgb3 = spi.UnivariateSpline(z3[sidx3],Mgb3[sidx3],k=3)
+    # spD43 = spi.UnivariateSpline(z3[sidx3],D43[sidx3],k=3)
+    # spHdA3 = spi.UnivariateSpline(z3[sidx3],HdA3[sidx3],k=3,s=90)
+    # spMgFe3 = spi.UnivariateSpline(z3[sidx3],MgFe3[sidx3],k=3)
+    # spFe3 = spi.UnivariateSpline(z3[sidx3],Fe3[sidx3],k=3)
+    # spMgb3 = spi.UnivariateSpline(z3[sidx3],Mgb3[sidx3],k=3)
 
-    Dax.plot(mz,spD41(mz),color=colors[0],lw=1.2)
-    Hax.plot(mz,spHdA1(mz),color=colors[0],lw=1.2)
-    Feax.plot(mz,spFe1(mz),color=colors[0],lw=1.2)
-    MgFeax.plot(mz,spMgFe1(mz),color=colors[0],lw=1.2)
-    Mgbax.plot(mz,spMgb1(mz),color=colors[0],lw=1.2)
+    Dax.plot(mz,ssig.savgol_filter(intD41,window,3),color=colors[0],lw=1.2)
+    Hax.plot(mz,ssig.savgol_filter(intHdA1,window,3),color=colors[0],lw=1.2)
+    Feax.plot(mz,ssig.savgol_filter(intFe1,window,3),color=colors[0],lw=1.2)
+    MgFeax.plot(mz,ssig.savgol_filter(intMgFe1,window,3),color=colors[0],lw=1.2)
+    Mgbax.plot(mz,ssig.savgol_filter(intMgb1,window,3),color=colors[0],lw=1.2)
 
-    Dax.plot(mz,spD42(mz),color=colors[1],lw=1.2)
-    Hax.plot(mz,spHdA2(mz),color=colors[1],lw=1.2)
-    Feax.plot(mz,spFe2(mz),color=colors[1],lw=1.2)
-    MgFeax.plot(mz,spMgFe2(mz),color=colors[1],lw=1.2)
-    Mgbax.plot(mz,spMgb2(mz),color=colors[1],lw=1.2)
+    Dax.plot(mz,ssig.savgol_filter(intD42,window,3),color=colors[1],lw=1.2)
+    Hax.plot(mz,ssig.savgol_filter(intHdA2,window,3),color=colors[1],lw=1.2)
+    Feax.plot(mz,ssig.savgol_filter(intFe2,window,3),color=colors[1],lw=1.2)
+    MgFeax.plot(mz,ssig.savgol_filter(intMgFe2,window,3),color=colors[1],lw=1.2)
+    Mgbax.plot(mz,ssig.savgol_filter(intMgb2,window,3),color=colors[1],lw=1.2)
 
-    Dax.plot(mz,spD43(mz),color=colors[2],lw=1.2)
-    Hax.plot(mz,spHdA3(mz),color=colors[2],lw=1.2)
-    Feax.plot(mz,spFe3(mz),color=colors[2],lw=1.2)
-    MgFeax.plot(mz,spMgFe3(mz),color=colors[2],lw=1.2)
-    Mgbax.plot(mz,spMgb3(mz),color=colors[2],lw=1.2)
+    Dax.plot(mz,ssig.savgol_filter(intD43,window,3),color=colors[2],lw=1.2)
+    Hax.plot(mz,ssig.savgol_filter(intHdA3,window,3),color=colors[2],lw=1.2)
+    Feax.plot(mz,ssig.savgol_filter(intFe3,window,3),color=colors[2],lw=1.2)
+    MgFeax.plot(mz,ssig.savgol_filter(intMgFe3,window,3),color=colors[2],lw=1.2)
+    Mgbax.plot(mz,ssig.savgol_filter(intMgb3,window,3),color=colors[2],lw=1.2)
 
     # mabz, mabD, mabT = get_mab_data()
     # Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
