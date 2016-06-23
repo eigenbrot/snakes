@@ -46,7 +46,7 @@ def add_line_labels(ax):
              3889.0,
              3933.7,
              3968.5,
-#             3970.18,
+             3970.18,
              4304.4,
              4341.,
              5175.3,
@@ -57,8 +57,8 @@ def add_line_labels(ax):
              r'H$\eta$',
              r'H$\zeta$',
              'K',
-             r'H/H$\epsilon$',
-#             r'H$\epsilon$',
+             r'H',
+             r'H$\epsilon$',
              'G',
              r'H$\gamma$',
              'Mg',
@@ -68,6 +68,7 @@ def add_line_labels(ax):
     bumps = np.array([1,
                       0,
                       0,
+                      1,
                       1,
                       0,
                       1,
@@ -123,7 +124,7 @@ def make_plot(output, basedir='.'):
 
     return nd, plotd
 
-def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.fits'):
+def model_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.prep.fits'):
 
     hdu = pyfits.open(infile)[0]
     data = hdu.data
@@ -217,13 +218,13 @@ def model_spec_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plo
 
     return 
 
-def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.fits'):
+def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.prep.fits'):
 
     #Img
     hdu = pyfits.open(infile)[0]
     data = hdu.data
     
-    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
+    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CDELT1'] + hdu.header['CRVAL1']
     
     widx = np.where((wave >= 3800) & (wave < 4500))[0]
     wave = wave[widx]
@@ -262,7 +263,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
              3889.0,
              3933.7,
              3968.5,
-#             3970.18,
+             3970.18,
              4304.4,
              4341.,
              5175.3,
@@ -274,8 +275,8 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
              r'H$\eta$',
              r'H$\zeta$',
              'K',
-             r'H/H$\epsilon$',
-#             r'H$\epsilon$',
+             r'H',
+             r'H$\epsilon$',
              'G',
              r'H$\gamma$',
              'Mg',
@@ -286,7 +287,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
 
     ypos = 3.8
     for l, n in zip(lines,names):
-        if n[0] != r'H':
+        if n[0:2] != r'H$':
             b = 0.2
         else:
             b = 0
@@ -359,7 +360,7 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
              3889.0,
              3933.7,
              3968.5,
-#             3970.18,
+             3970.18,
              4304.4,
              4341.,
              5175.3,
@@ -371,8 +372,8 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
              r'H$\eta$',
              r'H$\zeta$',
              'K',
-             r'H/H$\epsilon$',
-#             r'H$\epsilon$',
+             r'H',
+             r'H$\epsilon$',
              'G',
              r'H$\gamma$',
              'Mg',
@@ -383,7 +384,7 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
 
     ypos = 4.8
     for l, n in zip(lines,names):
-        if n[0] != r'H':
+        if n[0:2] != r'H$':
             b = 0.3
         else:
             b = 0
