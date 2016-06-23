@@ -129,14 +129,20 @@ def mab_prep(inputfile, outputfile):
     
     hdu = pyfits.open(inputfile)[0]
     data = hdu.data
-    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
     sigma = 6 #300/3e5*5500, close enough
-
-    sd = spnd.filters.gaussian_filter1d(data,sigma,axis=0)
     iwave = np.arange(3800,6800,2.1)
-    output = np.zeros((data.shape[0],iwave.size))
-    for i in range(data.shape[0]):
-        output[i,:] = np.interp(iwave,wave,sd[i,:])
+    try:
+        wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
+        sd = spnd.filters.gaussian_filter1d(data,sigma,axis=1)
+        output = np.zeros((data.shape[0],iwave.size))
+        for i in range(data.shape[0]):
+            output[i,:] = np.interp(iwave,wave,sd[i,:])
+    except KeyError:
+        wave = np.arange(data.shape[2]) + 3322
+        sd = spnd.filters.gaussian_filter1d(data,sigma,axis=2)
+        output = np.zeros((data.shape[1],iwave.size))
+        for i in range(data.shape[1]):
+            output[i,:] = np.interp(iwave,wave,sd[-1,i,:])
         
     outhdu = pyfits.PrimaryHDU(output)
     outhdu.header.update('CTYPE1','LINEAR')
@@ -350,10 +356,13 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
 
     colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
 
-    for t in range(numtau):
+    for t in range(numtau)[::-1]:
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-',color=colors[t],alpha=1,lw=1.2)
+                '-',color=colors[t],alpha=1,lw=1.4,zorder=2*(numtau-t))
+
+        #the zsol dots
+        ax.plot(modeldata[t,-2,band1],modeldata[t,-2,band2],'.',color=colors[t],ms=10,zorder=2*(numtau-t)+1)
         if ax.get_subplotspec().get_geometry()[2] == 0:
             ax.text(0.9,0.9 - t*0.072, '{:4.1f} Gyr'.format(mlwa_list[t]),
                     transform=ax.transAxes,fontsize=9,ha='right',color=colors[t])
@@ -365,6 +374,9 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
                 ax.text(modeldata[-1,-1,band1],
                         modeldata[-1,-1,band2],
                         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=8,ha='left',va='center')
+                ax.text(modeldata[-1,-2,band1],
+                        modeldata[-1,-2,band2],
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=8,ha='left',va='center')
             
 
         # if t % 3 == 1:
@@ -387,8 +399,13 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
 
     return
 
-def get_mab_data(DIfile = 'zmod.const.norm_hr.ospec.prep.Dn4000.dat',
-                 tifile = 'zmod.const.norm_hr.ospec.prep.bands.dat'):
+def get_mab_data(prefix=None,
+                 DIfile = '/d/monk/eigenbrot/WIYN/14B-0456/anal/indecies/D4000/tau_grid/zmod.const.norm_hr.ospec.prep.Dn4000.dat',
+                 tifile = '/d/monk/eigenbrot/WIYN/14B-0456/anal/indecies/D4000/tau_grid/zmod.const.norm_hr.ospec.prep.bands.dat'):
+
+    if prefix is not None:
+        DIfile = prefix+'.Dn4000.dat'
+        tifile = prefix+'.bands.dat'
 
     import tau_indecies as ti
 
@@ -433,11 +450,11 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
         d = 'k'
 
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
-                      marker=marker, vmin=-0.1, vmax=vmx,
-                      c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
+                      marker='s', vmin=-0.1, vmax=vmx,
+                      c='r', alpha=alpha, cmap=plt.cm.gnuplot2)
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
                       marker='s', vmin=-0.1, vmax=vmx, facecolors='none',
-                      c=d,alpha=alpha, cmap=plt.cm.gnuplot2)
+                      c='b',alpha=alpha, cmap=plt.cm.gnuplot2)
         
     return scat
 
@@ -652,31 +669,34 @@ def plot_z_D4000(output, basedir='.', exclude=excl):
 
     return
 
-def plot_z_all(output, basedir='.', exclude=excl, window=55):
+def plot_z_all(output, basedir='.', exclude=excl, window=55, plotmab=False):
 
     import tau_indecies as ti
 
     fig = plt.figure()
-    Hax = fig.add_subplot(324)
+    Hax = fig.add_subplot(232)
     Hax.set_ylabel(r'H$\delta_A$')
     Hax.set_xticklabels([])
-    Hax.yaxis.tick_right()
-    Hax.yaxis.set_label_position('right')
-    Hax.yaxis.set_ticks_position('both')
-    Dax = fig.add_subplot(326)
-    Dax.set_xlabel('|$z$| [kpc]')
+    # Hax.yaxis.tick_right()
+    # Hax.yaxis.set_label_position('right')
+    # Hax.yaxis.set_ticks_position('both')
+    Dax = fig.add_subplot(233)
+    Dax.set_xticklabels([])
+    # Dax.set_xlabel('|$z$| [kpc]')
     Dax.set_ylabel('Dn4000')
-    Dax.yaxis.tick_right()
-    Dax.yaxis.set_label_position('right')
-    Dax.yaxis.set_ticks_position('both')
+    # Dax.yaxis.tick_right()
+    # Dax.yaxis.set_label_position('right')
+    # Dax.yaxis.set_ticks_position('both')
 
-    MgFeax = fig.add_subplot(321)
+    MgFeax = fig.add_subplot(234)
     MgFeax.set_ylabel('[MgFe]')
-    MgFeax.set_xticklabels([])
-    Feax = fig.add_subplot(323)
+    MgFeax.set_xlabel('|$z$| [kpc]')
+    # MgFeax.set_xticklabels([])
+    Feax = fig.add_subplot(235)
     Feax.set_ylabel(r'<Fe>')
-    Feax.set_xticklabels([])
-    Mgbax = fig.add_subplot(325)
+    Feax.set_xlabel('|$z$| [kpc]')
+    # Feax.set_xticklabels([])
+    Mgbax = fig.add_subplot(236)
     Mgbax.set_xlabel('|$z$| [kpc]')
     Mgbax.set_ylabel('Mg$b$')
 
@@ -823,12 +843,36 @@ def plot_z_all(output, basedir='.', exclude=excl, window=55):
     MgFeax.plot(mz,ssig.savgol_filter(intMgFe3,window,3),color=colors[2],lw=1.2)
     Mgbax.plot(mz,ssig.savgol_filter(intMgb3,window,3),color=colors[2],lw=1.2)
 
-    mabz, mabD, mabT = get_mab_data()
-    Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
-    Hax.plot(mabz,mabD[:,0],color='k',lw=1.2)
-    Feax.plot(mabz,mabT[:,5],color='k',lw=1.2)
-    MgFeax.plot(mabz,mabT[:,6],color='k',lw=1.2)
-    Mgbax.plot(mabz,mabT[:,7],color='k',lw=1.2)
+    if plotmab:
+        mabz, mabD, mabT = get_mab_data()
+        Dax.plot(mabz,mabD[:,2],color='k',lw=1.2)
+        Hax.plot(mabz,mabD[:,0],color='k',lw=1.2)
+        Feax.plot(mabz,mabT[:,5],color='k',lw=1.2)
+        MgFeax.plot(mabz,mabT[:,6],color='k',lw=1.2,label='m62')
+        Mgbax.plot(mabz,mabT[:,7],color='k',lw=1.2)
+        
+        mabz32, mabD32, mabT32 = get_mab_data('zmod.const.hr.m32.ospec.prep')
+        Dax.plot(mabz32,mabD32[:,2],color='k',lw=1.2,ls=':')
+        Hax.plot(mabz32,mabD32[:,0],color='k',lw=1.2,ls=':')
+        Feax.plot(mabz32,mabT32[:,5],color='k',lw=1.2,ls=':')
+        MgFeax.plot(mabz32,mabT32[:,6],color='k',lw=1.2,ls=':',label='m32')
+        Mgbax.plot(mabz32,mabT32[:,7],color='k',lw=1.2,ls=':')
+        
+        mabz42, mabD42, mabT42 = get_mab_data('zmod.const.hr.m42.ospec.prep')
+        Dax.plot(mabz42,mabD42[:,2],color='k',lw=1.2,ls='--')
+        Hax.plot(mabz42,mabD42[:,0],color='k',lw=1.2,ls='--')
+        Feax.plot(mabz42,mabT42[:,5],color='k',lw=1.2,ls='--')
+        MgFeax.plot(mabz42,mabT42[:,6],color='k',lw=1.2,ls='--',label='m42')
+        Mgbax.plot(mabz42,mabT42[:,7],color='k',lw=1.2,ls='--')
+        
+        mabz52, mabD52, mabT52 = get_mab_data('zmod.const.hr.m52.ospec.prep')
+        Dax.plot(mabz52,mabD52[:,2],color='k',lw=1.2,ls='-.')
+        Hax.plot(mabz52,mabD52[:,0],color='k',lw=1.2,ls='-.')
+        Feax.plot(mabz52,mabT52[:,5],color='k',lw=1.2,ls='-.')
+        MgFeax.plot(mabz52,mabT52[:,6],color='k',lw=1.2,ls='-.',label='m52')
+        Mgbax.plot(mabz52,mabT52[:,7],color='k',lw=1.2,ls='-.')
+        
+        MgFeax.legend(loc='center',bbox_to_anchor=(0.5,1.3))
 
     Dax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Dax.axvline(1,ls=':',alpha=0.6,color='k')
@@ -840,9 +884,9 @@ def plot_z_all(output, basedir='.', exclude=excl, window=55):
     Hax.set_ylim(-2.5,8)
     Hax.set_xlim(*Dax.get_xlim())
 
-    Feax.set_ylim(-0.2,3)
+    Feax.set_ylim(-0.2,3.4)
     MgFeax.set_ylim(-0.2,3.7)
-    Mgbax.set_ylim(0.5,5.2)
+    Mgbax.set_ylim(0.5,5.4)
     Feax.set_xlim(*Dax.get_xlim())
     MgFeax.set_xlim(*Dax.get_xlim())
     Mgbax.set_xlim(*Dax.get_xlim())
@@ -854,11 +898,11 @@ def plot_z_all(output, basedir='.', exclude=excl, window=55):
     Mgbax.axvline(0.4,ls=':',alpha=0.6,color='k')
     Mgbax.axvline(1,ls=':',alpha=0.6,color='k')
 
-    Hax.text(0.3,1.7,r'$|r| < 3$ kpc',color=colors[0], transform=Hax.transAxes)
-    Hax.text(0.3,1.6,r'$3 \leq |r| < 8$ kpc',color=colors[1], transform=Hax.transAxes)
-    Hax.text(0.3,1.5,r'$|r| \geq 8$ kpc',color=colors[2], transform=Hax.transAxes)
+    MgFeax.text(0.25,1.65,r'$|r| < 3$ kpc',color=colors[0], fontsize=25, transform=MgFeax.transAxes)
+    MgFeax.text(0.25,1.5,r'$3 \leq |r| < 8$ kpc',color=colors[1], fontsize=25, transform=MgFeax.transAxes)
+    MgFeax.text(0.25,1.35,r'$|r| \geq 8$ kpc',color=colors[2], fontsize=25, transform=MgFeax.transAxes)
 
-    fig.subplots_adjust(hspace=0.00001,wspace=0.05)
+    fig.subplots_adjust(hspace=0.1)
     pp = PDF(output)
     pp.savefig(fig)
     pp.close()
