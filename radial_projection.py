@@ -19,9 +19,9 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3):
     V -= Vsys
 
     idx = np.where(np.abs(V/Vcvec) > 1)
-    V[idx] = Vc*np.sign(V[idx])
+    V[idx] = Vcvec[idx]*np.sign(V[idx])
 
-    r = Vcvec/V * rho
+    r = np.abs(Vcvec/V) * np.abs(rho)
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
                                 #side
 
@@ -71,26 +71,27 @@ def compute_rphi_tau(location, coeffile, scale=30./1001.):
 
     return r, phi
 
-def plot_rphi(r,phi,data,rlim=(0,10),thlim=(0,180)):
+def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
 
     fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='polar')
-    # ax.set_theta_offset(np.pi)
-    # scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2, 
-    #                   edgecolors='none', alpha=0.6)
-
-    rmax = rlim[1]
-    ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
-                               ticklabels=False, thlabel='', rlabel='')
-    ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
-    ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
-    ax.text(90,rmax*1.05,'r [kpc]',ha='center')
-    for i in range(4):
-        rloc = round(rmax/4)*(i+1)
-        ax.text(90,rloc,'{:3.0f}'.format(rloc), ha='left', fontsize=10)
-    
-    scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2,
+    ax = fig.add_subplot(111, projection='polar')
+    ax.set_theta_offset(np.pi)
+    ax.set_ylim(*rlim)
+    scat = ax.scatter(phi*np.pi/180., r, c=data, s=40, cmap=plt.cm.gnuplot2, 
                       edgecolors='none', alpha=0.6)
+
+    # rmax = rlim[1]
+    # ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
+    #                            ticklabels=False, thlabel='', rlabel='')
+    # ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
+    # ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
+    # ax.text(90,rmax*1.05,'r [kpc]',ha='center')
+    # for i in range(4):
+    #     rloc = round(rmax/4)*(i+1)
+    #     ax.text(90,rloc,'{:3.0f}'.format(rloc), ha='left', fontsize=10)
+    
+    # scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2,
+    #                   edgecolors='none', alpha=0.6)
 
     return ax, scat
 
