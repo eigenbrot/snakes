@@ -77,7 +77,8 @@ parinfo[1].limits = [0,1e9]
 parinfo[2].value = 0.2
 parinfo[2].limited = [1,1]
 parinfo[2].limits = [0,11.0]
-parinfo[3].value = 10
+parinfo[3].value = 12
+parinfo[3].fixed = 1
 parinfo[3].limited = [1,1]
 parinfo[3].limits = [7, 13]
 
