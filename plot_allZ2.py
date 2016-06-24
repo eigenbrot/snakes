@@ -705,3 +705,47 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]],
     plt.close('all')
 
     return
+
+def coef_height_plot(field_name, output, err_name=None, exclude=exclude):
+
+        plist = [6,3,4,2,1,5]
+        color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
+        # style_list = ['-','-','-','--','--','--']
+        style_list = ['.'] * 6
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel(r'$|z| \mathrm{[kpc]}$')
+        ax.set_xlim(0,2.6)
+        ax.set_ylim(0,12)
+        ax.set_ylabel(field_name)
+        ax.set_title(time.asctime())
+        
+        for p, color, ex in zip(plist, color_list, exclude):
+            
+            loc = 'NGC_891_P{}_bin30_locations.dat'.format(p)
+            coef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(p)
+            z = np.loadtxt(loc,usecols=(5,),unpack=True)
+            z = np.abs(z)
+            
+            data = pyfits.open(coef)[1].data
+            values = data[field_name]
+
+            exarr = np.array(ex) - 1
+            z = np.delete(z, exarr)
+            values = np.delete(values, exarr)
+
+            if err_name is None:
+                ax.plot(z, values, '.', color=color, label='P{}'.format(p))
+            else:
+                err = data[err_name]
+                err = np.delete(err, exarr)
+                ax.errorbar(z, values, yerr=err, fmt='.', color=color, capsize=0, label='P{}'.format(p))
+
+        ax.legend(loc=0,scatterpoints=1,numpoints=1)
+
+        pp = PDF(output)
+        pp.savefig(fig)
+        pp.close()
+
+        return
