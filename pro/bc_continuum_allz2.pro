@@ -347,7 +347,7 @@ coefs.SNR = mean(flux[lightidx]/err[lightidx])
 coefs.MMWA = total(reform(model.age[vdidx,*])/1e9*coefs.light_frac/reform(model.norm[vdidx,*])) $
           / total(coefs.light_frac/reform(model.norm[vdidx,*]))
 
-redd = exp(-coefs.tauv(restwl[lightidx]/5500)^(-0.7))
+redd = exp(-coefs.tauv*(restwl[lightidx]/5500)^(-0.7))
 light_weight = mean(custom_lib[lightidx,*]*rebin(redd,n_elements(lightidx),$
                                                  n_elements(reform(model.age[vdidx,*]))),$
                     dimension=1) * coefs.light_frac
