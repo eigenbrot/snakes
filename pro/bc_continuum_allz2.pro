@@ -317,7 +317,7 @@ coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          model_age: model.age[vdidx,*], chisq: 0.0D, $
          redchi: 0.0D, bluechi: 0.0D, hkchi: 0.0D, $
          bluefree: 0L, totfree: 0L, redfree: 0L, hkfree: 0L,$
-         MMWA: 0.0D, MLWA: 0.0D, $
+         MMWA: 0.0D, MLWA: 0.0D, dMLWA: 0.0D, $
          MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
 
 ; fit to full spectrum including masked pixels
@@ -354,6 +354,13 @@ light_weight = mean(custom_lib[lightidx,*]*rebin(redd,n_elements(lightidx),$
 
 coefs.MLWA = total(light_weight * reform(model.age[vdidx,*])/1e9) / total(light_weight)
 
+dLWvec = fltarr(n_elements(light_weight))
+for ii = 0, n_elements(dLWvec) - 1 do begin
+   tmp = model.age[vdidx,ii]/1e9/total(light_weight) 
+   tmp -= total(light_weight * reform(model.age[vdidx,*])/1e9) / total(light_weight)^2
+   dLWvec[ii] = tmp
+endfor
+coefs.dMLWA = sqrt(total((coefs.light_frac_err * dLWvec)^2))
 
 coefs.MMWZ = total(model.Z[vdidx,*]*coefs.light_frac/model.norm[vdidx,*]) $
           / total(coefs.light_frac/model.norm[vdidx,*])

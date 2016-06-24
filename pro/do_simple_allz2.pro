@@ -110,7 +110,8 @@ outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                MODEL_AGE: fltarr(numages), $
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
                BLUEFREE: 0L, TOTFREE: 0L, REDFREE: 0L, HKFREE: 0L,$
-               MMWA: 0.0D, MLWA: 0.0D, MMWZ: 0.0D, MLWZ: 0.0D, SNR: 0.0D}
+               MMWA: 0.0D, MLWA: 0.0D, dMLWA: 0.0D, MMWZ: 0.0D, $
+               MLWZ: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 chifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
