@@ -314,6 +314,7 @@ coefs = {vsys: fitcoefs[0]*vel_factor, vsys_error: perror[0]*vel_factor, $
          velstart: velstart, fixedvbool: fixedVBool, emmaskw: emmaskw, $
          light_frac: fitcoefs[2:*]*light_factor, $
          light_frac_err: perror[2:*]*light_factor, $
+         light_weight: dblarr(n_elements(fitcoefs[2:*])), $
          model_age: model.age[vdidx,*], chisq: 0.0D, $
          redchi: 0.0D, bluechi: 0.0D, hkchi: 0.0D, $
          bluefree: 0L, totfree: 0L, redfree: 0L, hkfree: 0L,$
@@ -353,6 +354,7 @@ light_weight = mean(custom_lib[lightidx,*]*rebin(redd,n_elements(lightidx),$
                     dimension=1) * coefs.light_frac
 
 coefs.MLWA = total(light_weight * reform(model.age[vdidx,*])/1e9) / total(light_weight)
+coefs.light_weight = light_weight
 
 dLWvec = fltarr(n_elements(light_weight))
 for ii = 0, n_elements(dLWvec) - 1 do begin

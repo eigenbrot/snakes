@@ -107,6 +107,7 @@ outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                VELSTART: velstart, FIXEDVBOOL: 0, emmaskw: 0.0, $
                LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
+               LIGHT_WEIGHT: dblarr(numages), $
                MODEL_AGE: fltarr(numages), $
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
                BLUEFREE: 0L, TOTFREE: 0L, REDFREE: 0L, HKFREE: 0L,$
