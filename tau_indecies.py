@@ -369,10 +369,14 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False,
-                       nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False, spy=False,
+                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
-    res = quick_eat(datafile)
+    if spy:
+        res = np.loadtxt(datafile)
+    else:
+        res = quick_eat(datafile)
+
     pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
     loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
@@ -408,6 +412,10 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
                       marker='s', vmin=-0.1, vmax=vmx,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
+    if spy and err:
+        ax.errorbar(res[:,band1], res[:,band2], xerr=res[:,band1+1], yerr=res[:,band2+1],
+                    fmt='none',capsize=0, ecolor='k')
+
     return scat
 
 def prep_contour_data(datafile, band1, band2, exclude=[], zcut=[-99,99]):
@@ -599,16 +607,17 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
     plt.close(fig)
     return 
 
-def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, line=False):
+def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
+              spy=False, err=True, grid=False, line=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'break': 2},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'break': 2, 'spynum': 2},
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
-              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.4,4.8], 'break': 2, 'ticks': [1,2,3,4]},
-              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4}}
+              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6, 'spynum':6},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.4,4.8], 'break': 2, 'ticks': [1,2,3,4],'spynum':8},
+              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4, 'spynum': 4}}
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='biglabel') #label is necessary if len(zcuts) == len(rcuts) == 0
@@ -633,10 +642,18 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             print zc, rc
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             for p in range(6):
-                data_file = '{}/NGC_891_P{}_bin30.msoz.bands.dat'.format(basedir,p+1)
+                if spy:
+                    data_file = '{}/NGC_891_P{}_bin30.msoz.spy.dat'.format(basedir,p+1)
+                    band1 = band_d[x]['spynum']
+                    band2 = band_d[y]['spynum']
+                else:
+                    data_file = '{}/NGC_891_P{}_bin30.msoz.bands.dat'.format(basedir,p+1)
+                    band1 = band_d[x]['num']
+                    band2 = band_d[y]['num']
+
                 print data_file
-                scat = plot_quick_on_grid(data_file, ax, band_d[x]['num'], band_d[y]['num'], 
-                                          exclude=exclude[p], nocolor=True,
+                scat = plot_quick_on_grid(data_file, ax, band1, band2, spy=spy, 
+                                          exclude=exclude[p], nocolor=True, err=err,
                                           marker='o', size=40, plot_r=False, 
                                           zcut=zc, rcut=rc, basedir=basedir)
             # ax.text(band_d[x]['lim'][1]*0.9,

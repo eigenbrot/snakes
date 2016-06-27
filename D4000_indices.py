@@ -158,7 +158,7 @@ def mab_prep(inputfile, outputfile):
 
     return
 
-def prep_all_data(bs=''):
+def prep_all_data(bs='', err=False):
 
     
     for i in range(6):
@@ -166,6 +166,11 @@ def prep_all_data(bs=''):
         output = 'NGC_891_P{}_bin30{}.msoz.fits'.format(i+1,bs)
         data_prep('NGC_891_P{}_bin30{}.mso.fits'.format(i+1,bs),
                   'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=False)
+
+        if err:
+            output = 'NGC_891_P{}_bin30{}.meoz.fits'.format(i+1,bs)
+            data_prep('NGC_891_P{}_bin30{}.meo.fits'.format(i+1,bs),
+                      'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=False)
 
     return
 
@@ -416,11 +421,15 @@ def get_mab_data(prefix=None,
 
     return z, Dres, Tres
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, 
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, spy=False,
                        nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
-    res = quick_eat(datafile)
-    pointing = int(re.search('_P([1-6])_',datafile).groups()[0])
+    if spy:
+        res = np.loadtxt(datafile)
+    else:
+        res = quick_eat(datafile)
+    
+    pointing = int(re.search('_P([1-6])',datafile).groups()[0])
     loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
     fullr = r
@@ -449,13 +458,16 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     if nocolor:
         d = 'k'
 
+
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
-                      marker='s', vmin=-0.1, vmax=vmx,
-                      c='r', alpha=alpha, cmap=plt.cm.gnuplot2)
+                      marker='o', vmin=-0.1, vmax=vmx,
+                      c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
-                      marker='s', vmin=-0.1, vmax=vmx, facecolors='none',
-                      c='b',alpha=alpha, cmap=plt.cm.gnuplot2)
-        
+                      marker='o', vmin=-0.1, vmax=vmx, facecolors='none',
+                      c=d,alpha=alpha, cmap=plt.cm.gnuplot2)
+    if spy:
+        ax.errorbar(res[:,band1],res[:,band2],xerr=res[:,band1+1],yerr=res[:,band2+1],fmt='none',
+                    capsize=0, ecolor='k')
     return scat
 
 def prep_contour_data(datafile, band1, band2, exclude=[], zcut=[-99,99]):
@@ -565,7 +577,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False):
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, spy=False):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -590,9 +602,14 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
             print zc, rc
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             for p in range(6):
-                data_file = glob('{}/NGC_891_P{}_bin30*.msoz.Dn4000.dat'.format(basedir,p+1))[0]
+                if spy:
+                    data_file = '{}/NGC_891_P{}_bin30.msoz.spy.dat'.format(basedir,p+1)
+                    band1, band2 = 0, 2
+                else:
+                    data_file = glob('{}/NGC_891_P{}_bin30*.msoz.Dn4000.dat'.format(basedir,p+1))[0]
+                    band1, band2 = 2, 0
                 print data_file
-                scat = plot_quick_on_grid(data_file, ax, 2, 0, exclude=exclude[p], nocolor=True,
+                scat = plot_quick_on_grid(data_file, ax, band1, band2, exclude=exclude[p], nocolor=True, spy=spy,
                                           marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
 #            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
