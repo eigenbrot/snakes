@@ -21,8 +21,8 @@ def compute_Dn4000(wave, spec, err, doerr=True):
     blue = np.mean(spec[blueidx])
 
     if doerr:
-        red_e = np.sqrt(np.mean(err[redidx]**2))
-        blue_e = np.sqrt(np.mean(err[blueidx]**2))
+        red_e = np.sqrt(np.sum(err[redidx]**2))/redidx.size
+        blue_e = np.sqrt(np.sum(err[blueidx]**2))/blueidx.size
 
     Dn4000 = blue/red
 
@@ -33,7 +33,7 @@ def compute_Dn4000(wave, spec, err, doerr=True):
         return Dn4000
 
 def compute_index(wave, spec, err, centlim, bluelim, redlim, doerr=True):
-    
+        
     centidx = np.where((wave > centlim[0]) & (wave < centlim[1]))[0]
     redidx = np.where((wave > redlim[0]) & (wave < redlim[1]))[0]
     blueidx = np.where((wave > bluelim[0]) & (wave < bluelim[1]))[0]
@@ -50,13 +50,12 @@ def compute_index(wave, spec, err, centlim, bluelim, redlim, doerr=True):
     red = np.mean(np.interp(redwave, wave, spec))
     
     if doerr:
-        cent_e = np.sqrt(np.mean(err[centidx]**2))
-        blue_e = np.sqrt(np.mean(err[blueidx]**2))
-        red_e = np.sqrt(np.mean(err[redidx]**2))
+        cent_e = np.sqrt(np.sum(err[centidx]**2))/centidx.size
+        blue_e = np.sqrt(np.sum(err[blueidx]**2))/blueidx.size
+        red_e = np.sqrt(np.sum(err[redidx]**2))/redidx.size
 
     redcent = np.mean(redwave)
     bluecent = np.mean(bluewave)
-
     centcent = np.mean(centlim)
     dlambda = centlim[1] - centlim[0]
 
@@ -64,8 +63,11 @@ def compute_index(wave, spec, err, centlim, bluelim, redlim, doerr=True):
     index = (1 - cent/cont)*dlambda
     
     if doerr:
-        cont_e = np.interp(4103.9, [bluecent, redcent], [blue_e, red_e])
-        err = np.sqrt((dlambda*cent_e/cont)**2 + (dlambda*cent*cont_e/cont**2)**2)
+#        cont_e = np.interp(4103.9, [bluecent, redcent], [blue_e, red_e])
+#        cont_e = np.sqrt(0.5*(blue_e**2 + red_e**2))
+        me = np.sqrt((blue_e/(bluecent - redcent))**2 + (red_e/(bluecent - redcent))**2)
+        cont_e = np.sqrt((me*(centcent - redcent))**2 + red_e**2)
+        err = dlambda*np.sqrt((cent_e/cont)**2 + (cent*cont_e/cont**2)**2)
         return index, err
 
     else:
