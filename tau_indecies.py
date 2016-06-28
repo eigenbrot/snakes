@@ -656,9 +656,6 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                                           exclude=exclude[p], nocolor=True, err=err,
                                           marker='o', size=40, plot_r=False, 
                                           zcut=zc, rcut=rc, basedir=basedir)
-            # ax.text(band_d[x]['lim'][1]*0.9,
-            #         band_d[y]['lim'][1]*0.9,
-            #         '${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='top')
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
@@ -707,6 +704,14 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     band1 = band_d[x]['num']
                     band2 = band_d[y]['num']
                 plot_model_grid(model_file,ax,band1,band2,alpha=0.5)
+            if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
+                res = np.loadtxt(data_file)
+                repxerr = np.nanmedian(res[:,band_d[x]['spynum']+1])
+                repyerr = np.nanmedian(res[:,band_d[y]['spynum']+1])
+                xpos = band_d[x]['lim'][1] - repxerr*1.1
+                ypos = band_d[y]['lim'][1] - repyerr*1.1
+                ax.errorbar(xpos,ypos,xerr=repxerr,yerr=repyerr,fmt='none',capsize=0,ecolor='k')
+
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)

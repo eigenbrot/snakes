@@ -468,6 +468,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     if spy and err:
         ax.errorbar(res[:,band1],res[:,band2],xerr=res[:,band1+1],yerr=res[:,band2+1],fmt='none',
                     capsize=0, ecolor='k')
+
     return scat
 
 def prep_contour_data(datafile, band1, band2, exclude=[], zcut=[-99,99]):
@@ -647,6 +648,12 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                     band2 = 0
                 print band1, band2
                 plot_model_grid(model_file, ax, band1, band2, alpha=0.5, labelZ=False)
+
+            if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
+                res = np.loadtxt(data_file)
+                repxerr = np.nanmedian(res[:,1])
+                repyerr = np.nanmedian(res[:,3])
+                ax.errorbar(2.4,6.7,xerr=repxerr,yerr=repyerr,fmt='none',capsize=0,ecolor='k')
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
