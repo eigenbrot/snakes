@@ -698,8 +698,15 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
             if grid:
-                model_file = '{}/BC03_bands.fits'.format(basedir)
-                plot_model_grid(model_file,ax,band_d[x]['num'],band_d[y]['num'],alpha=0.5)
+                if spy:
+                    model_file = '{}/BC03_spy.fits'.format(basedir)
+                    band1 = band_d[x]['spynum']/2
+                    band2 = band_d[y]['spynum']/2
+                else:
+                    model_file = '{}/BC03_bands.fits'.format(basedir)
+                    band1 = band_d[x]['num']
+                    band2 = band_d[y]['num']
+                plot_model_grid(model_file,ax,band1,band2,alpha=0.5)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)

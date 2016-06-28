@@ -422,7 +422,7 @@ def get_mab_data(prefix=None,
     return z, Dres, Tres
 
 def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, spy=False,
-                       nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
+                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
     
     if spy:
         res = np.loadtxt(datafile)
@@ -465,7 +465,7 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
                       marker='o', vmin=-0.1, vmax=vmx, facecolors='none',
                       c=d,alpha=alpha, cmap=plt.cm.gnuplot2)
-    if spy:
+    if spy and err:
         ax.errorbar(res[:,band1],res[:,band2],xerr=res[:,band1+1],yerr=res[:,band2+1],fmt='none',
                     capsize=0, ecolor='k')
     return scat
@@ -577,7 +577,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, spy=False):
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, spy=False, err=True):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -610,7 +610,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                     band1, band2 = 2, 0
                 print data_file
                 scat = plot_quick_on_grid(data_file, ax, band1, band2, exclude=exclude[p], nocolor=True, spy=spy,
-                                          marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
+                                          err=err, marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
 #            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)
@@ -637,8 +637,16 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
             if grid:
-                model_file = '{}/BC03_Dn4000.fits'.format(basedir)
-                plot_model_grid(model_file, ax, 2, 0, alpha=0.5, labelZ=False)
+                if spy:
+                    model_file = '{}/BC03_spy.fits'.format(basedir)
+                    band1 = 0
+                    band2 = 1
+                else:
+                    model_file = '{}/BC03_Dn4000.fits'.format(basedir)
+                    band1 = 2
+                    band2 = 0
+                print band1, band2
+                plot_model_grid(model_file, ax, band1, band2, alpha=0.5, labelZ=False)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)

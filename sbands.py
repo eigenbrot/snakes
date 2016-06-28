@@ -1,6 +1,7 @@
 import numpy as np
 import pyfits
 import time
+from glob import glob
 
 def read_fits(fitsfile):
     
@@ -11,7 +12,7 @@ def read_fits(fitsfile):
 
     return wave, data
 
-def compute_Dn4000(wave, spec, err):
+def compute_Dn4000(wave, spec, err, doerr=True):
 
     redidx = np.where((wave >= 3850.) & (wave <= 3950.))[0]
     blueidx = np.where((wave >= 4000.) & (wave <= 4100.))[0]
@@ -19,15 +20,19 @@ def compute_Dn4000(wave, spec, err):
     red = np.mean(spec[redidx])
     blue = np.mean(spec[blueidx])
 
-    red_e = np.sqrt(np.mean(err[redidx]**2))
-    blue_e = np.sqrt(np.mean(err[blueidx]**2))
+    if doerr:
+        red_e = np.sqrt(np.mean(err[redidx]**2))
+        blue_e = np.sqrt(np.mean(err[blueidx]**2))
 
     Dn4000 = blue/red
-    Dn4000_e = np.sqrt((blue_e/red)**2 + (red_e*blue/red**2)**2)
 
-    return Dn4000, Dn4000_e
+    if doerr:
+        Dn4000_e = np.sqrt((blue_e/red)**2 + (red_e*blue/red**2)**2)
+        return Dn4000, Dn4000_e
+    else:
+        return Dn4000
 
-def compute_index(wave, spec, err, centlim, bluelim, redlim):
+def compute_index(wave, spec, err, centlim, bluelim, redlim, doerr=True):
     
     centidx = np.where((wave > centlim[0]) & (wave < centlim[1]))[0]
     redidx = np.where((wave > redlim[0]) & (wave < redlim[1]))[0]
@@ -44,9 +49,10 @@ def compute_index(wave, spec, err, centlim, bluelim, redlim):
     blue = np.mean(np.interp(bluewave, wave, spec))
     red = np.mean(np.interp(redwave, wave, spec))
     
-    cent_e = np.sqrt(np.mean(err[centidx]**2))
-    blue_e = np.sqrt(np.mean(err[blueidx]**2))
-    red_e = np.sqrt(np.mean(err[redidx]**2))
+    if doerr:
+        cent_e = np.sqrt(np.mean(err[centidx]**2))
+        blue_e = np.sqrt(np.mean(err[blueidx]**2))
+        red_e = np.sqrt(np.mean(err[redidx]**2))
 
     redcent = np.mean(redwave)
     bluecent = np.mean(bluewave)
@@ -57,10 +63,13 @@ def compute_index(wave, spec, err, centlim, bluelim, redlim):
     cont = np.interp(centcent, [bluecent, redcent], [blue,red])
     index = (1 - cent/cont)*dlambda
     
-    cont_e = np.interp(4103.9, [bluecent, redcent], [blue_e, red_e])
-    err = np.sqrt((dlambda*cent_e/cont)**2 + (dlambda*cent*cont_e/cont**2)**2)
+    if doerr:
+        cont_e = np.interp(4103.9, [bluecent, redcent], [blue_e, red_e])
+        err = np.sqrt((dlambda*cent_e/cont)**2 + (dlambda*cent*cont_e/cont**2)**2)
+        return index, err
 
-    return index, err
+    else:
+        return index
 
 def main(fitsfile, errfile, output):
     
@@ -146,3 +155,54 @@ def do_all():
 
     return
              
+def run_models(output):
+
+    deftlst = [-1,-3,-9,13,5,3,1]
+    fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    fraclist = np.sort(fraclist)
+    print fraclist
+
+    HdAlims = [[4084.5, 4123.3], [4041.65, 4079.75], [4128.55, 4161.05]]
+    Mgblims = [[5160.15, 5192.65], [5142.6, 5161.4], [5191.4, 5206.4]]
+    Fe5270lims = [[5245.7, 5285.7], [5233.2, 5248.2], [5285.65, 5318.15]]
+    Fe5335lims = [[5312.1, 5352.1], [5304.65, 5315.95], [5353.4, 5363.4]]
+
+    results = np.zeros((len(deftlst),fraclist.size,5))
+
+    for f, frac in enumerate(fraclist):
+        modelfile = 'BC03_Z{:04n}_tau.fits'.format(frac*1000)
+        print modelfile
+        
+        wave, data = read_fits(modelfile)
+        
+        for i in range(data.shape[0]):
+            D = compute_Dn4000(wave,data[i,:],None,doerr=False)            
+            H = compute_index(wave, data[i,:], None,
+                              HdAlims[0], HdAlims[1], HdAlims[2],
+                              doerr=False)
+            M = compute_index(wave, data[i,:], None,
+                                  Mgblims[0], Mgblims[1], Mgblims[2],
+                              doerr=False)
+            F2 = compute_index(wave, data[i,:],None,
+                                    Fe5270lims[0], Fe5270lims[1], Fe5270lims[2],
+                               doerr=False)
+            F3 = compute_index(wave, data[i,:],None,
+                                    Fe5335lims[0], Fe5335lims[1], Fe5335lims[2],
+                               doerr=False)
+            Fe = 0.5*(F2 + F3)
+            MgFe = np.sqrt(M * (0.72*F2 + 0.28*F3))
+            
+            results[i,f,:] = np.array([D,H,M,Fe,MgFe])
+
+    outhdu = pyfits.PrimaryHDU(results)
+    outhdu.header.update('d0','aperture')
+    outhdu.header.update('d1','Z')
+    outhdu.header.update('d2','index')
+    outhdu.header.update('i0','Dn4000')
+    outhdu.header.update('i1','HdA')
+    outhdu.header.update('i2','Mgb')
+    outhdu.header.update('i3','<Fe>')
+    outhdu.header.update('i4','MgFe')
+    outhdu.writeto(output,clobber=True)
+    
+    return
