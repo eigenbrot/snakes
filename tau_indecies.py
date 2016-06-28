@@ -340,22 +340,27 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
     for t in range(numtau):
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-k',alpha=alpha)
+                '-k',alpha=alpha,zorder=0)
         
-        if ax.get_subplotspec().get_geometry()[2] == 6:
-            ax.text(modeldata[t,-1,band1],
-                    modeldata[t,-1,band2],
-                    '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=6,ha='left')
+        if ax.get_subplotspec().get_geometry()[2] == 2:
+            if t < 2:
+                ax.text(modeldata[t,-1,band1],
+                        modeldata[t,-1,band2]+0.25*(2-t),
+                        '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
+            else:
+                ax.text(modeldata[t,-1,band1],
+                        modeldata[t,-1,band2],
+                        '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
 
     for z in range(numZ):
         ax.plot(modeldata[:,z,band1],
                 modeldata[:,z,band2],
-                ':k',alpha=alpha)
+                ':k',alpha=alpha,zorder=0)
 
-        if ax.get_subplotspec().get_geometry()[2] == 6:
+        if ax.get_subplotspec().get_geometry()[2] == 2:
             ax.text(modeldata[-1,z,band1],
                     modeldata[-1,z,band2],
-                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=6,ha='right',va='top')
+                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8,ha='right',va='top')
 
     return
 
@@ -370,7 +375,7 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     return scat
 
 def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False, spy=False,
-                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
+                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.8):
     
     if spy:
         res = np.loadtxt(datafile)
@@ -407,9 +412,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
         d = 'k'
 
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
-                      marker=marker, vmin=-0.1, vmax=vmx,
+                      marker=marker, vmin=-0.1, vmax=vmx, zorder=100,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
-    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size,
+    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, zorder=100,
                       marker=marker, vmin=-0.1, vmax=vmx, facecolors='none',
                       alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
@@ -616,7 +621,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6, 'spynum':6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.4,4.8], 'break': 2, 'ticks': [1,2,3,4],'spynum':8},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.5,4.8], 'break': 2, 'ticks': [0,1,2,3,4],'spynum':8},
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4, 'spynum': 4}}
 
     fig = plt.figure()
