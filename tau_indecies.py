@@ -409,9 +409,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=vmx,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
-    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, linewidths=0,
-                      marker='s', vmin=-0.1, vmax=vmx,
-                      c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
+    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size,
+                      marker=marker, vmin=-0.1, vmax=vmx, facecolors='none',
+                      alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
         ax.errorbar(res[:,band1], res[:,band2], xerr=res[:,band1+1], yerr=res[:,band2+1],
                     fmt='none',capsize=0, ecolor='k')
