@@ -250,7 +250,7 @@ for i = 0, numfibers - 1 DO BEGIN
    yfitarray[*,i] = yfit/flux_factor
 
    if i eq 0 then begin
-      printf, lun, '# Blue_free: ', coef.bluefree
+      printf, lun, '# Blue_free: ', tcoef.bluefree
       printf, lun, '#'
    endif
 
