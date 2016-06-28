@@ -346,7 +346,7 @@ def eat_index(index):
     return np.array([HdA,HdF,Dn4])
 
 def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, 
-                    alpha=1, labelZ = True):
+                    alpha=0.7, labelZ = True):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -364,24 +364,25 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
     for t in range(numtau)[::-1]:
         ax.plot(modeldata[t,:,band1],
                 modeldata[t,:,band2],
-                '-',color=colors[t],alpha=1,lw=1.4,zorder=2*(numtau-t))
+                '-',color=colors[t],alpha=alpha,lw=1.4,zorder=2*(numtau-t))
 
         #the zsol dots
-        ax.plot(modeldata[t,-2,band1],modeldata[t,-2,band2],'.',color=colors[t],ms=10,zorder=2*(numtau-t)+1)
+        ax.plot(modeldata[t,-2,band1],modeldata[t,-2,band2],'.',color=colors[t],ms=10,
+                zorder=2*(numtau-t)+1,alpha=alpha)
         if ax.get_subplotspec().get_geometry()[2] == 0:
             ax.text(0.9,0.9 - t*0.072, '{:4.1f} Gyr'.format(mlwa_list[t]),
-                    transform=ax.transAxes,fontsize=9,ha='right',color=colors[t])
+                    transform=ax.transAxes,fontsize=14,ha='right',color=colors[t])
         
             if t == numtau - 1:
                 ax.text(modeldata[-1,0,band1],
                         modeldata[-1,0,band2],
-                        '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=8,ha='left',va='center')
+                        '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=10,ha='left',va='center')
                 ax.text(modeldata[-1,-1,band1],
                         modeldata[-1,-1,band2],
-                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=8,ha='left',va='center')
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=10,ha='left',va='center')
                 ax.text(modeldata[-1,-2,band1],
                         modeldata[-1,-2,band2],
-                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=8,ha='left',va='center')
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=10,ha='left',va='center')
             
 
         # if t % 3 == 1:
@@ -422,7 +423,7 @@ def get_mab_data(prefix=None,
     return z, Dres, Tres
 
 def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, spy=False,
-                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.7):
+                       err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.8):
     
     if spy:
         res = np.loadtxt(datafile)
@@ -460,9 +461,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
 
 
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
-                      marker=marker, vmin=-0.1, vmax=vmx,
+                      marker=marker, vmin=-0.1, vmax=vmx, zorder=100,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
-    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size,
+    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size,zorder=100,
                       marker=marker, vmin=-0.1, vmax=vmx, facecolors='none',
                       alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
