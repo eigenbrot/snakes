@@ -464,11 +464,11 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
                       marker=marker, vmin=-0.1, vmax=vmx, zorder=100,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size,zorder=100,
-                      marker=marker, vmin=-0.1, vmax=vmx, facecolors='none',
+                      marker=marker, vmin=-0.1, vmax=vmx, facecolors='w',
                       alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
         ax.errorbar(res[:,band1],res[:,band2],xerr=res[:,band1+1],yerr=res[:,band2+1],fmt='none',
-                    capsize=0, ecolor='k')
+                    capsize=0, ecolor='lightgray',elinewidth=3,zorder=50)
 
     return scat
 
@@ -617,7 +617,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
             ax.set_ylim(-4,9.7)
             ax.set_xlim(0.82,2.66)
             
-            ax.axvline(1.5,color='k',alpha=0.6,ls='--')
+            ax.axvline(1.4,color='k',alpha=0.6,ls='--')
             ax.axhline(2,color='k',alpha=0.6,ls='--')
         
             if i % (len(rcuts) + 1) == 0:

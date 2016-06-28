@@ -415,11 +415,11 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
                       marker=marker, vmin=-0.1, vmax=vmx, zorder=100,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
     scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, zorder=100,
-                      marker=marker, vmin=-0.1, vmax=vmx, facecolors='none',
+                      marker=marker, vmin=-0.1, vmax=vmx, facecolors='w',
                       alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
         ax.errorbar(res[:,band1], res[:,band2], xerr=res[:,band1+1], yerr=res[:,band2+1],
-                    fmt='none',capsize=0, ecolor='k')
+                    fmt='none',capsize=0, ecolor='lightgray',elinewidth=3)
 
     return scat
 
@@ -616,12 +616,12 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               spy=False, err=True, grid=False, line=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'break': 2, 'spynum': 2},
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'spynum': 2}, #break = 2
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
               'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6, 'spynum':6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.5,4.8], 'break': 2, 'ticks': [0,1,2,3,4],'spynum':8},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.5,4.8], 'ticks': [0,1,2,3,4],'spynum':8}, #break = 2
               'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4, 'spynum': 4}}
 
     fig = plt.figure()
@@ -713,8 +713,8 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 res = np.loadtxt(data_file)
                 repxerr = np.nanmedian(res[:,band_d[x]['spynum']+1])
                 repyerr = np.nanmedian(res[:,band_d[y]['spynum']+1])
-                xpos = band_d[x]['lim'][1] - repxerr*1.1
-                ypos = band_d[y]['lim'][1] - repyerr*1.1
+                xpos = band_d[x]['lim'][1] - repxerr*2
+                ypos = band_d[y]['lim'][1] - repyerr*2
                 ax.errorbar(xpos,ypos,xerr=repxerr,yerr=repyerr,fmt='none',capsize=0,ecolor='k')
 
             i += 1
