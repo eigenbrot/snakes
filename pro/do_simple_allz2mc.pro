@@ -188,14 +188,6 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
    ;Do the Monte Carlo stuff
-   ;; tau_stack = dblarr(NMC)
-   ;; light_frac_stack = dblarr(NMC, numages)
-   ;; light_weight_stack = dblarr(NMC, numages)
-   ;; MLWA_stack = dblarr(NMC)
-   ;; MLWZ_stack = dblarr(NMC)
-   ;; MMWA_stack = dblarr(NMC)
-   ;; MMWZ_stack = dblarr(NMC)
-
    MCfile = 'MCdir/' + strjoin((strsplit(output,'.',/extract))[0:-2],'.') + string('.MC',i+1,'.fits',format='(A3,I03,A5)')
    MCarray = {TAUV: 0.0D, $
               LIGHT_FRAC: dblarr(numages),$
@@ -214,14 +206,6 @@ for i = 0, numfibers - 1 DO BEGIN
                                  savestep=savestep, lun=savelun, $
                                  lightidx=lightidx, fmt=fmt, $
                                  chivec=chivec, parinfo=parinfo)
-
-      ;; tau_stack[NN] = tcoef.tauv
-      ;; light_frac_stack[NN,*] = tcoef.light_frac
-      ;; light_weight_stack[NN,*] = tcoef.light_weight
-      ;; MLWA_stack[NN] = tcoef.MLWA
-      ;; MLWZ_stack[NN] = tcoef.MLWZ
-      ;; MMWA_stack[NN] = tcoef.MMWA
-      ;; MMWZ_stack[NN] = tcoef.MMWZ
 
       MCarray[NN].tauv = tcoef.tauv
       MCarray[NN,*].light_frac = tcoef.light_frac
