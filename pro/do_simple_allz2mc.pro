@@ -129,17 +129,17 @@ flux_factor = 1d17 ;to avoid small number precision errors
 tau = 2*!DPI
 
 ;smooth models to in the same way we will smooth the data
-;; mdims = size(m.flux, /dimensions)
-;; for j = 0, mdims[0] - 1 do begin
-;;    for k = 0, mdims[2] - 1 do begin
-;;       print, size(m.flux[j,*,k], /dimensions)
-;;       m.flux[j,*,k] = convol(reform(m.flux[j,*,k]),[0.7,1,0.7],/edge_mirror)
-;;    endfor
-;; endfor
+mdims = size(m.flux, /dimensions)
+for j = 0, mdims[0] - 1 do begin
+   for k = 0, mdims[2] - 1 do begin
+      print, size(m.flux[j,*,k], /dimensions)
+      m.flux[j,*,k] = convol(reform(m.flux[j,*,k]),[0.7,1,0.7],/edge_mirror)
+   endfor
+endfor
 
 if file_test('MCdir',/directory) eq 0 then file_mkdir, 'MCdir'
 
-for i = 0, 0 DO BEGIN
+for i = 0, numfibers - 1 DO BEGIN
 ;foreach i, subidx DO BEGIN
   
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
@@ -206,8 +206,8 @@ for i = 0, 0 DO BEGIN
 
    for NN = 0, NMC - 1 do begin
       df = randomn(seed, n_elements(flux))*err
-      ;; tmpflux = convol(flux+df, [0.7,1,0.7],/edge_mirror)
-      tcoef = bc_continuum_allZ2(m, wave, flux+df, err, vdidx, $
+      tmpflux = convol(flux+df, [0.7,1,0.7],/edge_mirror)
+      tcoef = bc_continuum_allZ2(m, wave, tmpflux, err, vdidx, $
                                  fitregion=fitregion, fixedV=fixedV, $
                                  yfit=yfit, velstart=velstart, $
                                  maskBalm=maskBalm, emmaskw=emmaskw, $
