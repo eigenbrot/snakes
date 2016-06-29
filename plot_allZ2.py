@@ -706,7 +706,8 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]],
 
     return
 
-def coef_height_plot(field_name, output, err_name=None, exclude=exclude):
+def coef_height_plot(field_name, output, err_name=None, 
+                     exclude=exclude, suffix='coef'):
 
         plist = [6,3,4,2,1,5]
         color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
@@ -724,7 +725,7 @@ def coef_height_plot(field_name, output, err_name=None, exclude=exclude):
         for p, color, ex in zip(plist, color_list, exclude):
             
             loc = 'NGC_891_P{}_bin30_locations.dat'.format(p)
-            coef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(p)
+            coef = 'NGC_891_P{}_bin30_allz2.{}.fits'.format(p,suffix)
             z = np.loadtxt(loc,usecols=(5,),unpack=True)
             z = np.abs(z)
             
