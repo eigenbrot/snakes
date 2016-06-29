@@ -109,12 +109,12 @@ outputarray = {VSYS: 0.0D, VSYS_ERROR: 0.0D,TAUV: 0.0D, TAUV_ERR: 0.0D, $
                VELSTART: velstart, FIXEDVBOOL: 0, emmaskw: 0.0, $
                LIGHT_FRAC: dblarr(numages),$
                LIGHT_FRAC_ERR: dblarr(numages), $
-               LIGHT_WEIGHT: dblarr(numages), $
+               LIGHT_WEIGHT: dblarr(numages), LIGHT_WEIGHT_ERR: dblarr(numages), $
                MODEL_AGE: fltarr(numages), $
                CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
                BLUEFREE: 0L, TOTFREE: 0L, REDFREE: 0L, HKFREE: 0L,$
                MMWA: 0.0D, MLWA: 0.0D, dMLWA: 0.0D, MMWZ: 0.0D, $
-               MLWZ: 0.0D, SNR: 0.0D}
+               MLWZ: 0.0D, dMLWZ: 0.0D, SNR: 0.0D}
 outputarray = replicate(outputarray, numfibers)
 
 chifile = (strsplit(output,'.',/extract))[0] + '.chi.fits'
@@ -137,7 +137,9 @@ tau = 2*!DPI
 ;;    endfor
 ;; endfor
 
-for i = 0, numfibers - 1 DO BEGIN
+if file_test('MCdir',/directory) eq 0 then file_mkdir, 'MCdir'
+
+for i = 0, 0 DO BEGIN
 ;foreach i, subidx DO BEGIN
   
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
@@ -186,14 +188,22 @@ for i = 0, numfibers - 1 DO BEGIN
    endelse
 
    ;Do the Monte Carlo stuff
-   tau_stack = dblarr(NMC)
-   light_frac_stack = dblarr(NMC, numages)
-   light_weight_stack = dblarr(NMC, numages)
-   MLWA_stack = dblarr(NMC)
-   MLWZ_stack = dblarr(NMC)
-   MMWA_stack = dblarr(NMC)
-   MMWZ_stack = dblarr(NMC)
-   
+   ;; tau_stack = dblarr(NMC)
+   ;; light_frac_stack = dblarr(NMC, numages)
+   ;; light_weight_stack = dblarr(NMC, numages)
+   ;; MLWA_stack = dblarr(NMC)
+   ;; MLWZ_stack = dblarr(NMC)
+   ;; MMWA_stack = dblarr(NMC)
+   ;; MMWZ_stack = dblarr(NMC)
+
+   MCfile = 'MCdir/' + strjoin((strsplit(output,'.',/extract))[0:-2],'.') + string('.MC',i+1,'.fits',format='(A3,I03,A5)')
+   MCarray = {TAUV: 0.0D, $
+              LIGHT_FRAC: dblarr(numages),$
+              LIGHT_WEIGHT: dblarr(numages), $
+              CHISQ: 0.0D, REDCHI: 0.0D, BLUECHI: 0.0D, HKCHI: 0.0D, $
+              MMWA: 0.0D, MLWA: 0.0D, MMWZ: 0.0D, MLWZ: 0.0D}
+   MCarray = replicate(MCarray, NMC)
+
    for NN = 0, NMC - 1 do begin
       df = randomn(seed, n_elements(flux))*err
       ;; tmpflux = convol(flux+df, [0.7,1,0.7],/edge_mirror)
@@ -205,30 +215,57 @@ for i = 0, numfibers - 1 DO BEGIN
                                  lightidx=lightidx, fmt=fmt, $
                                  chivec=chivec, parinfo=parinfo)
 
-      tau_stack[NN] = tcoef.tauv
-      light_frac_stack[NN,*] = tcoef.light_frac
-      light_weight_stack[NN,*] = tcoef.light_weight
-      MLWA_stack[NN] = tcoef.MLWA
-      MLWZ_stack[NN] = tcoef.MLWZ
-      MMWA_stack[NN] = tcoef.MMWA
-      MMWZ_stack[NN] = tcoef.MMWZ
-   endfor
+      ;; tau_stack[NN] = tcoef.tauv
+      ;; light_frac_stack[NN,*] = tcoef.light_frac
+      ;; light_weight_stack[NN,*] = tcoef.light_weight
+      ;; MLWA_stack[NN] = tcoef.MLWA
+      ;; MLWZ_stack[NN] = tcoef.MLWZ
+      ;; MMWA_stack[NN] = tcoef.MMWA
+      ;; MMWZ_stack[NN] = tcoef.MMWZ
 
-   print, MLWA_stack
+      MCarray[NN].tauv = tcoef.tauv
+      MCarray[NN,*].light_frac = tcoef.light_frac
+      MCarray[NN,*].light_weight = tcoef.light_weight
+      MCarray[NN].MLWA = tcoef.MLWA
+      MCarray[NN].MMWA = tcoef.MMWA
+      MCarray[NN].MLWZ = tcoef.MLWZ
+      MCarray[NN].MMWZ = tcoef.MMWZ
+      MCarray[NN].CHISQ = tcoef.chisq
+      MCarray[NN].redchi = tcoef.redchi
+      MCarray[NN].bluechi = tcoef.bluechi
+      MCarray[NN].hkchi = tcoef.hkchi
+      
+   endfor
    
-   outputarray[i] = tcoef
-   outputarray[i].tauv = mean(tau_stack)
-   outputarray[i].tauv_err = stddev(tau_stack)
-   print, size(outputarray[i].light_frac,/type), size(mean(light_frac_stack,dimension=1),/type)
-   print, size(outputarray[i].light_frac,/dimensions), size(mean(light_frac_stack,dimension=1),/dimensions) 
-   outputarray[i].light_frac = mean(light_frac_stack, dimension=1)
-   outputarray[i].light_frac_err = stddev(light_frac_stack, dimension=1)
-   outputarray[i].light_weight = mean(light_weight_stack, dimension=1)
-   outputarray[i].MLWA = mean(MLWA_stack)
-   outputarray[i].dMLWA = stddev(MLWA_stack)
-   outputarray[i].MLWZ = mean(MLWZ_stack)
-   outputarray[i].MMWA = mean(MMWA_stack)
-   outputarray[i].MMWZ = mean(MMWZ_stack)
+   outputarray[i].vsys = tcoef.vsys
+   outputarray[i].vsys_error = tcoef.vsys_error
+   outputarray[i].velstart = tcoef.velstart
+   outputarray[i].fixedvbool = tcoef.fixedvbool
+   outputarray[i].emmaskw = tcoef.emmaskw
+   outputarray[i].model_age = tcoef.model_age
+   outputarray[i].chisq = tcoef.chisq
+   outputarray[i].redchi = tcoef.redchi
+   outputarray[i].bluechi = tcoef.bluechi
+   outputarray[i].hkchi = tcoef.hkchi
+   outputarray[i].bluefree = tcoef.bluefree
+   outputarray[i].totfree = tcoef.totfree
+   outputarray[i].redfree = tcoef.redfree
+   outputarray[i].hkfree = tcoef.hkfree
+   outputarray[i].SNR = tcoef.snr
+   outputarray[i].tauv = mean(MCarray.tauv)
+   outputarray[i].tauv_err = stddev(MCarray.tauv)
+   outputarray[i].light_frac = mean(MCarray.light_frac, dimension=1)
+   outputarray[i].light_frac_err = stddev(MCarray.light_frac, dimension=1)
+   outputarray[i].light_weight = mean(MCarray.light_weight, dimension=1)
+   outputarray[i].light_weight_err = stddev(MCarray.light_weight, dimension=1)   
+   outputarray[i].MLWA = mean(MCarray.MLWA)
+   outputarray[i].dMLWA = stddev(MCarray.MLWA)
+   outputarray[i].MLWZ = mean(MCarray.MLWZ)
+   outputarray[i].dMLWZ = stddev(MCarray.MLWZ)
+   outputarray[i].MMWA = mean(MCarray.MMWA)
+   outputarray[i].MMWZ = mean(MCarray.MMWZ)
+
+   mwrfits, MCarray, MCfile, /create
 
    if savestep then free_lun, savelun
 
