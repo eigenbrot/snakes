@@ -414,12 +414,12 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     scat = ax.scatter(res[posidx,band1], res[posidx,band2], s=size, linewidths=0,
                       marker=marker, vmin=-0.1, vmax=vmx, zorder=100,
                       c=d, alpha=alpha, cmap=plt.cm.gnuplot2)
-    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, zorder=100,
+    scat = ax.scatter(res[negidx,band1], res[negidx,band2], s=size, zorder=100, linewidths=1.2,
                       marker=marker, vmin=-0.1, vmax=vmx, facecolors='w',
                       alpha=alpha, cmap=plt.cm.gnuplot2)
     if spy and err:
         ax.errorbar(res[:,band1], res[:,band2], xerr=res[:,band1+1], yerr=res[:,band2+1],
-                    fmt='none',capsize=0, ecolor='lightgray',elinewidth=3)
+                    fmt='none',capsize=0, ecolor='gray',elinewidth=1)
 
     return scat
 
