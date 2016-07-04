@@ -218,7 +218,7 @@ def model_spec_plot(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plo
 
     return 
 
-def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.prep.fits'):
+def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmod.const.norm_hr.ospec.prep200.fits'):
 
     #Img
     hdu = pyfits.open(infile)[0]

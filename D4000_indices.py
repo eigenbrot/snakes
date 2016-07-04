@@ -125,11 +125,11 @@ def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
 
 def mab_prep(inputfile, outputfile):
     #for mab's zmod*fits heating models
-    #we'll make the spectral resolution 300 b/c that's kind of the median for our data
+    #we'll make the spectral resolution 200 b/c that's kind of the median for our data
     
     hdu = pyfits.open(inputfile)[0]
     data = hdu.data
-    sigma = 6 #300/3e5*5500, close enough
+    sigma = 3.7 #200/3e5*5500, close enough
     iwave = np.arange(3800,6800,2.1)
     try:
         wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CD1_1'] + hdu.header['CRVAL1']
