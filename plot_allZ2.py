@@ -750,3 +750,41 @@ def coef_height_plot(field_name, output, err_name=None,
         pp.close()
 
         return
+
+def coef_covar(field1, field2, output):
+
+    plist = [6,3,4,2,1,5]
+    color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
+    style_list = ['.'] * 6
+    
+    for p, color in zip(plist, color_list):
+        N = 1
+        pp = PDF('{}_P{}.pdf'.format(output,p))
+        while True:
+            try:
+                coef = 'MCdir/NGC_891_P{}_bin30_allz2.MC{:03n}.fits'.format(p,N)
+                data = pyfits.open(coef)[1].data
+            except IOError:
+                break
+
+            print coef
+            values1 = data[field1]
+            values2 = data[field2]
+                        
+            # if N == 1:
+            #     ax.scatter(values1, values2, color=color, alpha=0.5, linewidth=0, label='P{}'.format(p))
+            # else:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.set_xlabel(field1)
+            ax.set_ylabel(field2)
+            ax.set_title('P{}.{}\n{}'.format(p,N,time.asctime()))
+            ax.scatter(values1, values2, color='b', alpha=1, linewidth=0)
+
+            pp.savefig(fig)
+            plt.close(fig)
+            N += 1
+
+        pp.close()            
+                
+    return
