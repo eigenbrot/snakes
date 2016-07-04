@@ -19,6 +19,7 @@ llist = ['HB','Ha']
 rlist = [np.array([4847., 4872.]), np.array([6510., 6625.])]
 centlist = [[4861.], np.array([6563., 6549., 6585.])]
 bc_coeffs = [-0.91,4.15]
+ma_coeffs = [-1.06,3.78]
 
 def prep_spectra(datafile, fitfile, output, velocity, smooth=3.):
 
@@ -298,7 +299,7 @@ def do_all(datafile, fitfile, velocity, location, smooth=3.,
 
     return
 
-def Pbatch(balmer=False, tauV_coeffs=[-1.06,3.78]):
+def Pbatch(balmer=False, tauV_coeffs=bc_coeffs):
 
     for i in range(6):
         
