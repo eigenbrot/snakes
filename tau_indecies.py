@@ -322,7 +322,7 @@ def eat_index(index):
                      FeAvg, MgFe, index[4]])
 
 def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
-                    ma11 = False):
+                    ma11 = False, plotlabels=True, isochrones=False):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -336,31 +336,45 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
 
+    if isochrones:
+        colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
+        for t in range(numtau)[::-1]:
+            ax.plot(modeldata[t,:,band1],
+                    modeldata[t,:,band2],
+                    '-',alpha=alpha,zorder=0,color=colors[t],lw=1.4)
+            if ax.get_subplotspec().get_geometry()[2] == 2 and t == numtau - 1:
+                ax.text(modeldata[0,0,band1],
+                        modeldata[0,0,band2],
+                        '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=10,ha='left',va='center')
+                ax.text(modeldata[-1,-1,band1],
+                        modeldata[-1,-1,band2],
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=10,ha='left',va='center')
 
-    for t in range(numtau):
-        ax.plot(modeldata[t,:,band1],
-                modeldata[t,:,band2],
-                '-k',alpha=alpha,zorder=0)
+    else:
+        for t in range(numtau)[::-1]:
+            ax.plot(modeldata[t,:,band1],
+                    modeldata[t,:,band2],
+                    '-k',alpha=alpha,zorder=0)
         
-        if ax.get_subplotspec().get_geometry()[2] == 2:
-            if t < 2:
-                ax.text(modeldata[t,-1,band1],
-                        modeldata[t,-1,band2]+0.25*(2-t),
-                        '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
-            else:
-                ax.text(modeldata[t,-1,band1],
-                        modeldata[t,-1,band2],
-                        '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
+            if ax.get_subplotspec().get_geometry()[2] == 2 and plotlabels:
+                if t < 2:
+                    ax.text(modeldata[t,-1,band1],
+                            modeldata[t,-1,band2]+0.25*(2-t),
+                            '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
+                else:
+                    ax.text(modeldata[t,-1,band1],
+                            modeldata[t,-1,band2],
+                            '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
 
-    for z in range(numZ):
-        ax.plot(modeldata[:,z,band1],
-                modeldata[:,z,band2],
-                ':k',alpha=alpha,zorder=0)
+        for z in range(numZ):
+            ax.plot(modeldata[:,z,band1],
+                    modeldata[:,z,band2],
+                    ':k',alpha=alpha,zorder=0)
 
-        if ax.get_subplotspec().get_geometry()[2] == 2:
-            ax.text(modeldata[-1,z,band1],
-                    modeldata[-1,z,band2],
-                    '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8,ha='right',va='top')
+            if ax.get_subplotspec().get_geometry()[2] == 2 and plotlabels:
+                ax.text(modeldata[-1,z,band1],
+                        modeldata[-1,z,band2],
+                        '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8,ha='right',va='top')
 
     return
 
@@ -613,7 +627,8 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
     return 
 
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
-              spy=False, err=True, grid=False, line=False):
+              spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
+              isochrones=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'spynum': 2}, #break = 2
@@ -664,7 +679,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
-            if not line:
+            if plotbreak:
                 try:
                     ax.axvline(band_d[x]['break'],alpha=0.6,ls='--',color='k')
                 except KeyError:
@@ -673,7 +688,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     ax.axhline(band_d[y]['break'],alpha=0.6,ls='--',color='k')
                 except KeyError:
                     pass
-            else:
+            if line:
                 ax.plot([-0.2,8.8],[0,6],'--',color='k', alpha=0.6)
 
             try:
@@ -708,7 +723,8 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     model_file = '{}/BC03_bands.fits'.format(basedir)
                     band1 = band_d[x]['num']
                     band2 = band_d[y]['num']
-                plot_model_grid(model_file,ax,band1,band2,alpha=0.5)
+                plot_model_grid(model_file,ax,band1,band2,alpha=0.5,
+                                plotlabels=plotlabels, isochrones=isochrones)
             if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
                 res = np.loadtxt(data_file)
                 repxerr = np.nanmedian(res[:,band_d[x]['spynum']+1])
