@@ -751,7 +751,7 @@ def coef_height_plot(field_name, output, err_name=None,
 
         return
 
-def coef_covar(field1, field2, output):
+def coef_covar(field1, field2, output, plotmono=False):
 
     plist = [6,3,4,2,1,5]
     color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
@@ -760,6 +760,14 @@ def coef_covar(field1, field2, output):
     for p, color in zip(plist, color_list):
         N = 1
         pp = PDF('{}_P{}.pdf'.format(output,p))
+        
+        if plotmono:
+            monobase = '/d/monk/eigenbrot/WIYN/14B-0456/anal/model_balmer/bc03/single_Z/no_weight'
+            monod = {}
+            for Z in ['0.2Z','0.4Z','1Z','2.5Z']:
+                monod[Z] = pyfits.open('{}/{}/NGC_891_P{}_bin30_allz2.coef.fits'.\
+                                       format(monobase,Z,p))[1].data
+
         while True:
             try:
                 coef = 'MCdir/NGC_891_P{}_bin30_allz2.MC{:03n}.fits'.format(p,N)
@@ -780,6 +788,12 @@ def coef_covar(field1, field2, output):
             ax.set_ylabel(field2)
             ax.set_title('P{}.{}\n{}'.format(p,N,time.asctime()))
             ax.scatter(values1, values2, color='b', alpha=1, linewidth=0)
+
+            if plotmono:
+                for Z in ['0.2Z','0.4Z','1Z','2.5Z']:
+                    ax.scatter(monod[Z][field1][N-1],
+                               monod[Z][field2][N-1], marker='s', color='r',
+                               linewidths=0)
 
             pp.savefig(fig)
             plt.close(fig)
