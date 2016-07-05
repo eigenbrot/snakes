@@ -226,7 +226,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     
     wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CDELT1'] + hdu.header['CRVAL1']
     
-    widx = np.where((wave >= 3800) & (wave < 4500))[0]
+    widx = np.where((wave >= 3800) & (wave < 5350))[0]
     wave = wave[widx]
     data = data[:,widx]
 
@@ -237,18 +237,21 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
     # ax.set_xlabel('$\AA$')
     ax.set_xticklabels([])
     ax.set_ylabel('|$z$| [kpc]')
+    ax.get_yaxis().set_label_coords(-0.05,0.5)
 
     ax.imshow(data, cmap=plt.cm.gnuplot2, origin='lower', 
               interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
               extent=(wave.min(), wave.max(), 0, 0.01*data.shape[0]))
     ax.axhline(0.4, color='lime', linewidth=2, ls='--')
+    ax.set_xlim(3800,5350)
 
-    add_line_labels(ax)
+    # add_line_labels(ax)
 
     #Spec
     ax1 = fig.add_subplot(212)
     ax1.set_xlabel('Wavelength [$\AA$]')
     ax1.set_ylabel('Normalized Flux + offset')
+    ax1.get_yaxis().set_label_coords(-0.05,0.5)
 
     ax1.plot(wave,data[16,:], 'k') #0.16 kpc
     ax1.plot(wave,data[32,:] + 1, 'k') #0.32 kpc
@@ -285,7 +288,7 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
              r'H$\delta$',
              'L']
 
-    ypos = 3.8
+    ypos = 3.6
     for l, n in zip(lines,names):
         if n[0:2] != r'H$':
             b = 0.2
@@ -293,8 +296,8 @@ def plot_stack(output, infile='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot/zmo
             b = 0
         ax1.text(l,ypos+b,n,ha='center',va='top', fontsize=11)
 
-    ax1.set_ylim(0,4.6)
-    ax.set_xlim(*ax1.get_xlim())
+    ax1.set_ylim(0,3.9)
+    ax1.set_xlim(*ax.get_xlim())
     fig.subplots_adjust(hspace=0.0001)
 
     pp = PDF(output)
@@ -310,7 +313,7 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
     ax = fig.add_subplot(211)
 
     wave, z, data = get_all_data(basedir)
-    widx = np.where(wave < 4500)[0]
+    widx = np.where(wave < 5350)[0]
     plotz = np.linspace(z.min(),z.max(),300)
 
     nd = data[:,widx]/np.mean(data[:,widx],axis=1)[:,None]
@@ -325,21 +328,24 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
                          method='nearest')
 
     ax.imshow(plotd, cmap=plt.cm.gnuplot2, origin='lower', 
-              interpolation='none', vmax=1.8,vmin=0.2, aspect='auto',
+              interpolation='none', aspect='auto', vmax=1.8, vmin=0.2,
               extent=(wave.min(), wave[widx].max(), plotz.min(), plotz.max()))
     ax.axhline(0.4, color='lime', linewidth=2, ls='--')
-    
+    ax.set_xlim(3800,5350)
+
     # ax.set_xlabel('$\AA$')
     ax.set_xticklabels([])
     ax.set_ylabel(r'|$z$| [kpc]')
+    ax.get_yaxis().set_label_coords(-0.05,0.5)
 
-    add_line_labels(ax)
+    # add_line_labels(ax)
 
     #Spec
     ax1 = fig.add_subplot(212)
     ax1.set_xlabel('Wavelength [$\AA$]')
     ax1.set_ylabel('Normalized Flux + Offset')
-    ax1.set_ylim(0,5.4)
+    ax1.get_yaxis().set_label_coords(-0.05,0.5)
+    ax1.set_ylim(0,5.6)
 
     id1 = np.argmin(np.abs(z - 0.3))
     id2 = np.argmin(np.abs(z - 0.6))
@@ -353,7 +359,7 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
     ax1.text(3870,2.4,'0.6 kpc',ha='center',va='bottom',fontsize=12)
     ax1.text(3870,3.8,'1.5 kpc',ha='center',va='bottom',fontsize=12)
 
-    ax1.set_xlim(ax.get_xlim())
+    ax1.set_xlim(*ax.get_xlim())
 
     lines = [3820.4,
              3835.4,
@@ -382,7 +388,7 @@ def data_stack(output,basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/mab_plot'):
              r'H$\delta$',
              'L']
 
-    ypos = 4.8
+    ypos = 5.2
     for l, n in zip(lines,names):
         if n[0:2] != r'H$':
             b = 0.3
