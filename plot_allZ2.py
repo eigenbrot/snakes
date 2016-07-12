@@ -812,6 +812,63 @@ def coef_covar(field1, field2, output, plotmono=False, field3=False):
                 
     return
 
+def coef_MCcovar_3panel(field1, field2, field3, output, zlims=[0,0.4], plist=[1,2,3,4,5,6]):
+
+    fig = plt.figure(figsize=(8,8))
+    ax1 = fig.add_subplot(221)
+    ax2 = fig.add_subplot(223)
+    ax3 = fig.add_subplot(224)
+
+    for p in plist:
+        loc = 'NGC_891_P{}_bin30_locations.dat'.format(p)
+        z = np.loadtxt(loc, usecols=(5,), unpack=True)
+        z = np.abs(z)
+        idx = np.where((z >= zlims[0]) & (z < zlims[1]))[0]
+        N = 1
+        while True:
+            try:
+                coef = 'MCdir/NGC_891_P{:}_bin30_allz2.MC{:03n}.fits'.format(p,N)
+                c = pyfits.open(coef)[1].data
+            except IOError:
+                break
+
+            if N-1 in idx:
+                print coef, z[N-1]
+                p1 = c[field1] - np.mean(c[field1])
+                p2 = c[field2] - np.mean(c[field2])
+                p3 = c[field3] - np.mean(c[field3])
+                ax1.scatter(p1,p2,alpha=0.4,linewidth=0,c=[z[N-1]]*c[field2].size,vmin=0,vmax=2.6,cmap=plt.cm.gnuplot)
+                ax2.scatter(p1,p3,alpha=0.4,linewidth=0,c=[z[N-1]]*c[field2].size,vmin=0,vmax=2.6,cmap=plt.cm.gnuplot)
+                scat = ax3.scatter(p2,p3,alpha=0.4,linewidth=0,c=[z[N-1]]*c[field2].size,vmin=0,vmax=2.6,cmap=plt.cm.gnuplot)
+            
+            N += 1 
+
+    ax1.set_xticklabels([])
+    ax1.set_ylabel(field2)
+
+    ax2.set_xlim(*ax1.get_xlim())
+    ax2.set_xlabel(field1)
+    ax2.set_ylabel(field3)
+
+    ax3.set_ylim(*ax2.get_ylim())
+    ax3.set_yticklabels([])
+    ax3.set_xlabel(field2)
+    
+    fig.subplots_adjust(hspace=0.001,wspace=0.001)
+
+    cax = fig.add_axes([0.66,0.55,0.04,0.32])
+    cb = fig.colorbar(scat, cax=cax)
+    cb.set_alpha(1)
+    cb.set_label('$|z|$ [kpc]')
+    cb.draw_all()
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+
+    return
+
 def SFH_cuts(output, basedir='.', exclude=exclude, rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4):
 
     fig = plt.figure()
