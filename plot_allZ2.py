@@ -811,3 +811,82 @@ def coef_covar(field1, field2, output, plotmono=False, field3=False):
         pp.close()            
                 
     return
+
+def SFH_cuts(output, basedir='.', exclude=exclude, rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4):
+
+    fig = plt.figure()
+    lax = fig.add_subplot(111, label='bigax')
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_ylabel(r'$Z/Z_\odot$')
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for z in range(len(zcuts) + 1):
+        zc = [bigz[-z-2], bigz[-z-1]]
+        for r in range(len(rcuts) + 1):
+            rc = [bigr[r], bigr[r+1]]
+            print zc, rc
+            bigD = np.zeros((numZ,numAge))
+            for p in range(6):
+                coeffile = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir,p+1)
+                print coeffile
+                coefs = pyfits.open(coeffile)[1].data
+                loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+                print loc
+                r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+                r = np.abs(r)
+                z = np.abs(z)
+                
+                exarr = np.array(exclude[p]) - 1
+                r = np.delete(r, exarr)
+                z = np.delete(z, exarr)
+                lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
+                
+                lw /= np.sum(lw,axis=1)[:,None]
+
+                idx = np.where((z >= zc[0]) & (z < zc[1])
+                               & (r >= rc[0]) & (r < rc[1]))[0]
+                lw = lw[idx,:]
+                print lw.shape
+                lw = np.reshape(lw,(idx.size,numZ,numAge))
+                print lw.shape
+                print bigD.shape
+                bigD += np.sum(lw,axis=0)
+
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            ax.imshow(bigD,origin='lower',cmap='Blues',interpolation='none')
+            ax.set_xticks(range(numAge))
+            ax.set_yticks(range(numZ))
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+
+            if i > (len(zcuts)) * (len(rcuts) + 1):
+                ax.set_xticklabels(['Y','I1','I2','O'])
+            if i % (len(rcuts)+1) == 1:
+                ax.set_yticklabels([0.005,0.02,0.2,0.4,1,2.5])
+
+            if i % (len(rcuts) + 1) == 0:
+                ax.text(1.15,0.5,'${}\leq |z| <{}$ kpc'.format(*zc),rotation=90,
+                        ha='center',va='center',transform=ax.transAxes)
+
+            if i <= len(rcuts) + 1:
+                ax.text(0.5,1.1,'${}\leq |r| <{}$ kpc'.format(*rc),
+                        ha='center',va='center',transform=ax.transAxes)
+
+            i += 1
+
+    fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+            
+    return
