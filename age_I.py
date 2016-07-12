@@ -290,3 +290,80 @@ def compute_tausf_err(tausflist=None):
         pyfits.BinTableHDU(output).writeto('NGC_891_P{}_bin30_allz2.aI.fits'.format(p+1),clobber=True)
 
     return
+
+def SFH_plots(output):
+    import pyfits
+
+    #Get centers (just for plotting) of DFK age bins in log-age space
+    lb = np.log10(DFK_borders)
+    ages = np.sum(lb,axis=1)/2.
+    print ages
+    print lb
+
+    for p in range(6):
+        coef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(p+1)
+        data = pyfits.open(coef)[1].data
+        weights = data['LIGHT_WEIGHT']
+        errs = data['LIGHT_WEIGHT_ERR']
+
+        print coef
+
+        pp = PDF('{}_P{}.pdf'.format(output,p+1))
+        for i in range(data.shape[0]):
+            print '\t', i+1
+            ax = plt.figure().add_subplot(111)
+            ax.set_xlabel('Log(Gyr)')
+            ax.set_ylabel(r'$\int \psi(t) dt$')
+            
+            lw = np.sum(weights[i,:].reshape(6,4),axis=0)
+            lwe = np.sqrt(np.sum((errs[i,:]**2).reshape(6,4),axis=0))/4.
+            #ax.plot(10**ages, lw, 'k', alpha=0.6)
+            ax.scatter(10**ages, lw, marker='o', s=10, color='k')
+            ax.errorbar(10**ages, lw, yerr=lwe, fmt='none',
+                        capsize=0, ecolor='k')
+            ax.hlines(lw,10**lb[:,0],10**lb[:,1])
+            ax.set_xscale('log')
+            ax.set_ylim(0,ax.get_ylim()[1])
+        
+            pp.savefig(ax.figure)
+            plt.close(ax.figure)
+
+        pp.close()
+        plt.close('all')
+
+    return
+
+def compute_random_err(N=100):
+
+    import pyfits
+    borders = np.array(DFK_borders)
+
+    agearr = np.random.random(N*borders.shape[0]).reshape(borders.shape[0],N)
+    print agearr.shape
+    d = np.diff(borders,axis=1)
+    c = borders[:,0][:,None]
+    agearr = agearr*d + c
+    print agearr
+    print agearr.shape
+    agearr = np.vstack([agearr]*6)
+    print agearr.shape
+
+    for p in range(6):
+        coeffile = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(p+1)
+        coefs = pyfits.open(coeffile)[1].data
+        numfibs = coefs['MLWA'].size
+        
+        output = np.zeros(numfibs, dtype=[('MLWA', '>f8'), ('dMLWA','>f8')])
+        
+        for i in range(numfibs):
+            lw = coefs['light_weight'][i]
+            tmp = np.zeros(N)
+            for j in range(N):
+                tmp[j] = np.sum(agearr[:,j]*lw)/np.sum(lw)
+
+            output['MLWA'][i] = np.nanmean(tmp)
+            output['dMLWA'][i] = np.nanstd(tmp)
+            
+        pyfits.BinTableHDU(output).writeto('NGC_891_P{}_bin30_allz2.aIR.fits'.format(p+1),clobber=True)
+
+    return
