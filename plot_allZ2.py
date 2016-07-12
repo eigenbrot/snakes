@@ -590,8 +590,8 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
     
     plist = [6,3,4,2,1,5]
     #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
-    color_list = ['blue','seagreen','darkorange','crimson','dimgray','mediumorchid','maroon']
-    style_list = ['-','-','-','-','-','-','-']
+    color_list = ['blue','turquoise','seagreen','darkorange','crimson','dimgray','mediumorchid','maroon']
+    style_list = ['-','-','-','-','-','-','-','-']
 
     if not isinstance(col,list):
         col = [col] * len(folder_list)
@@ -706,8 +706,8 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]],
 
     return
 
-def coef_height_plot(field_name, output, err_name=None, 
-                     exclude=exclude, suffix='coef'):
+def coef_height_plot(field_name, output, err_name=None, ylim=[0,12],
+                     exclude=exclude, suffix='coef', oplotdir=None):
 
         plist = [6,3,4,2,1,5]
         color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
@@ -718,7 +718,7 @@ def coef_height_plot(field_name, output, err_name=None,
         ax = fig.add_subplot(111)
         ax.set_xlabel(r'$|z| \mathrm{[kpc]}$')
         ax.set_xlim(0,2.6)
-        ax.set_ylim(0,12)
+        ax.set_ylim(*ylim)
         ax.set_ylabel(field_name)
         ax.set_title(time.asctime())
         
@@ -736,12 +736,20 @@ def coef_height_plot(field_name, output, err_name=None,
             z = np.delete(z, exarr)
             values = np.delete(values, exarr)
 
+            if oplotdir is not None:
+                oplotdata = pyfits.open('{}/{}'.format(oplotdir,coef))[1].data
+                oplot = oplotdata[field_name]
+                oplot = np.delete(oplot, exarr)
+
             if err_name is None:
                 ax.plot(z, values, '.', color=color, label='P{}'.format(p))
             else:
                 err = data[err_name]
                 err = np.delete(err, exarr)
                 ax.errorbar(z, values, yerr=err, fmt='.', color=color, capsize=0, label='P{}'.format(p))
+
+            if oplotdir is not None:
+                ax.scatter(z, oplot, marker='s', color=color, alpha=0.4)
 
         ax.legend(loc=0,scatterpoints=1,numpoints=1)
 
@@ -751,7 +759,7 @@ def coef_height_plot(field_name, output, err_name=None,
 
         return
 
-def coef_covar(field1, field2, output, plotmono=False):
+def coef_covar(field1, field2, output, plotmono=False, field3=False):
 
     plist = [6,3,4,2,1,5]
     color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
@@ -778,16 +786,17 @@ def coef_covar(field1, field2, output, plotmono=False):
             print coef
             values1 = data[field1]
             values2 = data[field2]
-                        
-            # if N == 1:
-            #     ax.scatter(values1, values2, color=color, alpha=0.5, linewidth=0, label='P{}'.format(p))
-            # else:
+            if field3:
+                c = data[field3]
+            else:
+                c = 'b'
+
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.set_xlabel(field1)
             ax.set_ylabel(field2)
             ax.set_title('P{}.{}\n{}'.format(p,N,time.asctime()))
-            ax.scatter(values1, values2, color='b', alpha=1, linewidth=0)
+            ax.scatter(values1, values2, c=c, alpha=1, linewidth=0, cmap=plt.cm.gnuplot)
 
             if plotmono:
                 for Z in ['0.2Z','0.4Z','1Z','2.5Z']:
