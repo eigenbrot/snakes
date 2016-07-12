@@ -869,6 +869,34 @@ def coef_MCcovar_3panel(field1, field2, field3, output, zlims=[0,0.4], plist=[1,
 
     return
 
+def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix='coef',
+                  label=r'$\delta\tau_{L,\mathrm{fit}}/\tau_L$',exclude=exclude):
+
+    ratio_list = []
+
+    for p in range(6):
+        coef = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p+1,suffix)
+        print coef
+        c = pyfits.open(coef)[1].data
+        tmp = c[err]/c[field]
+        tmp = np.delete(tmp,np.array(exclude[p]) - 1)
+        ratio_list.append(tmp)
+
+    ratio = np.hstack(ratio_list)
+    ratio = ratio[ratio == ratio]
+    ratio = ratio[np.where(ratio < 0.8)[0]]
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel(label)
+    ax.set_ylabel('N')
+    ax.hist(ratio, bins=bins, histtype='step', color='k')
+
+    pp = PDF(output)
+    pp.savefig(ax.figure)
+    pp.close()
+    plt.close(ax.figure)
+
+    return
+
 def SFH_cuts(output, basedir='.', exclude=exclude, rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4):
 
     fig = plt.figure()
