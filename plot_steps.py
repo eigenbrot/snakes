@@ -26,6 +26,16 @@ flist_all2 = ['{}Z/steps'.format(i) for i in Zlist_all2]
 offset_all2 = [0,0,0,0,0,0,20,20,20]
 numfree_all2 = [1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-25-1,1428-25-1,1428-25-1]
 
+Zlist_all3 = [0.2,0.4,1,2.5,'all','hi']
+flist_all3 = ['{}Z/steps'.format(i) for i in Zlist_all3]
+offset_all3 = [0,0,0,0,20,20]
+numfree_all3 = [1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-25-1,1428-17-1]
+
+Zlist_all4 = [0.005,0.02,0.2,0.4,1,2.5,'all','prior','hi']
+flist_all4 = ['{}Z/steps'.format(i) for i in Zlist_all4]
+offset_all4 = [0,0,0,0,0,0,20,20,20]
+numfree_all4 = [1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-5-1,1428-25-1,1428-17-1,1428-17-1]
+
 def plot(stepfile, offset=0):
 
     MLWA, TAUV, Chi, blueChi = np.loadtxt(stepfile,usecols=(6+offset,
@@ -408,6 +418,98 @@ def plot_all_pointings(output,suff='',label='MLWA'):
                                    lowhigh=True,ylims=[0,11],
                                    plotfit=False,exclude=pa2.exclude)
     [pp.savefig(a.figure) for a in al]
+    pp.close()
+
+    return
+
+def chisq_Z_scatter(output, multiname='allZ', rcuts=[3,8], zcuts=[0.4,1]):
+
+    import pyfits
+
+    fig = plt.figure()
+    lax = fig.add_subplot(111, label='bigax')
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_ylabel(r'$\Delta Z$')
+    lax.set_xlabel(r'$\Delta\chi^2$ ({} - mono)'.format(multiname))
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for z in range(len(zcuts) + 1):
+        zc = [bigz[-z-2], bigz[-z-1]]
+        for r in range(len(rcuts) + 1):
+            rc = [bigr[r], bigr[r+1]]
+            print zc, rc
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            for p in range(6):
+                monochi = []
+                monoz = [0.005,0.02,0.2,0.4,1,2.5]
+                for z in monoz:
+                    coeffile = '{}Z/NGC_891_P{}_bin30_allz2.coef.fits'.format(z,p+1)
+                    coefs = pyfits.open(coeffile)[1].data
+                    monochi.append(coefs['CHISQ'])
+                chiarr = np.vstack(monochi)
+                bestmonochi = np.min(chiarr,axis=0)
+                zidx = np.where(chiarr == bestmonochi)[0]
+                bestmonoz = np.array(monoz)[zidx]
+                print bestmonoz
+
+                coeffile = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(multiname,p+1)
+                print coeffile
+                coefs = pyfits.open(coeffile)[1].data
+                loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(multiname,p+1)
+                print loc
+                r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+                r = np.abs(r)
+                z = np.abs(z)
+
+                print coefs['CHISQ'].shape, bestmonochi.shape
+                deltachi = coefs['CHISQ'] - bestmonochi
+                deltaz = coefs['MLWZ'] - bestmonoz
+
+                idx = np.where((z >= zc[0]) & (z < zc[1])
+                               & (r >= rc[0]) & (r < rc[1]))[0]
+
+                deltachi = deltachi[idx]
+                deltaz = deltaz[idx]
+
+                ax.scatter(deltachi, deltaz, color='k', s=10)
+
+            ax.set_ylim(-2.6,2.2)
+            ax.set_xlim(-2.6,1.7)
+            ax.axvline(0,ls=':',alpha=0.6,color='k')
+            ax.axhline(0,ls=':',alpha=0.6,color='k')
+
+            if i % (len(rcuts) + 1) == 0:
+                tax = ax.twinx()
+                tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))
+                tax.set_ylim(*ax.get_ylim())
+                tax.set_yticklabels([])
+
+            if i <= len(rcuts) + 1:
+                tax = ax.twiny()
+                tax.set_xlabel('${}\leq |r| <{}$ kpc'.format(*rc))
+                tax.set_xlim(*ax.get_xlim())
+                tax.set_xticklabels([])
+
+            if i <= (len(zcuts)) * (len(rcuts) + 1):
+                ax.set_xticklabels([])
+            if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
+                ax.set_yticklabels([])
+
+            i += 1
+
+    fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    
+    pp = PDF(output)
+    pp.savefig(fig)
     pp.close()
 
     return
