@@ -844,15 +844,15 @@ def coef_MCcovar_3panel(field1, field2, field3, output, zlims=[0,0.4], plist=[1,
             N += 1 
 
     ax1.set_xticklabels([])
-    ax1.set_ylabel(field2)
+    ax1.set_ylabel('{0} - <{0}>'.format(field2))
 
     ax2.set_xlim(*ax1.get_xlim())
-    ax2.set_xlabel(field1)
-    ax2.set_ylabel(field3)
+    ax2.set_xlabel('{0} - <{0}>'.format(field1))
+    ax2.set_ylabel('{0} - <{0}>'.format(field3))
 
     ax3.set_ylim(*ax2.get_ylim())
     ax3.set_yticklabels([])
-    ax3.set_xlabel(field2)
+    ax3.set_xlabel('{0} - <{0}>'.format(field2))
     
     fig.subplots_adjust(hspace=0.001,wspace=0.001)
 
