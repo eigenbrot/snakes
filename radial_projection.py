@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.transforms import Affine2D
 from matplotlib.projections import PolarAxes
-from mpl_toolkits.axisartist import angle_helper
-from mpl_toolkits.axisartist.grid_finder import MaxNLocator
-from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
+from axisartist import angle_helper
+from axisartist.grid_finder import MaxNLocator
+from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
 def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3):
@@ -74,24 +74,21 @@ def compute_rphi_tau(location, coeffile, scale=30./1001.):
 def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='polar')
-    ax.set_theta_offset(np.pi)
-    ax.set_ylim(*rlim)
-    scat = ax.scatter(phi*np.pi/180., r, c=data, s=40, cmap=plt.cm.gnuplot2, 
-                      edgecolors='none', alpha=0.6)
-
-    # rmax = rlim[1]
-    # ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
-    #                            ticklabels=False, thlabel='', rlabel='')
-    # ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
-    # ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
-    # ax.text(90,rmax*1.05,'r [kpc]',ha='center')
-    # for i in range(4):
-    #     rloc = round(rmax/4)*(i+1)
-    #     ax.text(90,rloc,'{:3.0f}'.format(rloc), ha='left', fontsize=10)
-    
-    # scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2,
+    # ax = fig.add_subplot(111, projection='polar')
+    # ax.set_theta_offset(np.pi)
+    # ax.set_ylim(*rlim)
+    # scat = ax.scatter(phi*np.pi/180., r, c=data, s=40, cmap=plt.cm.gnuplot2, 
     #                   edgecolors='none', alpha=0.6)
+
+    rmax = rlim[1]
+    ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
+                               ticklabels=False, thlabel='', rlabel='')
+    for i in range(4):
+        rloc = round(rmax/4)*(i+1)
+        ax.text(90,rloc,'{:3.0f}'.format(rloc), ha='left', fontsize=10)
+    
+    scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2,
+                      edgecolors='none', alpha=0.6)
 
     return ax, scat
 
@@ -145,6 +142,10 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
     cbax = ax.figure.add_axes([0.15,0.87,0.7,0.05])
     cb = ax.figure.colorbar(scat, cax=cbax, orientation='horizontal')
     cb.set_label('z [kpc]')
+
+    ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
+    ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
+    ax.text(90,rmax*1.05,'r [kpc]',ha='center')
         
     # ax.set_xlabel('True radius [kpc]')
     # ax.set_ylabel(r'$\phi$')
