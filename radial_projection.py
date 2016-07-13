@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
@@ -9,7 +10,8 @@ from axisartist.grid_finder import MaxNLocator
 from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
-def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3):
+def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
+                 output=False):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
     V = np.loadtxt(velocity, usecols=(1,), unpack=True) #km/s
@@ -24,6 +26,19 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3):
     r = np.abs(Vcvec/V) * np.abs(rho)
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
                                 #side
+
+    if output:
+        with open(output,'w') as f:
+            f.write("""# Generate on {}
+# from:
+#     {}
+#     {}
+#
+""".format(time.asctime(),location,velocity))
+            f.write('#{:>6}{:>10}{:>10}\n#\n'.format('Apnum','r (kpc)', 'phi (deg)'))
+            for i in range(r.size):
+                f.write('{:7n}{:10.3f}{:10.3f}\n'.format(i,r[i],phi[i]*180./np.pi))
+
 
     return r, phi*180./np.pi
 
@@ -156,6 +171,16 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
     ax.figure.show()
     
     return ax
+
+def create_rphi_files():
+    
+    for p in range(6):
+        loc = 'NGC_891_P{}_bin30_locations.dat'.format(p+1)
+        vel = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
+        out = 'NGC_891_P{}_bin30_rphi.dat'.format(p+1)
+        compute_rphi(loc,vel,output=out)
+
+    return
 
 def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(30, 0.2),
                           thlabel='theta', rlabel='r', ticklabels=True):
