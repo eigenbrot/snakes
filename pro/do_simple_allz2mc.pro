@@ -1,6 +1,6 @@
 
 pro do_simple_allz2mc, datafile, errorfile, output, NMC=NMC, location=location, $
-                       velocity=velocity, emmaskw=emmaskw, $
+                       velocity=velocity, emmaskw=emmaskw, mcerrfile=mcerrfile, $
                        maskBalm=maskBalm, parinfofile=parinfofile, $
                        model=model, fitregion=fitregion, velstart=velstart, $
                        wavemin=wavemin, wavemax=wavemax, lightmin=lightmin, $
@@ -40,6 +40,12 @@ m = mrdfits(model, 1)
 ; read in data
 data = MRDFITS(datafile,0,header)
 error = MRDFITS(errorfile,0)
+
+if n_elements(mcerrfile) gt 0 then begin
+   mcerr = MRDFITS(mcerrfile,0)
+endif else begin
+   mcerr = error
+endelse 
 
 numfibers = N_ELEMENTS(data[0,*])
 wavesize = N_ELEMENTS(data[*,0])
@@ -145,6 +151,7 @@ for i = 0, numfibers - 1 DO BEGIN
    print, 'Grabbing fiber '+string(i+1,format='(I3)')
    flux = data[idx,i]*flux_factor
    err = error[idx,i]*flux_factor
+   mce = mcerr[idx,i]*flux_factor
    
    if keyword_set(location) then begin
       vdidx = where(sizeidx eq fiber_radii[i])
@@ -197,7 +204,7 @@ for i = 0, numfibers - 1 DO BEGIN
    MCarray = replicate(MCarray, NMC)
 
    for NN = 0, NMC - 1 do begin
-      df = randomn(seed, n_elements(flux))*err
+      df = randomn(seed, n_elements(flux))*mce
       tmpflux = convol(flux+df, [0.7,1,0.7],/edge_mirror)
       tcoef = bc_continuum_allZ2(m, wave, tmpflux, err, vdidx, $
                                  fitregion=fitregion, fixedV=fixedV, $
