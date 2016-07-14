@@ -20,7 +20,7 @@ excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
 
-def make_galaxies(tausf_list = deftlst, ma11 = False):
+def make_galaxies(tausf_list = deftlst, ma11 = False, vdisp=200.0):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -42,7 +42,7 @@ def make_galaxies(tausf_list = deftlst, ma11 = False):
                 galname = 'bc03_gal_t{}'.format(t)
             gal = tm.make_galaxy(galname,tau_sf = t,
                                  SSPs=modellist[z],makeplot=True,
-                                 writeoutput=False,vdisp=0.0)
+                                 writeoutput=False,vdisp=vdisp)
             output[i,:] = gal['flux']/np.mean(gal['flux'])
             outhdu.header.update('TSF{:02n}'.format(i+1),t)
 
