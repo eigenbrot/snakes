@@ -46,7 +46,6 @@ def force_dtype(dtype, data):
 
     output = np.zeros(1, dtype=dtype)[0]
     for n in output.dtype.names:
-        print n, data[n].shape, output[n].shape
         if output[n].shape == data[n].shape:
             output[n] = data[n]
 
