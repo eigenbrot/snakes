@@ -1094,7 +1094,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
     lax.spines['left'].set_visible(False)   
     lax.set_xticklabels([])
     lax.set_yticklabels([])
-    lax.set_ylabel(r'$\mathrm{Fractional }f_i(\lambda)\int\ \psi(t) dt$')
+    lax.set_ylabel(r'$\mathrm{Fractional }\ f_i(\lambda)\int\ \psi(t) dt$')
     lax.set_xlabel('Lookback time [Myr]')
     lax.tick_params(axis='both',pad=20,length=0)
 
