@@ -262,6 +262,116 @@ def compare_young_Dn4000(output,tausf=5):
     
     return young, D4000res
 
+def compare_young_weight_D4000(output):
+    import D4000_indices as DI
+    import pyfits
+    allZborders = DFK_borders*6
+
+    LMdir = '.'
+    D4000dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/indecies/D4000/tau_grid'
+    numZ, numAge = 6, 4
+    
+    D4000_list = []
+    young_weight_list = []
+    
+    for p in range(6):
+        coeffile = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(LMdir,p+1)
+        print coeffile
+        coefs = pyfits.open(coeffile)[1].data
+        lw = np.reshape(coefs['LIGHT_WEIGHT'], (coefs.shape[0], numZ, numAge))
+        lw /= np.sum(lw,axis=(1,2))[:,None,None]
+        print np.sum(lw,axis=(1,2))
+        ylw = np.sum(lw[:,:,0:2],axis=(1,2))
+        olw = np.sum(lw[:,:,2:],axis=(1,2))
+        olw2 = np.sum(lw[:,:,-1],axis=1)
+        young_weight_list.append(olw2)
+        
+        D4000file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(D4000dir,p+1)
+        print D4000file
+        res = DI.quick_eat(D4000file)
+        D4000_list.append(res[:,2])
+    
+    young_weight = np.hstack(young_weight_list)
+    D4000 = np.hstack(D4000_list)
+
+    print young_weight.shape, D4000.shape
+
+    ax = plt.figure().add_subplot(111)
+    ax.scatter(D4000, young_weight, c='k')
+    ax.set_xlabel('D4000')
+    ax.set_ylabel('Young light weight')
+#    ax.set_ylim(-1,10)
+
+    pp = PDF(output)
+    pp.savefig(ax.figure)
+    pp.close()
+    
+    return
+
+def LW_3panel(output):
+    
+    import pyfits
+    import D4000_indices as DI
+
+    fig = plt.figure(figsize=(8,8))
+    ax1 = fig.add_subplot(221)
+    ax2 = fig.add_subplot(223)
+    ax3 = fig.add_subplot(224)
+    LMdir = '.'
+    D4000dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/indecies/D4000/tau_grid'
+
+    numZ, numAge = 6, 4
+
+    for p in range(6):
+        coef = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(LMdir,p+1)
+        c = pyfits.open(coef)[1].data
+        lw = np.reshape(c['LIGHT_WEIGHT'], (c.shape[0], numZ, numAge))
+        lw /= np.sum(lw,axis=(1,2))[:,None,None]
+
+        y = np.mean(lw[:,:,0],axis=1)
+        i1 = np.mean(lw[:,:,1],axis=1)
+        i2 = np.mean(lw[:,:,2],axis=1)
+
+        D4000file = '{}/NGC_891_P{}_bin30.msoz.Dn4000.dat'.format(D4000dir,p+1)
+        print D4000file
+        res = DI.quick_eat(D4000file)[:,2]
+
+        ax1.scatter(y, i1, c=res, vmin=1.0,vmax=2.5, cmap=plt.cm.gnuplot,
+                    linewidth=0, alpha=0.6)
+        ax2.scatter(y, i2, c=res, vmin=1.0,vmax=2.5,
+                    cmap=plt.cm.gnuplot,linewidth=0, alpha=0.6)
+        scat = ax3.scatter(i1, i2, c=res, vmin=1.0,vmax=2.5,
+                           cmap=plt.cm.gnuplot,linewidth=0, alpha=0.6)
+
+    ax2.set_xlabel('Y')
+
+    ax1.set_xticklabels([])
+    ax1.set_ylabel('I1')
+
+    ax2.set_xlim(*ax1.get_xlim())
+    ax2.set_ylabel('I2')
+
+    ax3.set_ylim(*ax2.get_ylim())
+    ax3.set_yticklabels([])
+    ax3.set_xlabel('I1')
+
+    
+    fig.subplots_adjust(hspace=0.001,wspace=0.001)
+
+    cax = fig.add_axes([0.66,0.55,0.04,0.32])
+    cb = fig.colorbar(scat, cax=cax)
+    cb.set_alpha(1)
+    cb.set_label('Dn4000')
+    cb.draw_all()
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+
+    return
+
+
 def compute_tausf_err(tausflist=None):
 
     import pyfits
