@@ -684,7 +684,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
-              isochrones=False):
+              isochrones=False,multires=True):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'spynum': 2}, #break = 2
@@ -772,7 +772,11 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 ax.set_yticklabels([])
             if grid:
                 if spy:
-                    model_file = '{}/BC03_spy.fits'.format(basedir)
+                    if multires:
+                        model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
+                    else:
+                        model_file = '{}/BC03_spy.fits'.format(basedir)
+                    print model_file
                     band1 = band_d[x]['spynum']/2
                     band2 = band_d[y]['spynum']/2
                 else:

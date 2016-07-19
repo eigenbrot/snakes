@@ -634,7 +634,8 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], grid=False, spy=False, err=True):
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
+                    grid=False, spy=False, err=True, multires=True):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -695,7 +696,11 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                 ax.set_yticklabels([])
             if grid:
                 if spy:
-                    model_file = '{}/BC03_spy.fits'.format(basedir)
+                    if multires:
+                        model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
+                    else:
+                        model_file = '{}/BC03_spy.fits'.format(basedir)
+                    print model_file
                     band1 = 0
                     band2 = 1
                 else:
