@@ -41,7 +41,7 @@ def make_galaxies(tausf_list = deftlst, ma11 = False, vdisp=200.0):
             else:
                 galname = 'bc03_gal_t{}'.format(t)
             gal = tm.make_galaxy(galname,tau_sf = t,
-                                 SSPs=modellist[z],makeplot=True,
+                                 SSPs=modellist[z],makeplot=False,
                                  writeoutput=False,vdisp=vdisp)
             output[i,:] = gal['flux']/np.mean(gal['flux'])
             outhdu.header.update('TSF{:02n}'.format(i+1),t)
@@ -193,6 +193,62 @@ def combine_sbands(output,numaps=len(deftlst),ma11 = False):
             results[a,f,:] = eat_index(data['eqwidth'][idx])
 
     
+    outhdu = pyfits.PrimaryHDU(results)
+    outhdu.header.update('d0','aperture')
+    outhdu.header.update('d1','Z')
+    outhdu.header.update('d2','index')
+    outhdu.header.update('i0','HB')
+    outhdu.header.update('i1','HdA')
+    outhdu.header.update('i2','HgA')
+    outhdu.header.update('i3','HdF')
+    outhdu.header.update('i4','HgF')
+    outhdu.header.update('i5','FeAvg')
+    outhdu.header.update('i6','MgFe')
+    outhdu.writeto(output,clobber=True)
+
+    return
+
+def combine_multires_sbands(output, numaps=len(deftlst), 
+                            group=1):
+    dirlistd = {1: ['24192','19958','18738','17947'],
+                2: ['34356','25751','24995','24471'],
+                3: ['42806','31304','30267','29751']}
+    numbands = 8
+    fraclist = bc03_fraclist
+    fraclist = np.sort(fraclist)
+    results = np.zeros((numaps, fraclist.size, numbands))
+    for f, frac in enumerate(fraclist):
+        reslist = []
+        for resdir in dirlistd[group]:
+            fracfile = '{:}/BC03_Z{:04n}_tau.bands.dat'.format(resdir,frac*1000)
+            data = np.loadtxt(fracfile,usecols=(0,1,5,6),
+                              dtype={'names':('aps','bands','index','eqwidth'),
+                                     'formats':('S50','S11','f4','f4')})
+            aps = np.unique(data['aps'])
+            sar = [int(s.split(',')[-1].split(']')[0]) for s in aps]
+            sidx = np.argsort(sar)
+            print aps[sidx]
+            alist = []
+            for ap in aps[sidx]:
+                idx = np.where(data['aps'] == ap)
+                alist.append(data['eqwidth'][idx])
+
+            reslist.append(alist)
+
+        #allres = [tausf (ap),index,resolution]
+        allres = np.dstack(reslist)
+        print allres.shape
+        tmp = np.zeros((allres.shape[0],8)) #So the non-used indices will be zero
+        
+        #HdA
+        tmp[:,1] = allres[:,0,0]
+        #<Fe>
+        tmp[:,5] = 0.5*(allres[:,5,2] + allres[:,6,3])
+        #[MgFe]
+        tmp[:,6] = np.sqrt(allres[:,4,1]*(0.72*allres[:,5,2] + 0.28*allres[:,6,3]))
+
+        results[:,f,:] = tmp
+
     outhdu = pyfits.PrimaryHDU(results)
     outhdu.header.update('d0','aperture')
     outhdu.header.update('d1','Z')

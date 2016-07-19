@@ -243,6 +243,61 @@ def combine_sbands(output,numaps=len(deftlst),ma11 = False):
 
     return
 
+def combine_multires_sbands(output, numaps=len(deftlst), 
+                            group=1):
+    dirlistd = {1: ['29377','24192'],
+                2: ['39180','34356'],
+                3: ['47014','42806']}
+    numbands = 3
+    fraclist = bc03_fraclist
+    fraclist = np.sort(fraclist)
+    results = np.zeros((numaps, fraclist.size, numbands))
+    for f, frac in enumerate(fraclist):
+        reslist = []
+        Ireslist = []
+        for resdir in dirlistd[group]:
+            fracfile = '{:}/BC03_Z{:04n}_tau.Dn4000.dat'.format(resdir,frac*1000)
+            data = np.loadtxt(fracfile,usecols=(0,1,5,6),
+                              dtype={'names':('aps','bands','index','eqwidth'),
+                                     'formats':('S50','S11','f4','f4')})
+            aps = np.unique(data['aps'])
+            sar = [int(s.split(',')[-1].split(']')[0]) for s in aps]
+            sidx = np.argsort(sar)
+            print aps[sidx]
+            alist = []
+            Ialist = []
+            for ap in aps[sidx]:
+                idx = np.where(data['aps'] == ap)
+                alist.append(data['eqwidth'][idx])
+                Ialist.append(data['index'][idx])
+
+            reslist.append(alist)
+            Ireslist.append(Ialist)
+
+        #allres = [tausf (ap),index,resolution]
+        allres = np.dstack(reslist)
+        Iallres = np.dstack(Ireslist)
+        print allres.shape
+        tmp = np.zeros((allres.shape[0],3)) #So the non-used indices will be zero
+        
+        #HdA
+        tmp[:,0] = allres[:,0,1]
+        #Dn4000
+        tmp[:,2] = Iallres[:,2,0]
+
+        results[:,f,:] = tmp
+
+    outhdu = pyfits.PrimaryHDU(results)
+    outhdu.header.update('d0','aperture')
+    outhdu.header.update('d1','Z')
+    outhdu.header.update('d2','index')
+    outhdu.header.update('i0','HdA')
+    outhdu.header.update('i1','HdF')
+    outhdu.header.update('i2','Dn4000')
+    outhdu.writeto(output,clobber=True)
+
+    return
+
 def quick_eat(datafile, numbands=3):
 
     data = np.loadtxt(datafile,usecols=(0,1,5,6),
