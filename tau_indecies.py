@@ -434,6 +434,28 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
 
     return
 
+def plot_mgb_tracks_on_grid(parsefile, ax):
+
+    data = np.loadtxt(parsefile)
+    Z = data[:,0]
+    age = data[:,1]
+    #uniA = np.unique(age)
+    #plotA = uniA[::uniA.size/5]
+    plotA = [0.25, 0.71, 1., 2.82, 4.47, 7.08, 11.22]
+    colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
+
+    for i, A in enumerate(plotA):
+        idx = np.where(age == A)[0]
+        if idx.size != 8:
+            continue
+        print data[idx,0]
+        ax.plot(data[idx,2], data[idx,3], ls='-', color=colors[i], lw=1.6, alpha=0.6)
+        ax.plot(data[idx,4], data[idx,5], ls='--', color=colors[i], lw=1.2, alpha=0.6)
+        ax.text(0.1,0.9-0.05*i,'{:3.1f} Gyr'.format(A), color=colors[i], 
+                fontsize=14,transform=ax.transAxes)
+
+    return
+
 def plot_yanny_on_grid(parfile, ax, band1, band2):
 
     par = yanny(parfile,np=True)
@@ -684,7 +706,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
-              isochrones=False,multires=True):
+              isochrones=False,multires=True, plotfid=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'spynum': 2}, #break = 2
@@ -770,7 +792,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 ax.set_xticklabels([])
             if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
                 ax.set_yticklabels([])
-            if grid:
+            if grid and not plotfid:
                 if spy:
                     if multires:
                         model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
@@ -779,12 +801,16 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     print model_file
                     band1 = band_d[x]['spynum']/2
                     band2 = band_d[y]['spynum']/2
+                    print band1, band2
                 else:
                     model_file = '{}/BC03_bands.fits'.format(basedir)
                     band1 = band_d[x]['num']
                     band2 = band_d[y]['num']
                 plot_model_grid(model_file,ax,band1,band2,alpha=0.5,
                                 plotlabels=plotlabels, isochrones=isochrones)
+            if plotfid:
+                plot_mgb_tracks_on_grid('mgb_parse.dat', ax)
+
             if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
                 res = np.loadtxt(data_file)
                 repxerr = np.nanmedian(res[:,band_d[x]['spynum']+1])
