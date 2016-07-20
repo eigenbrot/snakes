@@ -1079,7 +1079,7 @@ def light_weight_cuts(output, basedir='.', exclude=exclude,
             
     return
 
-def SFH_cuts(output, basedir='.', exclude=exclude, 
+def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
              rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4):
 
     DFK_borders = np.array([[0.9e-3,5.2e-3],
@@ -1120,6 +1120,10 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
                 loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
                 print loc
                 r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+                if rtrue:
+                    rphi = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir, p+1)
+                    r = np.loadtxt(rphi,usecols=(1,),unpack=True)
+                
                 r = np.abs(r)
                 z = np.abs(z)
                 
@@ -1164,7 +1168,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
             # ax.hlines(bigD + bigE, DFK_borders[:,0], DFK_borders[:,1],colors='k', lw=1,linestyles=':')
             for d in range(numAge):
                 ax.fill_between(DFK_borders[d],[bigD[d] + bigE[d]]*2,[bigD[d] - bigE[d]]*2, 
-                                color=plt.cm.gnuplot(norm(bigZ[d])), alpha=1)
+                                color=plt.cm.gnuplot2(norm(bigZ[d])), alpha=1)
             
             ax.set_xscale('log')
             ax.set_xlim(0.3e1,4e4)
@@ -1180,7 +1184,11 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
                         ha='center',va='center',transform=ax.transAxes)
 
             if i <= len(rcuts) + 1:
-                ax.text(0.5,1.07,'${}\leq |r| <{}$ kpc'.format(*rc),
+                if rtrue:
+                    rlab = '${}\leq |r| <{}$ kpc'.format(*rc)
+                else:
+                    rlab = '${}\leq |r_\mathrm{{proj}}| <{}$ kpc'.format(*rc)
+                ax.text(0.5,1.07,rlab,
                         ha='center',va='center',transform=ax.transAxes)
 
             axlist.append(ax)
@@ -1188,7 +1196,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
     cax, _ = mplcb.make_axes(axlist)
-    cb = mplcb.ColorbarBase(cax, cmap=plt.cm.gnuplot, norm=norm)
+    cb = mplcb.ColorbarBase(cax, cmap=plt.cm.gnuplot2, norm=norm)
     cb.set_label(r'$Z_L$')
     
 
