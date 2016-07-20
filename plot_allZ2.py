@@ -11,6 +11,7 @@ import time
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib import rc
 from matplotlib import colors as mplcolors
+import matplotlib.colorbar as mplcb
 from matplotlib.ticker import ScalarFormatter
 import glob
 import time
@@ -1084,7 +1085,8 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
     DFK_borders = np.array([[0.9e-3,5.2e-3],
                             [5.5e-3,0.404],
                             [0.4535,5.75],
-                            [6,13.5]]) * 1e6
+                            [6,13.5]]) * 1e3
+    Zvals = np.array([0.005,0.02,0.2,0.4,1,2.5])
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -1102,6 +1104,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
     bigr = [0] + rcuts + [11]
     
     i = 1
+    axlist = []
     for z in range(len(zcuts) + 1):
         zc = [bigz[-z-2], bigz[-z-1]]
         for r in range(len(rcuts) + 1):
@@ -1109,6 +1112,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
             print zc, rc
             bigD_list = []
             bigE_list = []
+            bigZ_list = []
             for p in range(6):
                 coeffile = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir,p+1)
                 print coeffile
@@ -1140,24 +1144,30 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
                 print np.sum(lw,axis=(1,2))
                 bigD_list.append(np.sum(lw,axis=1))
                 bigE_list.append(np.sqrt(np.sum(lwe**2,axis=1)))
+                bigZ_list.append(np.sum(lw * Zvals[None,:,None],axis=1)/(np.sum(lw,axis=1)+0.0001))
 
             bigDarr = np.vstack(bigD_list)
             bigEarr = np.vstack(bigE_list)
-            print bigDarr.shape, bigEarr.shape
+            bigZarr = np.vstack(bigZ_list)
+            print bigDarr.shape, bigEarr.shape, bigZarr.shape
             print np.mean(bigDarr,axis=0)
             print np.sum(np.mean(bigDarr,axis=0))
             bigD = np.mean(bigDarr,axis=0)
             bigE = np.sqrt(np.sum(bigEarr**2,axis=0))/(bigEarr.shape[0])
-            print bigD.shape, bigE.shape
+            bigZ = np.mean(bigZarr,axis=0)
+            print bigD.shape, bigE.shape, bigZ.shape
+            print bigZ
+            norm = plt.Normalize(0,2.5)
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             # ax.hlines(bigD, DFK_borders[:,0], DFK_borders[:,1],color='k', lw=2)
             # ax.hlines(bigD - bigE, DFK_borders[:,0], DFK_borders[:,1],colors='k', lw=1,linestyles=':')
             # ax.hlines(bigD + bigE, DFK_borders[:,0], DFK_borders[:,1],colors='k', lw=1,linestyles=':')
             for d in range(numAge):
-                ax.fill_between(DFK_borders[d],[bigD[d] + bigE[d]]*2,[bigD[d] - bigE[d]]*2, color='k', alpha=1)
+                ax.fill_between(DFK_borders[d],[bigD[d] + bigE[d]]*2,[bigD[d] - bigE[d]]*2, 
+                                color=plt.cm.gnuplot(norm(bigZ[d])), alpha=1)
             
             ax.set_xscale('log')
-            ax.set_xlim(0.3e3,4e7)
+            ax.set_xlim(0.3e1,4e4)
             ax.set_ylim(-0.001,0.98)
 
             if i <= (len(zcuts)) * (len(rcuts) + 1):
@@ -1173,10 +1183,15 @@ def SFH_cuts(output, basedir='.', exclude=exclude,
                 ax.text(0.5,1.07,'${}\leq |r| <{}$ kpc'.format(*rc),
                         ha='center',va='center',transform=ax.transAxes)
 
+            axlist.append(ax)
             i += 1
 
     fig.subplots_adjust(hspace=0.00001,wspace=0.0001)
+    cax, _ = mplcb.make_axes(axlist)
+    cb = mplcb.ColorbarBase(cax, cmap=plt.cm.gnuplot, norm=norm)
+    cb.set_label(r'$Z_L$')
     
+
     pp = PDF(output)
     pp.savefig(fig)
     pp.close()
