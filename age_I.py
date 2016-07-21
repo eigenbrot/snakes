@@ -474,6 +474,6 @@ def compute_random_err(N=100):
             output['MLWA'][i] = np.nanmean(tmp)
             output['dMLWA'][i] = np.nanstd(tmp)
             
-        pyfits.BinTableHDU(output).writeto('NGC_891_P{}_bin30_allz2.aIR.fits'.format(p+1),clobber=True)
+        pyfits.BinTableHDU(output).writeto('NGC_891_P{}_bin30_allz2.syserr.fits'.format(p+1),clobber=True)
 
     return
