@@ -21,38 +21,48 @@ def do_ap(pointing, ap, nstd=1, output=None):
     ddata = np.vstack((d1,d2,d3))
     cov = np.cov(ddata)
     print cov
-    vals, vecs = np.linalg.eig(cov)
+    #vals, vecs = np.linalg.eig(cov)
+    vals, vecs = eigsorted(cov)
     print vals
-    print np.sqrt(np.diagonal(cov))
-    print np.sqrt(vals)
+    print vecs
     maxidx = np.argmax(vals)
     print maxidx
-    # theta1 = np.arctan2(vecs[1,maxidx],vecs[0,maxidx])
-    # theta2 = np.arctan2(vecs[2,maxidx],vecs[0,maxidx])
-    # theta3 = np.arctan2(vecs[1,maxidx],vecs[2,maxidx])
-    theta1 = np.arctan2(vecs[1,0],vecs[0,0])
-    theta2 = np.arctan2(vecs[2,0],vecs[0,0])
-    theta3 = np.arctan2(vecs[2,1],vecs[1,1])
+    theta1 = np.arctan2(vecs[1,maxidx],vecs[0,maxidx])
+    theta2 = np.arctan2(vecs[2,maxidx],vecs[0,maxidx])
+    theta3 = np.arctan2(vecs[1,maxidx],vecs[2,maxidx])
+    # theta1 = np.arctan2(vecs[1,0],vecs[0,0])
+    # theta2 = np.arctan2(vecs[2,0],vecs[0,0])
+    # theta3 = np.arctan2(vecs[2,1],vecs[1,1])
     
     print theta1 * 180/np.pi, theta2*180/np.pi, theta3*180/np.pi
 
     a, b, c = nstd * np.sqrt(vals)
-    
-    print a*2, b*2, c*2
+    len1 = a*np.cos(theta1)
+    len2 = a*np.sin(theta1)
+    len3 = a*np.sin(theta2)
+
+    print len1*2, len2*2, len3*2
 
     # alim = a*np.cos(theta1)
     # blim = b*np.cos(theta2)
     # clim = b*np.cos(theta3)
 
-    alim = np.sqrt(a**2 * np.cos(theta1)**2 + 
-                   b**2 * np.sin(theta1)**2 +
-                   c**2 * np.sin(theta2)**2)
-    blim = np.sqrt(b**2 * np.cos(theta1)**2 + 
-                   a**2 * np.sin(theta1)**2 +
-                   c**2 * np.sin(theta3)**2)
-    clim = np.sqrt(c**2 * np.cos(theta3)**2 + 
-                   b**2 * np.sin(theta3)**2 +
-                   a**2 * np.sin(theta2)**2)
+    # alim = np.sqrt(len1**2 * np.cos(theta1)**2 + 
+    #                len2**2 * np.sin(theta1)**2)
+    # blim = np.sqrt(len2**2 * np.cos(theta1)**2 + 
+    #                len1**2 * np.sin(theta1)**2)
+    # clim = np.sqrt(len3**2 * np.cos(theta3)**2 + 
+    #                len2**2 * np.sin(theta3)**2)
+
+    alim = np.sqrt(len1**2 * np.cos(theta1)**2 + 
+                   len2**2 * np.sin(theta1)**2 +
+                   len3**2 * np.sin(theta2)**2)
+    blim = np.sqrt(len2**2 * np.cos(theta1)**2 + 
+                   len1**2 * np.sin(theta1)**2 +
+                   len3**2 * np.sin(theta3)**2)
+    clim = np.sqrt(len3**2 * np.cos(theta3)**2 + 
+                   len2**2 * np.sin(theta3)**2 +
+                   len1**2 * np.sin(theta2)**2)
     
     m1 = np.mean(d1)
     m2 = np.mean(d2)
@@ -64,13 +74,13 @@ def do_ap(pointing, ap, nstd=1, output=None):
 
     print s1, s2, s3
 
-    print m1 - alim, m1 + alim
-    print m2 - blim, m2 + blim
-    print m3 - clim, m3 + clim    
+    # print m1 - alim, m1 + alim
+    # print m2 - blim, m2 + blim
+    # print m3 - clim, m3 + clim    
 
     fig = plt.figure()
     ax1 = fig.add_subplot(221)
-    e1 = Ellipse(xy=(m1,m3), width=a*2, height=c*2, angle=theta2 * 180./np.pi,zorder=0,alpha=0.4)
+    e1 = Ellipse(xy=(m1,m3), width=len1*2, height=len3*2, angle=theta2 * 180./np.pi,zorder=0,alpha=0.4)
     ax1.add_artist(e1)
     ax1.scatter(d1,d3,c='k')
     ax1.axvline(m1-alim)
@@ -84,7 +94,7 @@ def do_ap(pointing, ap, nstd=1, output=None):
 
 
     ax2 = fig.add_subplot(223)
-    e2 = Ellipse(xy=(m1,m2), width=a*2, height=b*2, angle=theta1 * 180./np.pi,zorder=0,alpha=0.4)
+    e2 = Ellipse(xy=(m1,m2), width=len1*2, height=len2*2, angle=theta1 * 180./np.pi,zorder=0,alpha=0.4)
     ax2.add_artist(e2)
     ax2.scatter(d1,d2,c='k')
     ax2.axvline(m1-alim)
@@ -97,7 +107,7 @@ def do_ap(pointing, ap, nstd=1, output=None):
     ax2.axhline(m2+s2,color='k',ls=':')
 
     ax3 = fig.add_subplot(224)
-    e3 = Ellipse(xy=(m3,m2), width=c*2, height=b*2, angle=theta3*180/np.pi,zorder=0,alpha=0.4)
+    e3 = Ellipse(xy=(m3,m2), width=len3*2, height=len2*2, angle=theta3*180/np.pi,zorder=0,alpha=0.4)
     ax3.add_artist(e3)
     ax3.scatter(d3,d2,c='k')
     ax3.axvline(m3-clim)
