@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib.patches import Ellipse
 
-def do_ap(pointing, ap, nstd=1):
+def do_ap(pointing, ap, nstd=1, output=None):
 
     apfile = 'MCdir/NGC_891_P{}_bin30_allz2.MC{:03n}.fits'.format(pointing,ap)
     print apfile
@@ -123,7 +123,17 @@ def do_ap(pointing, ap, nstd=1):
     fig.subplots_adjust(hspace=0.001,wspace=0.001)
     fig.suptitle('{}.{}'.format(pointing,ap))
 
+    if output is not None:
+        pp = PDF(output)
+        pp.savefig(fig)
+        pp.close()
+
     return alim, blim, clim, fig
+
+def eigsorted(cov):
+        vals, vecs = np.linalg.eig(cov)
+        order = vals.argsort()[::-1]
+        return vals[order], vecs[:,order]
 
 def do_pointing(pointing, outpre, nstd=1, basedir='.'):
 
