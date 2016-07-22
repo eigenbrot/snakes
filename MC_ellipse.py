@@ -1,5 +1,6 @@
 import numpy as np
 import pyfits
+import scipy.stats as ss
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib.patches import Ellipse
@@ -140,12 +141,147 @@ def do_ap(pointing, ap, nstd=1, output=None):
 
     return alim, blim, clim, fig
 
+def do_2d(X, Y, CI=0.68, ax=None):
+
+    cov = np.cov(X,Y)
+    print cov
+    vals, vecs = eigsorted(cov)
+    theta = np.arctan2(*vecs[:,0][::-1])
+    a, b =  np.sqrt(vals*ss.chi2.ppf(CI,2))
+
+    xlim = np.sqrt((a*np.cos(theta))**2 + (b*np.sin(theta))**2)
+    ylim = np.sqrt((a*np.sin(theta))**2 + (b*np.cos(theta))**2)
+
+    if ax:
+        pos = [np.mean(X),np.mean(Y)]
+        e = Ellipse(xy=pos, width=2*a, height=2*b, angle=theta * 180./np.pi, alpha=0.4,zorder=0)
+        ax.add_artist(e)
+
+    return (xlim, ylim), (a, b, theta)
+    
+def do_ap_2d(pointing, ap, CI=0.68, output=None):
+    
+    apfile = 'MCdir/NGC_891_P{}_bin30_allz2.MC{:03n}.fits'.format(pointing,ap)
+    print apfile
+    d = pyfits.open(apfile)[1].data
+
+    MLWA = d['MLWA']
+    MLWZ = d['MLWZ']
+    TAUV = d['TAUV']
+
+    fig = plt.figure()
+    fig.suptitle('{}.{}'.format(pointing,ap))
+    ax1 = fig.add_subplot(223)
+    ax2 = fig.add_subplot(221)
+    ax3 = fig.add_subplot(224)
+    
+    lims1, e1 = do_2d(MLWA, TAUV, CI, ax1)
+    lims2, e2 = do_2d(MLWA, MLWZ, CI, ax2)
+    lims3, e3 = do_2d(MLWZ, TAUV, CI, ax3)
+
+    print lims1[0], lims2[0]
+    print lims2[1], lims3[0]
+    print lims1[1], lims3[1]
+
+    dMLWA = np.sqrt(lims1[0]**2 + lims2[0]**2)/np.sqrt(2)
+    dMLWZ = np.sqrt(lims2[1]**2 + lims3[0]**2)/np.sqrt(2)
+    dTAUV = np.sqrt(lims1[1]**2 + lims3[1]**2)/np.sqrt(2)
+    
+    MLWA_m = np.mean(MLWA)
+    MLWZ_m = np.mean(MLWZ)
+    TAUV_m = np.mean(TAUV)
+
+    MLWA_s = np.std(MLWA)
+    MLWZ_s = np.std(MLWZ)
+    TAUV_s = np.std(TAUV)
+
+    ax1.scatter(MLWA, TAUV, c='k')
+    ax2.scatter(MLWA, MLWZ, c='k')
+    ax3.scatter(MLWZ, TAUV, c='k')
+    
+    ax1.axvline(MLWA_m + dMLWA, ls='-')
+    ax1.axvline(MLWA_m - dMLWA, ls='-')
+    ax1.axhline(TAUV_m + dTAUV, ls='-')
+    ax1.axhline(TAUV_m - dTAUV, ls='-')
+    ax1.axvline(MLWA_m + MLWA_s, ls=':',color='k')
+    ax1.axvline(MLWA_m - MLWA_s, ls=':',color='k')
+    ax1.axhline(TAUV_m + TAUV_s, ls=':',color='k')
+    ax1.axhline(TAUV_m - TAUV_s, ls=':',color='k')
+
+    ax2.axvline(MLWA_m + dMLWA, ls='-')
+    ax2.axvline(MLWA_m - dMLWA, ls='-')
+    ax2.axhline(MLWZ_m + dMLWZ, ls='-')
+    ax2.axhline(MLWZ_m - dMLWZ, ls='-')
+    ax2.axvline(MLWA_m + MLWA_s, ls=':',color='k')
+    ax2.axvline(MLWA_m - MLWA_s, ls=':',color='k')
+    ax2.axhline(MLWZ_m + MLWZ_s, ls=':',color='k')
+    ax2.axhline(MLWZ_m - MLWZ_s, ls=':',color='k')
+
+    ax3.axvline(MLWZ_m + dMLWZ, ls='-')
+    ax3.axvline(MLWZ_m - dMLWZ, ls='-')
+    ax3.axhline(TAUV_m + dTAUV, ls='-')
+    ax3.axhline(TAUV_m - dTAUV, ls='-')
+    ax3.axvline(MLWZ_m + MLWZ_s, ls=':',color='k')
+    ax3.axvline(MLWZ_m - MLWZ_s, ls=':',color='k')
+    ax3.axhline(TAUV_m + TAUV_s, ls=':',color='k')
+    ax3.axhline(TAUV_m - TAUV_s, ls=':',color='k')
+
+    c1 = count_in_ellipse(MLWA, TAUV, e1)
+    c2 = count_in_ellipse(MLWA, MLWZ, e2)
+    c3 = count_in_ellipse(MLWZ, TAUV, e3)
+    
+    ax1.scatter(MLWA[c1], TAUV[c1], color='r', marker='s', facecolor='none', s=30, linewidths=0.5)
+    ax2.scatter(MLWA[c2], MLWZ[c2], color='r', marker='s', facecolor='none', s=30, linewidths=0.5)
+    ax3.scatter(MLWZ[c3], TAUV[c3], color='r', marker='s', facecolor='none', s=30, linewidths=0.5)
+
+    ax1.text(0.9,0.9,'{:4.2f}'.format(len(c1)*1.0/MLWA.size), fontsize=9,transform=ax1.transAxes)
+    ax2.text(0.9,0.9,'{:4.2f}'.format(len(c2)*1.0/MLWA.size), fontsize=9,transform=ax2.transAxes)
+    ax3.text(0.9,0.9,'{:4.2f}'.format(len(c3)*1.0/MLWA.size), fontsize=9,transform=ax3.transAxes)
+
+    ax1.set_xlim(*ax2.get_xlim())
+    ax1.set_ylim(*ax3.get_ylim())
+    ax3.set_xlim(*ax2.get_ylim())
+    ax2.set_xticklabels([])
+    ax3.set_yticklabels([])
+    
+    ax1.set_xlabel(r'$\tau_L$')
+    ax1.set_ylabel(r'$\tau_V$')
+    ax2.set_ylabel(r'$Z_L$')
+    ax3.set_xlabel(r'$Z_L$')
+
+    fig.subplots_adjust(hspace=0.001,wspace=0.001)
+    fig.suptitle('{}.{}'.format(pointing,ap))
+
+    if output:
+        pp = PDF(output)
+        pp.savefig(fig)
+        pp.close()
+
+    return dMLWA, dMLWZ, dTAUV, fig
+
+def count_in_ellipse(X, Y, ellipse):
+
+    a, b, theta = ellipse
+    mx = np.mean(X)
+    my = np.mean(Y)
+    in_idx = []
+    for i in range(X.size):
+        t1 = ((X[i] - mx)*np.cos(theta) + (Y[i] - my)*np.sin(theta))**2
+        t2 = ((X[i] - mx)*np.sin(theta) - (Y[i] - my)*np.cos(theta))**2
+        f = t1/a**2 + t2/b**2
+        if f <= 1:
+            in_idx.append(i)
+
+    print len(in_idx)*1.0/X.size
+
+    return in_idx
+
 def eigsorted(cov):
         vals, vecs = np.linalg.eig(cov)
         order = vals.argsort()[::-1]
         return vals[order], vecs[:,order]
 
-def do_pointing(pointing, outpre, nstd=1, basedir='.'):
+def do_pointing(pointing, outpre, CI=0.68, basedir='.'):
 
     pp = PDF(outpre+'.pdf')
     ap = 1
@@ -160,13 +296,13 @@ def do_pointing(pointing, outpre, nstd=1, basedir='.'):
 
     for i in range(numap):
         print i+1
-        a, b, c, f = do_ap(pointing, i+1, nstd)
+        dMLWA, dMLWZ, dTAUV, f = do_ap_2d(pointing, i+1, CI)
         output['MLWA'][i] = coefs['MLWA'][i]
         output['MLWZ'][i] = coefs['MLWZ'][i]
         output['TAUV'][i] = coefs['TAUV'][i]
-        output['dMLWA'][i] = a
-        output['dMLWZ'][i] = b
-        output['dTAUV'][i] = c
+        output['dMLWA'][i] = dMLWA
+        output['dMLWZ'][i] = dMLWZ
+        output['dTAUV'][i] = dTAUV
         pp.savefig(f)
         plt.close(f)
 
@@ -175,10 +311,39 @@ def do_pointing(pointing, outpre, nstd=1, basedir='.'):
 
     return
 
-def do_all(nstd=1,basedir='.'):
+def do_all(CI=0.68,basedir='.'):
 
     for p in range(6):
         outpre = 'NGC_891_P{}_bin30_allz2.fiterr'.format(p+1)
-        do_pointing(p+1,outpre,nstd=nstd,basedir=basedir)
+        do_pointing(p+1,outpre,CI=CI,basedir=basedir)
+
+    return
+
+def d2_test(CI=0.68):
+    cov = [[1,0],[0,1]]
+    # cov = [[
+    # cov = [[ 0.30773231, -0.02568195],
+    #        [-0.02568195,  0.00344581]]
+    # cov = [[ 0.0079945,  -0.00014535],
+    #        [-0.00014535,  0.00025371]]
+    # cov = [[ 0.0079945,  -0.00112452],
+    #        [-0.00112452,  0.00109008]]
+    cov = [[ 0.01432639,  0.00315234],
+           [ 0.00315234,  0.00125425]]
+
+    t = np.random.multivariate_normal(mean=(1,1),cov=cov,size=1000)
+    tX = t[:,0]
+    tY = t[:,1]
+
+    ax = plt.figure().add_subplot(111)
+    ax.scatter(tX, tY, c='k')
+    lim, e = do_2d(tX, tY, ax=ax, CI=CI)
+    c = count_in_ellipse(tX, tY, e)
+    ax.scatter(tX[c], tY[c], color='r', marker='s', facecolor='none', s=30, linewidths=0.5)
+
+    pp = PDF('test.pdf')
+    pp.savefig(ax.figure)
+    pp.close()
+    plt.close(ax.figure)
 
     return
