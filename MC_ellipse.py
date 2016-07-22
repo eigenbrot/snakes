@@ -1,6 +1,7 @@
 import numpy as np
 import pyfits
 import scipy.stats as ss
+import scipy.optimize as spo
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 from matplotlib.patches import Ellipse
@@ -141,7 +142,7 @@ def do_ap(pointing, ap, nstd=1, output=None):
 
     return alim, blim, clim, fig
 
-def do_2d(X, Y, CI=0.68, ax=None):
+def do_2d(X, Y, CI=0.68):
 
     cov = np.cov(X,Y)
     print cov
@@ -151,11 +152,6 @@ def do_2d(X, Y, CI=0.68, ax=None):
 
     xlim = np.sqrt((a*np.cos(theta))**2 + (b*np.sin(theta))**2)
     ylim = np.sqrt((a*np.sin(theta))**2 + (b*np.cos(theta))**2)
-
-    if ax:
-        pos = [np.mean(X),np.mean(Y)]
-        e = Ellipse(xy=pos, width=2*a, height=2*b, angle=theta * 180./np.pi, alpha=0.4,zorder=0)
-        ax.add_artist(e)
 
     return (xlim, ylim), (a, b, theta)
     
@@ -175,9 +171,15 @@ def do_ap_2d(pointing, ap, CI=0.68, output=None):
     ax2 = fig.add_subplot(221)
     ax3 = fig.add_subplot(224)
     
-    lims1, e1 = do_2d(MLWA, TAUV, CI, ax1)
-    lims2, e2 = do_2d(MLWA, MLWZ, CI, ax2)
-    lims3, e3 = do_2d(MLWZ, TAUV, CI, ax3)
+    lims1, e1 = do_2d(MLWA, TAUV, CI)
+    lims2, e2 = do_2d(MLWA, MLWZ, CI)
+    lims3, e3 = do_2d(MLWZ, TAUV, CI)
+
+    # lims1, e1 = scale_ellipse(MLWA, TAUV, e1, CI)
+    # lims2, e2 = scale_ellipse(MLWA, MLWZ, e2, CI)
+    # lims3, e3 = scale_ellipse(MLWZ, TAUV, e3, CI)
+
+    lims1, e1, lims2, e2, lims3, e3 = scale_ellipse3(MLWA, TAUV, MLWZ, e1, e2, e3, CI)
 
     print lims1[0], lims2[0]
     print lims2[1], lims3[0]
@@ -187,6 +189,10 @@ def do_ap_2d(pointing, ap, CI=0.68, output=None):
     dMLWZ = np.sqrt(lims2[1]**2 + lims3[0]**2)/np.sqrt(2)
     dTAUV = np.sqrt(lims1[1]**2 + lims3[1]**2)/np.sqrt(2)
     
+    print dMLWA
+    print dMLWZ
+    print dTAUV
+
     MLWA_m = np.mean(MLWA)
     MLWZ_m = np.mean(MLWZ)
     TAUV_m = np.mean(TAUV)
@@ -199,6 +205,10 @@ def do_ap_2d(pointing, ap, CI=0.68, output=None):
     ax2.scatter(MLWA, MLWZ, c='k')
     ax3.scatter(MLWZ, TAUV, c='k')
     
+    draw_ellipse(MLWA, TAUV, e1, ax1)
+    draw_ellipse(MLWA, MLWZ, e2, ax2)
+    draw_ellipse(MLWZ, TAUV, e3, ax3)
+
     ax1.axvline(MLWA_m + dMLWA, ls='-')
     ax1.axvline(MLWA_m - dMLWA, ls='-')
     ax1.axhline(TAUV_m + dTAUV, ls='-')
@@ -259,6 +269,83 @@ def do_ap_2d(pointing, ap, CI=0.68, output=None):
 
     return dMLWA, dMLWZ, dTAUV, fig
 
+def draw_ellipse(X, Y, ellipse, ax):
+    
+    a, b, theta = ellipse    
+    pos = [np.mean(X),np.mean(Y)]
+    e = Ellipse(xy=pos, width=2*a, height=2*b, angle=theta * 180./np.pi, alpha=0.4,zorder=0)
+    ax.add_artist(e)
+
+    return
+
+def scale_ellipse(X, Y, ellipse, CI=0.68):
+
+    p0 = [1.0]
+    pf = spo.fmin(scale_func, p0, args=(X, Y, ellipse, CI),disp=False)
+    a = ellipse[0]*pf[0]
+    b = ellipse[1]*pf[0]
+    theta = ellipse[2]
+    xlim = np.sqrt((a*np.cos(theta))**2 + (b*np.sin(theta))**2)
+    ylim = np.sqrt((a*np.sin(theta))**2 + (b*np.cos(theta))**2)
+
+    print 'pf:', pf[0]
+
+    return (xlim, ylim), (a, b, theta)
+
+def scale_func(p, X, Y, ellipse, CI):
+    
+    a, b, theta = ellipse
+    new_ellipse = (a*p[0], b*p[0], theta)
+    idx = count_in_ellipse(X,Y,new_ellipse)
+    frac = len(idx)*1.0/X.size
+
+    return np.abs(CI - frac)
+
+def scale_ellipse3(X, Y, Z, e1, e2, e3, CI=0.68):
+
+    p0 = [1.0]
+    pf = spo.fmin(scale_func3, p0, args=(X, Y, Z, e1, e2, e3, CI),disp=False)
+    print 'pf:', pf[0]
+
+    a1 = e1[0]*pf[0]
+    b1 = e1[1]*pf[0]
+    theta1 = e1[2]
+    xlim1 = np.sqrt((a1*np.cos(theta1))**2 + (b1*np.sin(theta1))**2)
+    ylim1 = np.sqrt((a1*np.sin(theta1))**2 + (b1*np.cos(theta1))**2)
+
+    a2 = e2[0]*pf[0]
+    b2 = e2[1]*pf[0]
+    theta2 = e2[2]
+    xlim2 = np.sqrt((a2*np.cos(theta2))**2 + (b2*np.sin(theta2))**2)
+    ylim2 = np.sqrt((a2*np.sin(theta2))**2 + (b2*np.cos(theta2))**2)
+
+    a3 = e3[0]*pf[0]
+    b3 = e3[1]*pf[0]
+    theta3 = e3[2]
+    xlim3 = np.sqrt((a3*np.cos(theta3))**2 + (b3*np.sin(theta3))**2)
+    ylim3 = np.sqrt((a3*np.sin(theta3))**2 + (b3*np.cos(theta3))**2)
+
+    return (xlim1, ylim1), (a1, b1, theta1), (xlim2, ylim2), (a2, b2, theta2), (xlim3, ylim3), (a3, b3, theta3)
+
+def scale_func3(p, X, Y, Z, e1, e2, e3, CI):
+    
+    a1, b1, theta1 = e1
+    ne1 = (a1*p[0], b1*p[0], theta1)
+    idx1 = count_in_ellipse(X,Y,ne1)
+    frac1 = len(idx1)*1.0/X.size
+
+    a2, b2, theta2 = e2
+    ne2 = (a2*p[0], b2*p[0], theta2)
+    idx2 = count_in_ellipse(X,Z,ne2)
+    frac2 = len(idx2)*1.0/X.size
+
+    a3, b3, theta3 = e3
+    ne3 = (a3*p[0], b3*p[0], theta3)
+    idx3 = count_in_ellipse(Z,Y,ne3)
+    frac3 = len(idx3)*1.0/X.size
+
+    return np.sqrt((frac1 - CI)**2 + (frac2 - CI)**2 + (frac3 - CI)**2)
+
 def count_in_ellipse(X, Y, ellipse):
 
     a, b, theta = ellipse
@@ -272,7 +359,7 @@ def count_in_ellipse(X, Y, ellipse):
         if f <= 1:
             in_idx.append(i)
 
-    print len(in_idx)*1.0/X.size
+#    print len(in_idx)*1.0/X.size
 
     return in_idx
 
