@@ -202,9 +202,9 @@ def compare_weights(field, errfield, output, bins=10):
         bige1_list.append(p1[errfield])
 
     bigf0 = np.hstack(bigf0_list)
-    bige0 = np.hstack(bige0_list)
+    bige0 = np.hstack(bige0_list)/bigf0
     bigf1 = np.hstack(bigf1_list)
-    bige1 = np.hstack(bige1_list)
+    bige1 = np.hstack(bige1_list)/bigf1
 
     ax1 = plt.figure().add_subplot(111)
     ax1.set_xlabel('p=0')
@@ -215,10 +215,10 @@ def compare_weights(field, errfield, output, bins=10):
     ax2.set_xlabel(errfield)
     ax2.set_ylabel('N')
         
-    pe0 = bige0[np.isfinite(bige0)]
-    pe1 = bige1[np.isfinite(bige1)]
+    pe0 = bige0[bige0 < 1]
+    pe1 = bige1[bige1 < 1]
         
-    ax1.scatter(bigf0,bigf1,c='k')
+    ax1.errorbar(bigf0,bigf1,yerr=bige1*bigf1,xerr=bige0*bigf0,c='k',capsize=0,ls='',marker='o')
     ax1.plot(bigf0,bigf0,color='k',ls=':',alpha=0.5)
     ax2.hist(pe0,bins=bins,color='b',alpha=0.5,histtype='stepfilled',label='p=0')
     ax2.hist(pe1,bins=bins,color='r',alpha=0.5,histtype='stepfilled',label='p=1')
@@ -230,5 +230,91 @@ def compare_weights(field, errfield, output, bins=10):
     pp.close()
     plt.close(ax1.figure)
     plt.close(ax2.figure)
+
+    return
+
+def weight_comp_plot(outpre, bins=20, basedir='.'):
+
+    fields = ['TAUV','MLWA','MLWZ']
+    bigD = {}
+    colors = ['#1b9e77','#d95f02']
+
+    for f in fields:
+        bigD[f] = {'d0':[], 'e0': [], 'd1': [], 'e1': []}
+
+    for p in range(6):
+        
+        basename = 'NGC_891_P{}_bin30_allz2.fiterr.fits'.format(p+1)
+        p0 = pyfits.open(basedir+'/'+basename)[1].data
+        p1 = pyfits.open(basedir+'/IRAF_weight/'+basename)[1].data
+
+        for f in fields:
+            bigD[f]['d0'].append(p0[f])
+            bigD[f]['e0'].append(p0['d'+f])
+            bigD[f]['d1'].append(p1[f])
+            bigD[f]['e1'].append(p1['d'+f])
+
+    for f in fields:
+        bigD[f]['d0'] = np.hstack(bigD[f]['d0'])
+        bigD[f]['e0'] = np.hstack(bigD[f]['e0'])
+        bigD[f]['d1'] = np.hstack(bigD[f]['d1'])
+        bigD[f]['e1'] = np.hstack(bigD[f]['e1'])
+
+    sfig = plt.figure()
+    sax1 = sfig.add_subplot(131)
+    sax2 = sfig.add_subplot(132)
+    sax3 = sfig.add_subplot(133)
+    hfig = plt.figure()
+    hax1 = hfig.add_subplot(131)
+    hax2 = hfig.add_subplot(132)
+    hax3 = hfig.add_subplot(133)
+
+    for f, ax in zip(fields, [sax1, sax2, sax3]):
+        xval = bigD[f]['d0']
+        yval = bigD[f]['d1']
+        if f == 'TAUV':
+            xval *= 1.086
+            yval *= 1.086
+        lx = np.linspace(xval.min(), xval.max(), 10)
+        ax.scatter(xval, yval, c='k', alpha=0.5, edgecolor='none', s=55)
+        ax.plot(lx,lx,ls='--',color='k',alpha=0.9, lw=2, zorder=0)
+
+    for f, ax in zip(fields, [hax1, hax2, hax3]):
+        e0 = bigD[f]['e0']
+        e1 = bigD[f]['e1']
+        if f != 'TAUV':
+            e0 /= bigD[f]['d0']
+            e1 /= bigD[f]['d1']
+        e0 = e0[e0 == e0]
+        e1 = e1[e1 == e1]
+
+        ax.hist(e0, bins=bins, color=colors[0], label='No weight', histtype='stepfilled', alpha=0.5)
+        ax.hist(e1, bins=bins, color=colors[1], label='Weighted', histtype='stepfilled', alpha=0.5)
+        ax.set_xlim(0,0.68)
+        ax.set_ylim(0,70)
+
+    sax2.set_xlabel('No weight')
+    sax1.set_ylabel('Weighted')
+    sax1.text(0.15,0.87,'$A_V$', ha='center', va='bottom', transform=sax1.transAxes, fontsize=30)
+    sax2.text(0.15,0.87,r'$\tau_L$', ha='center', va='bottom', transform=sax2.transAxes, fontsize=30)
+    sax3.text(0.15,0.87,r'$Z_L$', ha='center', va='bottom', transform=sax3.transAxes, fontsize=30)
+
+    hax1.set_ylabel('$N$')
+    hax1.set_xlabel(r'$\delta A_V$')
+    hax2.set_xlabel(r'$\delta\tau_L/\tau_L$')
+    hax3.set_xlabel(r'$\delta Z_L/Z_L$')
+    hax2.legend(loc=0, frameon=False)
+    hax2.set_yticklabels([])
+    hax3.set_yticklabels([])
+    hfig.subplots_adjust(wspace=0.001)
+
+    spp = PDF(outpre+'_sys.pdf')
+    spp.savefig(sfig)
+    spp.close()
+    hpp = PDF(outpre+'_hist.pdf')
+    hpp.savefig(hfig)
+    hpp.close()
+    plt.close(sfig)
+    plt.close(hfig)
 
     return
