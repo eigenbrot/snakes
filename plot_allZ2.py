@@ -306,10 +306,10 @@ def simple_plot(inputsuffix='allz2.dat', label='Mean Light Weighted Age [Gyr]',
 
     return axlist
 
-def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
+def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',basedir='.',
                           col=1, errcol=2, lowhigh=False, order=5, bigorder=60, 
                           s=None, ylims=None, labelr=False, bigpoints=False,
-                          plotfit=True, exclude=[[],[],[],[],[],[]]):
+                          plotfit=True, exclude=exclude, printdate=True, printfit=True):
 
     zz = np.array([])
     dd = np.array([])
@@ -320,7 +320,7 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
     axlist = []
 
     bigax = plt.figure().add_subplot(111)
-    bigax.set_xlabel('|Height [kpc]|')
+    bigax.set_xlabel(r'$|z| \mathrm{\ [kpc]}$')
     bigax.set_ylabel(label)
     
     plist = [6,3,4,2,1,5]
@@ -332,9 +332,9 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         color = color_list[i]
         style = style_list[i]
 
-        dat = glob('*P{}*{}'.format(pointing, inputsuffix))[0]
+        dat = glob('{}/*P{}*{}'.format(basedir, pointing, inputsuffix))[0]
         print dat
-        loc = glob('*P{}*locations.dat'.format(pointing))[0]
+        loc = glob('{}/*P{}*locations.dat'.format(basedir, pointing))[0]
         print loc
         print 'Excluding: ', exclude[pointing-1]
     
@@ -403,7 +403,10 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         
         axlist.append(ax)
         
-    plot_title = time.asctime()
+    if printdate:
+        plot_title = time.asctime()
+    else:
+        plot_title = ''
     if plotfit:
         sidx = np.argsort(zz)
         big_data_pad = np.r_[dd[sidx][bigorder::-1],dd[sidx]]
@@ -423,9 +426,12 @@ def plot_heights_with_err(inputsuffix,label=r'$\tau_{\mathrm{V,Balm}}$',
         p = np.poly1d(np.polyfit(zz[sidx],big_mean,1))
         print p.coeffs
         
-        bigax.plot(zz[sidx],big_mean,'-k',lw=2)
-        bigax.plot(zz[sidx],p(zz[sidx]),':k',lw=1.5)
-        plot_title += '\n'+label+'$={:4.2f}z{:+4.2f}$'.format(p.coeffs[0],p.coeffs[1])
+        # bigax.plot(zz[sidx],big_mean,'-k',lw=2)
+        bigax.plot(zz[sidx],p(zz[sidx]),'--k',lw=2)
+        if printdate:
+            plot_title += '\n'
+        if printfit:
+            plot_title += label+'$={:4.2f}z{:+4.2f}$'.format(p.coeffs[0],p.coeffs[1])
 
     bigax.set_title(plot_title)
     bigax.legend(loc=0, numpoints=1, scatterpoints=1)
