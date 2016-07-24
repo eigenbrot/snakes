@@ -135,7 +135,7 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
                             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_04Z_vardisp.fits',
                             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_1Z_vardisp.fits',
                             '/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_25Z_vardisp.fits'],
-                     swindow=100,order=5):
+                     swindow=100,order=5,paperplot=False):
 
     if len(mlist) == 6:
         Zlist = [0.005,0.02,0.2,0.4,1,2.5]
@@ -231,7 +231,8 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ax.set_xlim(3400,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    mfig.savefig('A_rms_IRAF_prior2.png',dpi=200)
+    if not paperplot:
+        mfig.savefig('A_rms_IRAF_prior2.png',dpi=200)
 
     #Age axis
     afig = plt.figure()
@@ -259,25 +260,30 @@ def compute_rms_spec(mlist=['/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK
     ax.set_xlim(3500,7000)
     ax.legend(loc=0)
     add_line_labels(ax)
-    afig.savefig('Z_rms_IRAF_prior2.png',dpi=200)
+    if not paperplot:
+        afig.savefig('Z_rms_IRAF_prior2.png',dpi=200)
     
     #All
     bigfig = plt.figure()
     ax = bigfig.add_subplot(111)
-    ax.set_xlabel('Wavelength')
+    ax.set_xlabel(r'$\AA$')
     ax.set_ylabel('RMS')
     bigAvg = np.mean(bigD,axis=(0,1))
     rms = np.sqrt(np.mean((bigD - bigAvg)**2,axis=(0,1)))
     rms = np.convolve(rms,np.ones(20)/20.,'same')
     rms = np.sqrt(rms_Z**2 + rms_A**2)
-    ax.plot(wave, rms, label='total')
-    ax.plot(wave, rms_Z/np.mean(rms_Z)*np.mean(rms_A), label=r'RMS$_Z$')
-    ax.plot(wave, rms_A, label=r'RMS$_{\rm age}$')
+    ax.plot(wave, rms, label='total', color='#1b9e77',zorder=100)
+    ax.plot(wave, rms_Z/np.mean(rms_Z)*np.mean(rms_A), label=r'RMS$_Z$',color='#d95f02')
+    ax.plot(wave, rms_A, label=r'RMS$_{\rm age}$',color='#7570b3')
     ax.set_xlim(3500,7000)
     ax.legend(loc=0)
     add_line_labels(ax)    
-#    bigfig.show()
-    bigfig.savefig('big_RMS_IRAF_prior2.png',dpi=200)
+    # bigfig.show()
+    if not paperplot:
+        bigfig.savefig('big_RMS_IRAF_prior2.png',dpi=200)
+
+    if paperplot:
+        return bigfig
 
     return wave, rms, rms_Z, rms_A
 
