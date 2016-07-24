@@ -709,13 +709,13 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               isochrones=False,multires=True, plotfid=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-4.3,8.4], 'spynum': 2}, #break = 2
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
-              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [0,3.4], 'break': 1.6, 'spynum':6},
-              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.5,4.8], 'ticks': [0,1,2,3,4],'spynum':8}, #break = 2
-              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [0,5.4], 'break': 2.4, 'spynum': 4}}
+              'Fe': {'label': r'<Fe>', 'num': 5, 'lim': [-0.3,2.4], 'break': 1.6, 'spynum':6},
+              'MgFe': {'label': r'[MgFe]', 'num': 6, 'lim': [-0.7,3.5], 'ticks': [0,1,2,3],'spynum':8}, #break = 2
+              'Mgb': {'label': r'Mg$b$', 'num': 7, 'lim': [-0.3,4.2], 'ticks': [0,1,2,3,4], 'break': 2.4, 'spynum': 4}}
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='biglabel') #label is necessary if len(zcuts) == len(rcuts) == 0

@@ -670,7 +670,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                 scat = plot_quick_on_grid(data_file, ax, band1, band2, exclude=exclude[p], nocolor=True, spy=spy,
                                           err=err, marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
 #            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
-            ax.set_ylim(-4,9.7)
+            ax.set_ylim(-3.3,8.4)
             ax.set_xlim(0.82,2.66)
             
             ax.axvline(1.4,color='k',alpha=0.6,ls='--')
