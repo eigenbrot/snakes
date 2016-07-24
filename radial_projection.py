@@ -96,18 +96,18 @@ def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
     #                   edgecolors='none', alpha=0.6)
 
     rmax = rlim[1]
-    ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/4)),
+    ax = fractional_polar_axes(fig,thlim=thlim,rlim=rlim,step=(45,round(rmax/5)),
                                ticklabels=False, thlabel='', rlabel='')
     for i in range(4):
         rloc = round(rmax/4)*(i+1)
         ax.text(90,rloc,'{:3.0f}'.format(rloc), ha='left', fontsize=10)
     
-    scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot2,
-                      edgecolors='none', alpha=0.6)
+    scat = ax.scatter(phi, r, c=data, s=40, cmap=plt.cm.gnuplot,
+                      edgecolors='none', alpha=0.6, vmin=0, vmax=2.6)
 
     return ax, scat
 
-def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
+def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.'):
 
     rr = np.array([])
     pphi = np.array([])
@@ -115,12 +115,12 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
     plims = []
 
     for i in range(6):
-        loc = 'NGC_891_P{}_bin30_locations.dat'.format(i+1)
-        vel = 'NGC_891_P{}_bin30_velocities.dat'.format(i+1)
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir, i+1)
+        vel = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir, i+1)
         rho, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
-
+        z = np.abs(z)
         if tau:
-            coef = 'NGC_891_P{}_bin30_allz2.coef.fits'.format(i+1)
+            coef = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir, i+1)
             r, phi = compute_rphi_tau(loc,coef)
         else:
             r, phi = compute_rphi(loc,vel)
@@ -152,15 +152,20 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
         ax.add_line(lmax)        
 
         ax.text(90. - 90.*np.sign(plims[i][1]), np.abs(plims[i][1]),
-                'P{}'.format(i+1), ha='center',va='bottom')
+                r'$\mathrm{{P{}}}$'.format(i+1), ha='center',va='bottom')
 
-    cbax = ax.figure.add_axes([0.15,0.87,0.7,0.05])
+    cbax = ax.figure.add_axes([0.16,0.865,0.7,0.05])
     cb = ax.figure.colorbar(scat, cax=cbax, orientation='horizontal')
-    cb.set_label('z [kpc]')
+    cb.set_alpha(1)
+    cb.draw_all()
+    cb.set_ticks(np.arange(0,3,0.5))
+    cbax.tick_params(axis='x', labelsize=12)
+    cbax.text(0.5,1.3,r'$|z|\mathrm{\ [kpc]}$',va='bottom', ha='center',
+              transform=cbax.transAxes, fontsize=20)
 
-    ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right')
-    ax.text(180,rmax,r'$180^{\circ}$',va='center', ha='left')
-    ax.text(90,rmax*1.05,'r [kpc]',ha='center')
+    ax.text(0,rmax,r'$\phi = 0^{\circ}$',va='center', ha='right',fontsize=20)
+    ax.text(180,rmax*1.02,r'$180^{\circ}$',va='center', ha='left',fontsize=20)
+    ax.text(90,rmax*1.09,r'$r\mathrm{\ [kpc]}$',ha='center',fontsize=20)
         
     # ax.set_xlabel('True radius [kpc]')
     # ax.set_ylabel(r'$\phi$')
@@ -168,7 +173,7 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False):
     # ax.text(np.pi*20./180., rmax*1.05, 'radius [kpc]', ha='right', fontsize=10)
     # ax.text(0,rmax*1.2, r'$\phi$ = ', va='center', ha='right')
 
-    ax.figure.show()
+    # ax.figure.show()
     
     return ax
 
