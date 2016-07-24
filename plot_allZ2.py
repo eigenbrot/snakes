@@ -979,7 +979,9 @@ def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix
         coef = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p+1,suffix)
         print coef
         c = pyfits.open(coef)[1].data
-        tmp = c[err]/c[field]
+        tmp = c[err]
+        if field != 'TAUV':
+            tmp /= c[field]
         tmp = np.delete(tmp,np.array(exclude[p]) - 1)
         ratio_list.append(tmp)
 
