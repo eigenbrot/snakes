@@ -994,8 +994,8 @@ def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix
     ax.set_xlabel(label)
     ax.set_ylabel(r'$\mathrm{N}$')
     ax.hist(ratio, bins=bins, histtype='step', color='k')
-    ax.set_xlim(0,0.33)
-    ax.set_xticks([0,0.1,0.2,0.3])
+    ax.set_xlim(0,0.52)
+    ax.set_xticks([0,0.1,0.2,0.3,0.4,0.5])
     ax.set_ylim(0,90)
     ax.set_yticks([0,20,40,60,80])
 
