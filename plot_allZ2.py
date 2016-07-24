@@ -971,7 +971,7 @@ def coef_MCcovar_contour(field1, field2, field3, output,
     return H1
 
 def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix='coef',
-                  label=r'$\delta\tau_{L,\mathrm{fit}}/\tau_L$',exclude=exclude):
+                  label=r'$\delta\tau_{L,\mathrm{fit}}/\tau_L$',exclude=exclude, ymax=90):
 
     ratio_list = []
 
@@ -992,12 +992,12 @@ def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix
     ratio = ratio[np.where(ratio < 0.8)[0]]
     ax = plt.figure().add_subplot(111)
     ax.set_xlabel(label)
-    ax.set_ylabel(r'$\mathrm{N}$')
+    ax.set_ylabel(r'$N$')
     ax.hist(ratio, bins=bins, histtype='step', color='k')
     ax.set_xlim(0,0.52)
     ax.set_xticks([0,0.1,0.2,0.3,0.4,0.5])
-    ax.set_ylim(0,90)
-    ax.set_yticks([0,20,40,60,80])
+    ax.set_ylim(0,ymax)
+    ax.set_yticks(range(0,int(ymax/10)*10+10,int(int(ymax/10)/4)*10))
 
     pp = PDF(output)
     pp.savefig(ax.figure)
