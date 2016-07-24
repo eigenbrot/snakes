@@ -96,7 +96,7 @@ def val_pos_3panel(output, field='MLWA', colorfield='TAUV', basedir='.',
     return
 
 def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, rtrue=True,
-                   label=None, plotfid=True, suffix='final'):
+                   label=None, plotfid=True, suffix='final', scale=1.):
 
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
@@ -128,36 +128,39 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
         norm1 = plt.Normalize(0,2.6)
         norm2 = plt.Normalize(0,rmax)
 
-        scat1 = ax1.scatter(r[posidx], c[field][posidx], linewidth=0, alpha=1, c=z[posidx], 
+        scat1 = ax1.scatter(r[posidx], c[field][posidx]*scale, linewidth=0, alpha=1, c=z[posidx], 
                             vmin=0, vmax=2.6, cmap=plt.cm.gnuplot)
-        p1 = ax1.scatter(r[negidx], c[field][negidx], linewidth=1.1, facecolor='w',alpha=0.7)
+        p1 = ax1.scatter(r[negidx], c[field][negidx]*scale, linewidth=1.1, facecolor='w',alpha=0.7)
 
-        scat2 = ax2.scatter(z[posidx], c[field][posidx], linewidth=0, alpha=1, c=r[posidx], 
+        scat2 = ax2.scatter(z[posidx], c[field][posidx]*scale, linewidth=0, alpha=1, c=r[posidx], 
                             vmin=0, vmax=rmax, cmap=plt.cm.gnuplot)
-        p2 = ax2.scatter(z[negidx], c[field][negidx], linewidth=1, facecolor='w',alpha=0.7)
+        p2 = ax2.scatter(z[negidx], c[field][negidx]*scale, linewidth=1, facecolor='w',alpha=0.7)
 
         p1.set_edgecolors(plt.cm.gnuplot(norm1(z[negidx])))
         p2.set_edgecolors(plt.cm.gnuplot(norm2(r[negidx])))
 
         if errfield is not None:
-            _,_, c1 = ax1.errorbar(r, c[field], yerr=c[errfield], capsize=0, fmt='none', alpha=1, zorder=0)
-            _,_, c2 = ax2.errorbar(z, c[field], yerr=c[errfield], capsize=0, fmt='none', alpha=1, zorder=0)
+            _,_, c1 = ax1.errorbar(r, c[field]*scale, yerr=c[errfield]*scale,
+                                   capsize=0, fmt='none', alpha=1, zorder=0)
+            _,_, c2 = ax2.errorbar(z, c[field]*scale, yerr=c[errfield]*scale,
+                                   capsize=0, fmt='none', alpha=1, zorder=0)
             c1[0].set_color(plt.cm.gnuplot(norm1(z)))
             c2[0].set_color(plt.cm.gnuplot(norm2(r)))
         
     if label is None:
         label = field
 
-    ax1.set_xlabel(r'$r_\mathrm{proj}$ [kpc]')
+    ax1.set_xlabel(r'$r_\mathrm{proj}\mathrm{\ [kpc]}$')
     if rtrue:
-        ax1.set_xlabel(r'$r$ [kpc]')
+        ax1.set_xlabel(r'$r\mathrm{\ [kpc]}$')
         ax1.set_xlim(-0.5,20)
 
     ax1.set_ylabel(label)
-
+    ax1.set_xlim(0,22)
+    ax2.set_xlim(-0.2,2.6)
     ax2.set_ylim(*ax1.get_ylim())
     ax2.set_yticklabels([])
-    ax2.set_xlabel(r'$|z|$ [kpc]')
+    ax2.set_xlabel(r'$|z|\mathrm{\ [kpc]}$')
     
     if plotfid:
         ax1.axvline(3, color='k', ls=':', alpha=0.7)
@@ -165,13 +168,21 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
         ax2.axvline(0.4, color='k', ls=':', alpha=0.7)
         ax2.axvline(1, color='k', ls=':', alpha=0.7)
 
-    fig.subplots_adjust(hspace=0.001,wspace=0.001)
+    fig.subplots_adjust(wspace=0.0001)
     
-    cax1 = fig.add_axes([0.17,0.95,0.3,0.03])
-    cax2 = fig.add_axes([0.55,0.95,0.3,0.03])
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+    cax1 = fig.add_axes([pos1.x0 + (pos1.width-0.3)/2,0.88,0.3,0.03])
+    cax2 = fig.add_axes([pos2.x0 + (pos2.width-0.3)/2,0.88,0.3,0.03])
     cb1 = fig.colorbar(scat1, cax=cax1, orientation='horizontal')
-    cb2 = fig.colorbar(scat2, cax=cax2, orientation='horizontal')
-    
+    cb2 = fig.colorbar(scat2, cax=cax2, orientation='horizontal') 
+    cb1.set_ticks([0,0.5,1,1.5,2,2.5])
+    cb2.set_ticks([0,4,8,12,16,20])
+    cax1.text(0.5,1.3,r'$|z|\mathrm{\ [kpc]}$',va='bottom', ha='center', 
+              transform=cax1.transAxes, fontsize=20)
+    cax2.text(0.5,1.3,r'$r\mathrm{\ [kpc]}$', va='bottom', ha='center',
+              transform=cax2.transAxes, fontsize=20)
+
     # if errfield is not None:
     #     for i in range(6):
     #         elist1[i][0].set_color(cb1.to_rgba(z))
