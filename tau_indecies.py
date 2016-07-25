@@ -398,6 +398,8 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
             ax.plot(modeldata[t,:,band1],
                     modeldata[t,:,band2],
                     '-',alpha=alpha,zorder=0,color=colors[t],lw=1.4)
+            ax.scatter(modeldata[t,-2,band1],modeldata[t,-2,band2],color=colors[t],s=25,
+                       zorder=2*(numtau-t)+1,alpha=alpha,linewidth=0)
             if ax.get_subplotspec().get_geometry()[2] == 2 and t == numtau - 1:
                 ax.text(modeldata[0,0,band1],
                         modeldata[0,0,band2],
@@ -405,7 +407,9 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                 ax.text(modeldata[-1,-1,band1],
                         modeldata[-1,-1,band2],
                         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=10,ha='left',va='center')
-
+                ax.text(modeldata[3,-2,band1],
+                        modeldata[3,-2,band2],
+                        '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=10,ha='right',va='center')
     else:
         for t in range(numtau)[::-1]:
             ax.plot(modeldata[t,:,band1],
