@@ -11,12 +11,13 @@ from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
 def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
-                 output=False):
+                 dvdz = 15.789, output=False):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
     V = np.loadtxt(velocity, usecols=(1,), unpack=True) #km/s
 
     Vcvec = np.interp(np.abs(rho),[0,rflat,15],[0,Vc,Vc])
+    Vcvec -= dvdz*np.abs(z)
 
     V -= Vsys
 
@@ -107,7 +108,8 @@ def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
 
     return ax, scat
 
-def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.'):
+def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
+                componentfile=None):
 
     rr = np.array([])
     pphi = np.array([])
@@ -135,6 +137,8 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.'):
     
     ax.set_ylim(0,20)
     rmax = rlim[1]
+    if componentfile:
+        add_IRAF_component(componentfile, ax)
 
     for i in range(6):
         print plims[i]
@@ -176,6 +180,14 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.'):
     # ax.figure.show()
     
     return ax
+
+def add_IRAF_component(componentfile, ax):
+    
+    r, phi = np.loadtxt(componentfile, usecols=(5,6), unpack=True)
+
+    ax.scatter(phi, r, color='k', marker='s', s=40, facecolor='none', alpha=0.7)
+
+    return
 
 def create_rphi_files():
     
