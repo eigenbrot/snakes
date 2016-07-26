@@ -96,7 +96,7 @@ def val_pos_3panel(output, field='MLWA', colorfield='TAUV', basedir='.',
     return
 
 def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, rtrue=True,
-                   label=None, plotfid=True, suffix='final', scale=1.):
+                   label=None, plotfid=True, suffix='final', scale=1., componentfile=None):
 
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
@@ -147,6 +147,9 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
             c1[0].set_color(plt.cm.gnuplot(norm1(z)))
             c2[0].set_color(plt.cm.gnuplot(norm2(r)))
         
+    if componentfile:
+        add_IRAF_component(componentfile, ax1, ax2, field)
+
     if label is None:
         label = field
 
@@ -192,6 +195,17 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
     pp.savefig(fig)
     pp.close()
     plt.close(fig)
+
+    return
+
+def add_IRAF_component(componentfile, rax, zax, field):
+
+    cold = {'MLWA': 7, 'MLWZ': 8, 'TAUV': 9}
+    
+    z, r, data = np.loadtxt(componentfile, usecols=(4,5,cold[field]), unpack=True)
+
+    rax.scatter(r, data, color='k', marker='s', s=40, facecolor='none', alpha=0.7)
+    zax.scatter(z, data, color='k', marker='s', s=40, facecolor='none', alpha=0.7)
 
     return
 
@@ -331,7 +345,7 @@ def weight_comp_plot(outpre, bins=20, basedir='.'):
     return
 
 def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
-             rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4):
+             rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4, componentfile=None):
     import matplotlib.colorbar as mplcb
 
     DFK_borders = np.array([[0.9e-3,5.2e-3],
@@ -355,6 +369,9 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
     bigz = [0] + zcuts + [2.6]
     bigr = [0] + rcuts + [11]
     
+    if componentfile:
+        Psub, Asub = np.loadtxt(componentfile, usecols=(1,2), unpack=True)
+
     i = 1
     axlist = [lax]
     for z in range(len(zcuts) + 1):
@@ -378,12 +395,21 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
                 
                 r = np.abs(r)
                 z = np.abs(z)
-                
-                exarr = np.array(exclude[p]) - 1
-                r = np.delete(r, exarr)
-                z = np.delete(z, exarr)
-                lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
-                lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
+
+                if componentfile:
+                    Pidx = np.where(Psub == p+1)[0]
+                    subidx = Asub[Pidx].astype(np.int) - 1
+                    print subidx
+                    r = r[subidx]
+                    z = z[subidx]
+                    lw = coefs['LIGHT_WEIGHT'][subidx,:]
+                    lwe = coefs['LIGHT_WEIGHT_ERR'][subidx,:]
+                else:
+                    exarr = np.array(exclude[p]) - 1
+                    r = np.delete(r, exarr)
+                    z = np.delete(z, exarr)
+                    lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
+                    lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
 
                 norm = np.sum(lw,axis=1)[:,None]
                 lw /= norm
