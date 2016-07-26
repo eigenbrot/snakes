@@ -482,3 +482,100 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
     pp.close()
             
     return
+
+def age_Z_cuts(output, basedir='.', exclude=exclude, rtrue=True,
+               rcuts=[3,8], zcuts=[0.4,1], suffix='fiterr'):
+    
+    fig = plt.figure()
+    lax = fig.add_subplot(111, label='bigax')
+    lax.spines['top'].set_visible(False)
+    lax.spines['right'].set_visible(False)
+    lax.spines['bottom'].set_visible(False)
+    lax.spines['left'].set_visible(False)   
+    lax.set_xticklabels([])
+    lax.set_yticklabels([])
+    lax.set_ylabel(r'$Z_L$')
+    lax.set_xlabel(r'$\tau_L$')
+    lax.tick_params(axis='both',pad=20,length=0)
+
+    bigz = [0] + zcuts + [2.6]
+    bigr = [0] + rcuts + [11]
+    
+    i = 1
+    for z in range(len(zcuts) + 1):
+        zc = [bigz[-z-2], bigz[-z-1]]
+        for r in range(len(rcuts) + 1):
+            rc = [bigr[r], bigr[r+1]]
+            ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
+            for p in range(6):
+                coeffile = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p+1,suffix)
+                print coeffile
+                coefs = pyfits.open(coeffile)[1].data
+                loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+                print loc
+                r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
+                fullr = r
+                if rtrue:
+                    rphi = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir, p+1)
+                    r = np.loadtxt(rphi,usecols=(1,),unpack=True)
+                
+                r = np.abs(r)
+                z = np.abs(z)
+
+                exarr = np.array(exclude[p]) - 1
+                r = np.delete(r, exarr)
+                fullr = np.delete(fullr, exarr)
+                z = np.delete(z, exarr)
+                MLWA = np.delete(coefs['MLWA'], exarr, axis=0)
+                MLWA_e = np.delete(coefs['dMLWA'], exarr, axis=0)
+                MLWZ = np.delete(coefs['MLWZ'], exarr, axis=0)
+                MLWZ_e = np.delete(coefs['dMLWZ'], exarr, axis=0)
+
+                idx = np.where((z >= zc[0]) & (z < zc[1])
+                               & (r >= rc[0]) & (r < rc[1]))[0]
+                fullr = fullr[idx]
+                MLWA = MLWA[idx]
+                MLWZ = MLWZ[idx]
+                MLWA_e = MLWA_e[idx]
+                MLWZ_e = MLWZ_e[idx]
+                posidx = np.where(fullr >= 0)[0]
+                negidx = np.where(fullr < 0)[0]
+
+                ax.scatter(MLWA[posidx], MLWZ[posidx], c='k', linewidths=0, alpha=0.7)
+                ax.scatter(MLWA[negidx], MLWZ[negidx], linewidths=1.2, alpha=0.7,
+                           facecolors='w')
+                ax.errorbar(MLWA, MLWZ, yerr=MLWZ_e, xerr=MLWA_e,
+                            fmt='none', capsize=0, ecolor='gray', elinewidth=1,zorder=0)
+
+            ax.set_xlim(0,12.6)
+            ax.set_ylim(0,2.6)
+
+            if i % (len(rcuts) + 1) == 0:
+                tax = ax.twinx()
+                tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_ylim(*ax.get_ylim())
+                tax.set_yticklabels([])
+
+            if i <= len(rcuts) + 1:
+                tax = ax.twiny()
+                tax.set_xlabel('${}\leq |r| <{}$ kpc'.format(*rc))
+                #rotation='horizontal',labelpad=20)
+                tax.set_xlim(*ax.get_xlim())
+                tax.set_xticklabels([])
+
+            if i <= (len(zcuts)) * (len(rcuts) + 1):
+                ax.set_xticklabels([])
+            if len(rcuts) > 0 and i % (len(rcuts)+1) != 1:
+                ax.set_yticklabels([])
+
+            i += 1
+
+    fig.subplots_adjust(wspace=0.0001,hspace=0.0001)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+
+    return
