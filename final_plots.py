@@ -96,12 +96,16 @@ def val_pos_3panel(output, field='MLWA', colorfield='TAUV', basedir='.',
     return
 
 def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, rtrue=True,
-                   label=None, plotfid=True, suffix='final', scale=1., componentfile=None):
+                   label=None, plotfid=True, suffix='final', scale=1., componentfile=None,
+                   boxcomponent=True):
 
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
     rmax = 20
+
+    if componentfile and not boxcomponent:
+        Psub, Asub = np.loadtxt(componentfile, usecols=(1,2), unpack=True)
 
     for p in range(6):
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
@@ -116,11 +120,20 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
         print coef
         c = pyfits.open(coef)[1].data
         
-        exarr = np.array(exclude[p]) - 1
-        r = np.delete(r, exarr)
-        z = np.delete(z, exarr)
-        c = np.delete(c, exarr)
-        rfull = np.delete(rfull, exarr)
+        if componentfile and not boxcomponent:
+            Pidx = np.where(Psub == p+1)[0]
+            subidx = Asub[Pidx].astype(np.int) - 1
+            print subidx
+            r = r[subidx]
+            z = z[subidx]
+            rfull = rfull[subidx]
+            c = c[subidx]
+        else:
+            exarr = np.array(exclude[p]) - 1
+            r = np.delete(r, exarr)
+            z = np.delete(z, exarr)
+            c = np.delete(c, exarr)
+            rfull = np.delete(rfull, exarr)
 
         posidx = np.where(rfull >= 0)[0]
         negidx = np.where(rfull < 0)[0]
@@ -139,7 +152,7 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
         p1.set_edgecolors(plt.cm.gnuplot(norm1(z[negidx])))
         p2.set_edgecolors(plt.cm.gnuplot(norm2(r[negidx])))
 
-        if errfield is not None:
+        if errfield is not None and c.size > 0:
             _,_, c1 = ax1.errorbar(r, c[field]*scale, yerr=c[errfield]*scale,
                                    capsize=0, fmt='none', alpha=1, zorder=0)
             _,_, c2 = ax2.errorbar(z, c[field]*scale, yerr=c[errfield]*scale,
@@ -147,7 +160,7 @@ def val_pos_2panel(output, field, errfield=None, basedir='.', exclude=exclude, r
             c1[0].set_color(plt.cm.gnuplot(norm1(z)))
             c2[0].set_color(plt.cm.gnuplot(norm2(r)))
         
-    if componentfile:
+    if componentfile and boxcomponent:
         add_IRAF_component(componentfile, ax1, ax2, field)
 
     if label is None:
