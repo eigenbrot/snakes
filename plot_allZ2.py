@@ -713,7 +713,8 @@ def dfk_batch(prefix, order=5, exclude=[[],[],[],[],[],[]],
     return
 
 def coef_height_plot(field_name, output, err_name=None, ylim=[0,12],
-                     exclude=exclude, suffix='coef', oplotdir=None):
+                     exclude=exclude, suffix='coef', oplotdir=None,
+                     nodate=False, label=None, basedir='.'):
 
         plist = [6,3,4,2,1,5]
         color_list = ['blue','seagreen','sienna','orange','yellowgreen','darkturquoise']
@@ -725,13 +726,17 @@ def coef_height_plot(field_name, output, err_name=None, ylim=[0,12],
         ax.set_xlabel(r'$|z| \mathrm{[kpc]}$')
         ax.set_xlim(0,2.6)
         ax.set_ylim(*ylim)
-        ax.set_ylabel(field_name)
-        ax.set_title(time.asctime())
+        if label:
+            ax.set_ylabel(label)
+        else:
+            ax.set_ylabel(field_name)
+        if not nodate:
+            ax.set_title(time.asctime())
         
         for p, color, ex in zip(plist, color_list, exclude):
             
-            loc = 'NGC_891_P{}_bin30_locations.dat'.format(p)
-            coef = 'NGC_891_P{}_bin30_allz2.{}.fits'.format(p,suffix)
+            loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p)
+            coef = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p,suffix)
             z = np.loadtxt(loc,usecols=(5,),unpack=True)
             z = np.abs(z)
             
@@ -1009,6 +1014,34 @@ def err_histogram(output, basedir='.',bins=10, field='MLWA', err='dMLWA', suffix
     pp.savefig(ax.figure)
     pp.close()
     plt.close(ax.figure)
+
+    return
+
+def err_plot(output,basedir='.', field='MLWA', err='dMLWA', suffix='syserr',
+             label=r'$\tau_L$',err_label=r'$\delta\tau_{L,\mathrm{sys}}$',exclude=exclude):
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(label)
+    ax.set_ylabel(err_label)
+    
+    for p in range(6):
+        coef = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p+1,suffix)
+        print coef
+        c = pyfits.open(coef)[1].data
+        
+        exarr = np.array(exclude[p]) - 1
+        d = np.delete(c[field], exarr)
+        e = np.delete(c[err], exarr)
+
+        ax.scatter(d,e/d, c='k', alpha=0.7, linewidth=0)
+
+    ax.set_yticks([0.1,0.2,0.3,0.4,0.5])
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
 
     return
 
