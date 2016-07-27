@@ -380,7 +380,10 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
     lax.tick_params(axis='both',pad=20,length=0)
 
     bigz = [0] + zcuts + [2.6]
-    bigr = [0] + rcuts + [11]
+    if rtrue:
+        bigr = [0] + rcuts + [22]
+    else:
+        bigr = [0] + rcuts + [11]
     
     if componentfile:
         Psub, Asub = np.loadtxt(componentfile, usecols=(1,2), unpack=True)
