@@ -375,7 +375,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
     lax.spines['left'].set_visible(False)   
     lax.set_xticklabels([])
     lax.set_yticklabels([])
-    lax.set_ylabel(r'$\mathrm{Fractional }\ f_i(\lambda)\int\ \psi(t) dt$')
+    lax.set_ylabel(r'$W_{L,i}$', labelpad=20)
     lax.set_xlabel('Lookback time [Myr]')
     lax.tick_params(axis='both',pad=20,length=0)
 
@@ -597,7 +597,7 @@ def age_Z_cuts(output, basedir='.', exclude=exclude, rtrue=True,
     return
 
 def val_pos_2panel_multicomp(output, field, errfield=None, componentlist=[], basedir='.', rtrue=True,
-                             label=None, plotfid=True, suffix='fiterr', scale=1.):
+                             label=None, plotfid=True, suffix='fiterr', scale=1., focus=None):
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
@@ -618,7 +618,12 @@ def val_pos_2panel_multicomp(output, field, errfield=None, componentlist=[], bas
         print coef
         cc = pyfits.open(coef)[1].data
 
-        for component, symb in zip(componentlist,symblist):
+        for i, (component, symb) in enumerate(zip(componentlist,symblist)):
+            if focus is not None and i != focus:
+                alpha = 0.2
+            else:
+                alpha = 0.9
+
             Psub, Asub = np.loadtxt(component, usecols=(1,2), unpack=True)
             Pidx = np.where(Psub == p+1)[0]
             subidx = Asub[Pidx].astype(np.int) - 1
@@ -634,22 +639,22 @@ def val_pos_2panel_multicomp(output, field, errfield=None, componentlist=[], bas
             norm1 = plt.Normalize(0,2.6)
             norm2 = plt.Normalize(0,rmax)
 
-            scat1 = ax1.scatter(r[posidx], c[field][posidx]*scale, linewidth=0, alpha=1, c=z[posidx], 
+            scat1 = ax1.scatter(r[posidx], c[field][posidx]*scale, linewidth=0, alpha=alpha, c=z[posidx], 
                                 vmin=0, vmax=2.6, cmap=plt.cm.gnuplot, marker=symb)
-            p1 = ax1.scatter(r[negidx], c[field][negidx]*scale, linewidth=1.1, facecolor='w',alpha=0.7, marker=symb)
+            p1 = ax1.scatter(r[negidx], c[field][negidx]*scale, linewidth=1.1, facecolor='w',alpha=alpha, marker=symb)
             
-            scat2 = ax2.scatter(z[posidx], c[field][posidx]*scale, linewidth=0, alpha=1, c=r[posidx], 
+            scat2 = ax2.scatter(z[posidx], c[field][posidx]*scale, linewidth=0, alpha=alpha, c=r[posidx], 
                                 vmin=0, vmax=rmax, cmap=plt.cm.gnuplot, marker=symb)
-            p2 = ax2.scatter(z[negidx], c[field][negidx]*scale, linewidth=1, facecolor='w',alpha=0.7, marker=symb)
+            p2 = ax2.scatter(z[negidx], c[field][negidx]*scale, linewidth=1, facecolor='w',alpha=alpha, marker=symb)
 
             p1.set_edgecolors(plt.cm.gnuplot(norm1(z[negidx])))
             p2.set_edgecolors(plt.cm.gnuplot(norm2(r[negidx])))
 
             if errfield is not None and c.size > 0:
                 _,_, c1 = ax1.errorbar(r, c[field]*scale, yerr=c[errfield]*scale,
-                                       capsize=0, fmt='none', alpha=1, zorder=0)
+                                       capsize=0, fmt='none', alpha=alpha, zorder=0)
                 _,_, c2 = ax2.errorbar(z, c[field]*scale, yerr=c[errfield]*scale,
-                                       capsize=0, fmt='none', alpha=1, zorder=0)
+                                       capsize=0, fmt='none', alpha=alpha, zorder=0)
                 c1[0].set_color(plt.cm.gnuplot(norm1(z)))
                 c2[0].set_color(plt.cm.gnuplot(norm2(r)))
         
@@ -685,6 +690,10 @@ def val_pos_2panel_multicomp(output, field, errfield=None, componentlist=[], bas
     cb2 = fig.colorbar(scat2, cax=cax2, orientation='horizontal') 
     cb1.set_ticks([0,0.5,1,1.5,2,2.5])
     cb2.set_ticks([0,4,8,12,16,20])
+    cb1.set_alpha(1)
+    cb2.set_alpha(1)
+    cb1.draw_all()
+    cb2.draw_all()
     cax1.text(0.5,1.3,r'$|z|\mathrm{\ [kpc]}$',va='bottom', ha='center', 
               transform=cax1.transAxes, fontsize=20)
     cax2.text(0.5,1.3,r'$r\mathrm{\ [kpc]}$', va='bottom', ha='center',
