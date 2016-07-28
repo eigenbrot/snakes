@@ -261,7 +261,7 @@ def all_maps(output,col=12,inputprefix='NGC_891',inputsuffix='fit.dat',labelfibe
                       sky=False,
                       minval=minval,
                       maxval=maxval,
-                      alpha=0.85)
+                      alpha=1)
 
         #Do it again, for the single-pointing figure
         sax = GPP.plot(data,
