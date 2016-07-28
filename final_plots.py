@@ -455,7 +455,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
             bigZ = np.mean(bigZarr,axis=0)
             print bigD.shape, bigE.shape, bigZ.shape
             print bigZ
-            norm = plt.Normalize(0,2.5)
+            norm = plt.Normalize(0.2,2.5)
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             # ax.hlines(bigD, DFK_borders[:,0], DFK_borders[:,1],color='k', lw=2)
             # ax.hlines(bigD - bigE, DFK_borders[:,0], DFK_borders[:,1],colors='k', lw=1,linestyles=':')
