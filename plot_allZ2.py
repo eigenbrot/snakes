@@ -14,6 +14,7 @@ from matplotlib import colors as mplcolors
 from matplotlib.ticker import ScalarFormatter
 import glob
 import time
+import os
 glob = glob.glob
 
 rc('text', usetex=False)
@@ -590,13 +591,16 @@ def height_plot_across_folders(folder_list, inputsuffix='allz2.dat',
 def histogram_across_folders(folder_list, inputsuffix='allz2.dat', 
                              label='Mean Light Weighted Age [Gyr]', 
                              col=62, bins=10, ylims=None, xlims=None,
-                             delta=False,exclude=[[],[],[],[],[],[]]):
+                             delta=False,exclude=exclude,alpha=0.3,
+                             label_list = [], 
+                             color_list = ['#e41a1c','#377eb8','#4daf4a',
+                                           '#984ea3','#ff7f00','#ffff33','#a65628']):
     
     axlist = []
     
     plist = [6,3,4,2,1,5]
     #color_list = ['blue','turquoise','chartreuse','yellow','tomato','red']
-    color_list = ['blue','turquoise','seagreen','darkorange','crimson','dimgray','mediumorchid','maroon']
+    # color_list = ['blue','turquoise','seagreen','darkorange','crimson','dimgray','mediumorchid','maroon']
     style_list = ['-','-','-','-','-','-','-','-']
 
     if not isinstance(col,list):
@@ -609,7 +613,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
 
         ax = plt.figure().add_subplot(111)
         ax.set_xlabel(label)
-        ax.set_ylabel('N')
+        ax.set_ylabel('$N$')
         ax.set_title('{}\nP{}'.format(time.asctime(),pointing))
 
         for f, folder in enumerate(folder_list):
@@ -631,7 +635,11 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
             if delta:
                 d -= np.min(d)
 
-            ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.3)
+            if len(label_list) == len(folder_list):
+                hlabel = label_list[f]
+            else:
+                hlabel = os.path.basename(folder)
+            ax.hist(d, bins=bins, histtype='stepfilled', color=color, label=hlabel,alpha=alpha)
             
             bigD[folder] = np.r_[bigD[folder], d]
 
@@ -645,14 +653,17 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
 
     bigax = plt.figure().add_subplot(111)
     bigax.set_xlabel(label)
-    bigax.set_ylabel('N')
+    bigax.set_ylabel('$N$')
     bigax.set_title(time.asctime())
         
     for f, folder in enumerate(folder_list):
         color = color_list[f]
         style = style_list[f]
-        
-        bigax.hist(bigD[folder], bins=bins, histtype='stepfilled', color=color, label=folder,alpha=0.3)
+        if len(label_list) == len(folder_list):
+            hlabel = label_list[f]
+        else:
+            hlabel = os.path.basename(folder)
+        bigax.hist(bigD[folder], bins=bins, histtype='stepfilled', color=color, label=hlabel,alpha=alpha)
         
     bigax.legend(loc=0,numpoints=1)
     if xlims is not None:
