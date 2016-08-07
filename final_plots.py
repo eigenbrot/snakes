@@ -477,6 +477,12 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
                 ax.text(1.09,0.5,'${}\leq |z| <{}$ kpc'.format(*zc),rotation=90,
                         ha='center',va='center',transform=ax.transAxes)
 
+            if i == 8: #Fuck it. Magic number.
+                ax.text(10**np.mean(np.log10(DFK_borders[0])),0.75,'Y',ha='center')
+                ax.text(10**np.mean(np.log10(DFK_borders[1])),0.75,'I1',ha='center')
+                ax.text(10**np.mean(np.log10(DFK_borders[2])),0.75,'I2',ha='center')
+                ax.text(10**np.mean(np.log10(DFK_borders[3])),0.75,'O',ha='center')
+
             if i <= len(rcuts) + 1:
                 if rtrue:
                     rlab = '${}\leq |r| <{}$ kpc'.format(*rc)
