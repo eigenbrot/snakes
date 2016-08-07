@@ -710,3 +710,133 @@ def val_pos_2panel_multicomp(output, field, errfield=None, componentlist=[], bas
     plt.close(fig)
 
     return
+
+def val_pos_2panel_allcomp(output, field, errfield=None, componentlist=[], basedir='.', rtrue=True,
+                           label=None, plotfid=True, suffix='fiterr', scale=1.,labellist=[], ylim=None):
+    fig = plt.figure()
+    axd = {}
+    numc = len(componentlist)
+    for i in range(numc):
+        axd[i] = {'rax': fig.add_subplot(numc,2,i*2 + 1),
+                  'zax': fig.add_subplot(numc,2,i*2 + 2)}
+
+    rmax = 20
+
+    symblist = ['o','^','s']
+
+    for p in range(6):
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,p+1)
+        rr, zz = np.loadtxt(loc, usecols=(4,5), unpack=True)
+        rrfull = rr
+        zz = np.abs(zz)
+        rr = np.abs(rr)
+        if rtrue:
+            rphi = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir,p+1)
+            rr = np.loadtxt(rphi, usecols=(1,), unpack=True)
+        coef = '{}/NGC_891_P{}_bin30_allz2.{}.fits'.format(basedir,p+1,suffix)
+        print coef
+        cc = pyfits.open(coef)[1].data
+
+        for i, (component, symb) in enumerate(zip(componentlist,symblist)):
+            Psub, Asub = np.loadtxt(component, usecols=(1,2), unpack=True)
+            Pidx = np.where(Psub == p+1)[0]
+            subidx = Asub[Pidx].astype(np.int) - 1
+            print subidx
+            r = rr[subidx]
+            z = zz[subidx]
+            rfull = rrfull[subidx]
+            c = cc[subidx]
+
+            posidx = np.where(rfull >= 0)[0]
+            negidx = np.where(rfull < 0)[0]
+
+            norm1 = plt.Normalize(0,2.6)
+            norm2 = plt.Normalize(0,rmax)
+
+            for j in range(numc):
+                ax1 = axd[j]['rax']
+                ax2 = axd[j]['zax']
+                if j == i:
+                    alpha = 0.9
+                else:
+                    alpha = 0.2
+                scat1 = ax1.scatter(r[posidx], c[field][posidx]*scale, linewidth=0, alpha=alpha, c=z[posidx], 
+                                    vmin=0, vmax=2.6, cmap=plt.cm.gnuplot, marker=symb)
+                p1 = ax1.scatter(r[negidx], c[field][negidx]*scale, linewidth=1.1, facecolor='w',alpha=alpha, marker=symb)
+                
+                scat2 = ax2.scatter(z[posidx], c[field][posidx]*scale, linewidth=0, alpha=alpha, c=r[posidx], 
+                                    vmin=0, vmax=rmax, cmap=plt.cm.gnuplot, marker=symb)
+                p2 = ax2.scatter(z[negidx], c[field][negidx]*scale, linewidth=1, facecolor='w',alpha=alpha, marker=symb)
+
+                p1.set_edgecolors(plt.cm.gnuplot(norm1(z[negidx])))
+                p2.set_edgecolors(plt.cm.gnuplot(norm2(r[negidx])))
+
+                if errfield is not None and c.size > 0:
+                    _,_, c1 = ax1.errorbar(r, c[field]*scale, yerr=c[errfield]*scale,
+                                           capsize=0, fmt='none', alpha=alpha, zorder=0)
+                    _,_, c2 = ax2.errorbar(z, c[field]*scale, yerr=c[errfield]*scale,
+                                           capsize=0, fmt='none', alpha=alpha, zorder=0)
+                    c1[0].set_color(plt.cm.gnuplot(norm1(z)))
+                    c2[0].set_color(plt.cm.gnuplot(norm2(r)))
+        
+                ax2.set_xlim(-0.2,2.6)
+                if ylim:
+                    ax1.set_ylim(*ylim)
+                ax2.set_ylim(*ax1.get_ylim())
+                ax2.set_yticklabels([])
+                if j != numc - 1:
+                    ax1.set_xticklabels([])
+                    ax2.set_xticklabels([])
+                if rtrue:
+                    ax1.set_xlim(-0.5,22)
+
+    for i in range(numc):
+        ax1 = axd[i]['rax']
+        ax2 = axd[i]['zax']
+        ax2.text(0.95,0.55,labellist[i],ha='right',va='top', transform=ax2.transAxes)
+        if plotfid:
+            ax1.axvline(3, color='k', ls=':', alpha=0.7)
+            ax1.axvline(8, color='k', ls=':', alpha=0.7)
+            ax2.axvline(0.4, color='k', ls=':', alpha=0.7)
+            ax2.axvline(1, color='k', ls=':', alpha=0.7)
+
+        if i == numc/2:    
+            if label is None:
+                label = field
+            ax1.set_ylabel(label)
+
+    ax1.set_xlabel(r'$r_\mathrm{proj}\mathrm{\ [kpc]}$')
+    if rtrue:
+        ax1.set_xlabel(r'$r\mathrm{\ [kpc]}$')
+
+    ax2.set_xlabel(r'$|z|\mathrm{\ [kpc]}$')
+    
+    fig.subplots_adjust(wspace=0.0001,hspace=0.001)
+    
+    pos1 = axd[0]['rax'].get_position()
+    pos2 = axd[0]['zax'].get_position()
+    cax1 = fig.add_axes([pos1.x0 + (pos1.width-0.3)/2,
+                         pos1.y0 + pos1.height + 0.05,
+                         0.3,0.02])
+    cax2 = fig.add_axes([pos2.x0 + (pos2.width-0.3)/2,
+                         pos2.y0 + pos2.height + 0.05,
+                         0.3,0.02])
+    cb1 = fig.colorbar(scat1, cax=cax1, orientation='horizontal')
+    cb2 = fig.colorbar(scat2, cax=cax2, orientation='horizontal') 
+    cb1.set_ticks([0,0.5,1,1.5,2,2.5])
+    cb2.set_ticks([0,4,8,12,16,20])
+    cb1.set_alpha(1)
+    cb2.set_alpha(1)
+    cb1.draw_all()
+    cb2.draw_all()
+    cax1.text(0.5,1.3,r'$|z|\mathrm{\ [kpc]}$',va='bottom', ha='center', 
+              transform=cax1.transAxes, fontsize=20)
+    cax2.text(0.5,1.3,r'$r\mathrm{\ [kpc]}$', va='bottom', ha='center',
+              transform=cax2.transAxes, fontsize=20)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    plt.close(fig)
+
+    return
