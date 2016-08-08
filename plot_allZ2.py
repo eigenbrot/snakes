@@ -674,7 +674,7 @@ def histogram_across_folders(folder_list, inputsuffix='allz2.dat',
         
     axlist = [bigax] + axlist
 
-    return axlist
+    return axlist, bigD
 
 
 def simple_batch(prefix, order=5, exclude=[[],[],[],[],[],[]]):

@@ -357,8 +357,8 @@ def weight_comp_plot(outpre, bins=20, basedir='.'):
 
     return
 
-def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
-             rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4, componentfile=None):
+def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False, massweight=False,
+             SFR = False, rcuts=[3,8], zcuts=[0.4,1], numZ=6, numAge=4, componentfile=None):
     import matplotlib.colorbar as mplcb
 
     DFK_borders = np.array([[0.9e-3,5.2e-3],
@@ -387,6 +387,10 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
     
     if componentfile:
         Psub, Asub = np.loadtxt(componentfile, usecols=(1,2), unpack=True)
+
+    if massweight:
+        m = pyfits.open('/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits')[1].data[0]
+        mass_norm = np.mean(m['NORM'],axis=1) #average across all fiber sizes. Good enough.
 
     i = 1
     axlist = [lax]
@@ -424,8 +428,13 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
                     exarr = np.array(exclude[p]) - 1
                     r = np.delete(r, exarr)
                     z = np.delete(z, exarr)
-                    lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
-                    lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
+                    if massweight:
+                        lw = np.delete(coefs['LIGHT_FRAC']/mass_norm, exarr, axis=0)
+                        lwe = np.delete(coefs['LIGHT_FRAC']/mass_norm, exarr, axis=0)
+                        
+                    else:
+                        lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
+                        lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
 
                 norm = np.sum(lw,axis=1)[:,None]
                 lw /= norm
@@ -452,6 +461,11 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
             print np.sum(np.mean(bigDarr,axis=0))
             bigD = np.mean(bigDarr,axis=0)
             bigE = np.sqrt(np.sum(bigEarr**2,axis=0))/(bigEarr.shape[0])
+
+            if massweight and SFR:
+                bigD /= np.diff(DFK_borders)[:,0]/1e3
+                bigE /= np.diff(DFK_borders)[:,0]/1e3
+
             bigZ = np.nanmean(bigZarr,axis=0)
             print bigD.shape, bigE.shape, bigZ.shape
             print '##', bigZ
@@ -467,6 +481,16 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
             ax.set_xscale('log')
             ax.set_xlim(0.3e0,4e4)
             ax.set_ylim(-0.001,0.98)
+
+            if massweight:
+                ax.set_yscale('log')
+                ax.set_ylim(1e-6,1e1)
+                if i == 1:
+                    if SFR:
+                        lax.set_ylabel(r'$M(\Delta t_i)/\Delta t_i$', labelpad=20)
+                    else:
+                        lax.set_ylabel(r'$M(\Delta t_i)$', labelpad=20)
+                
 
             if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
