@@ -439,10 +439,10 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
                 lw = np.reshape(lw,(idx.size,numZ,numAge))
                 lwe = np.reshape(lwe,(idx.size,numZ,numAge))
                 print lw.shape
-                print np.sum(lw,axis=(1,2))
+                print '$$', np.sum(lw,axis=(1,2))
                 bigD_list.append(np.sum(lw,axis=1))
                 bigE_list.append(np.sqrt(np.sum(lwe**2,axis=1)))
-                bigZ_list.append(np.sum(lw * Zvals[None,:,None],axis=1)/(np.sum(lw,axis=1)+0.0001))
+                bigZ_list.append(np.sum(lw * Zvals[None,:,None],axis=1)/(np.sum(lw,axis=1)))
 
             bigDarr = np.vstack(bigD_list)
             bigEarr = np.vstack(bigE_list)
@@ -452,9 +452,9 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False,
             print np.sum(np.mean(bigDarr,axis=0))
             bigD = np.mean(bigDarr,axis=0)
             bigE = np.sqrt(np.sum(bigEarr**2,axis=0))/(bigEarr.shape[0])
-            bigZ = np.mean(bigZarr,axis=0)
+            bigZ = np.nanmean(bigZarr,axis=0)
             print bigD.shape, bigE.shape, bigZ.shape
-            print bigZ
+            print '##', bigZ
             norm = plt.Normalize(0.2,2.5)
             ax = fig.add_subplot(len(zcuts)+1,len(rcuts)+1,i)
             # ax.hlines(bigD, DFK_borders[:,0], DFK_borders[:,1],color='k', lw=2)
