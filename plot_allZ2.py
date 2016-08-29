@@ -958,7 +958,7 @@ def coef_MCcovar_contour(field1, field2, field3, output,
     H2 /= np.max(H2)
     H3 /= np.max(H3)    
 
-    levels = [0.005, 0.1, 0.4, 0.7, 0.9]
+    levels = [0.005,0.1, 0.4, 0.7, 0.9]
 
     ax1.contour(x1,y1,H1.T,levels,colors='k')
     ax2.contour(x2,y2,H2.T,levels,colors='k')

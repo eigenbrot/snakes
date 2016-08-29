@@ -645,8 +645,8 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
     lax.spines['left'].set_visible(False)   
     lax.set_xticklabels([])
     lax.set_yticklabels([])
-    lax.set_xlabel('Dn4000')
-    lax.set_ylabel(r'$H_{\delta,A}$')
+    lax.set_xlabel(r'$D_n(4000)$')
+    lax.set_ylabel(r'$H\delta_A$')
     lax.tick_params(axis='both',pad=20,length=0)
 
     bigz = [0] + zcuts + [2.6]
