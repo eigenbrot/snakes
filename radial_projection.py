@@ -11,7 +11,7 @@ from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
 def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
-                 dvdz = 15.789, output=False):
+                 dvdz = 15.789, output=False, dV=120.):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
     V = np.loadtxt(velocity, usecols=(1,), unpack=True) #km/s
@@ -28,6 +28,8 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
                                 #side
 
+    dr = np.abs(Vcvec/V**2) * np.abs(rho) * dV
+
     if output:
         with open(output,'w') as f:
             f.write("""# Generate on {}
@@ -36,12 +38,12 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
 #     {}
 #
 """.format(time.asctime(),location,velocity))
-            f.write('#{:>6}{:>10}{:>10}\n#\n'.format('Apnum','r (kpc)', 'phi (deg)'))
+            f.write('#{:>6}{:>10}{:>10}{:>10}\n#\n'.format('Apnum','r (kpc)', 'phi (deg)', 'dr (kpc)'))
             for i in range(r.size):
-                f.write('{:7n}{:10.3f}{:10.3f}\n'.format(i,r[i],phi[i]*180./np.pi))
+                f.write('{:7n}{:10.3f}{:10.3f}{:10.3f}\n'.format(i,r[i],phi[i]*180./np.pi,dr[i]))
 
 
-    return r, phi*180./np.pi
+    return r, phi*180./np.pi, dr
 
 def compute_rphi_tau(location, coeffile, scale=30./1001.):
 
