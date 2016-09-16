@@ -283,3 +283,59 @@ def run_models_multires(output,group=1):
     outhdu.writeto(output,clobber=True)
     
     return
+
+def run_SSPs(output):
+
+    HdAlims = [[4084.5, 4123.3], [4041.65, 4079.75], [4128.55, 4161.05]]
+    Mgblims = [[5160.15, 5192.65], [5142.6, 5161.4], [5191.4, 5206.4]]
+    Fe5270lims = [[5245.7, 5285.7], [5233.2, 5248.2], [5285.65, 5318.15]]
+    Fe5335lims = [[5312.1, 5352.1], [5304.65, 5315.95], [5353.4, 5363.4]]
+
+    SSPs = pyfits.open('/d/monk/eigenbrot/WIYN/14B-0456/anal/models/allZ2_vardisp/allz2_vardisp_batch_interp.fits')[1].data[0]
+    frac = np.sort(np.unique(SSPs['Z']))
+    ages = np.sort(np.unique(SSPs['AGE']))
+    numZ = frac.size
+    numage = ages.size
+
+    wave = SSPs['WAVE']
+    
+    results = np.zeros((numage,numZ,5))
+    
+    for zz, Z in enumerate(frac):
+        for aa, A in enumerate(ages):
+            idx = np.where((SSPs['AGE'] == A) & (SSPs['Z'] == Z))[0][0]
+            data = SSPs['FLUX'][idx,:,2]
+
+            D = compute_Dn4000(wave,data,None,doerr=False)            
+            H = compute_index(wave, data, None,
+                              HdAlims[0], HdAlims[1], HdAlims[2],
+                              doerr=False)
+            M = compute_index(wave, data, None,
+                              Mgblims[0], Mgblims[1], Mgblims[2],
+                              doerr=False)
+            F2 = compute_index(wave, data,None,
+                               Fe5270lims[0], Fe5270lims[1], Fe5270lims[2],
+                               doerr=False)
+            F3 = compute_index(wave, data,None,
+                               Fe5335lims[0], Fe5335lims[1], Fe5335lims[2],
+                               doerr=False)
+            
+            res = [D, H, M,
+                   0.5*(F2 + F3),
+                   np.sqrt(M * (0.72*F2 + 0.28*F3))]
+
+            results[aa,zz,:] = res
+
+    
+    outhdu = pyfits.PrimaryHDU(results)
+    outhdu.header.update('d0','Age')
+    outhdu.header.update('d1','Z')
+    outhdu.header.update('d2','index')
+    outhdu.header.update('i0','Dn4000')
+    outhdu.header.update('i1','HdA')
+    outhdu.header.update('i2','Mgb')
+    outhdu.header.update('i3','<Fe>')
+    outhdu.header.update('i4','MgFe')
+    outhdu.writeto(output,clobber=True)
+    
+    return
