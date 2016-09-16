@@ -16,12 +16,12 @@ iraf.onedspec(_doprint=0)
 
 llist = ['HB','Ha']
 #rlist = [np.array([4793., 4923.]), np.array([6485., 6685.])]
-rlist = [np.array([4847., 4872.]), np.array([6510., 6625.])]
+rlist = [np.array([4840., 4880.]), np.array([6510., 6625.])]
 centlist = [[4861.], np.array([6563., 6549., 6585.])]
 bc_coeffs = [-0.91,4.15]
 ma_coeffs = [-1.06,3.78]
 
-def prep_spectra(datafile, fitfile, output, velocity, smooth=3.):
+def prep_spectra(datafile, fitfile, output, velocity, smooth=3., errfile=None):
 
     wavemin=3800.
     wavemax=6800.
@@ -47,18 +47,29 @@ def prep_spectra(datafile, fitfile, output, velocity, smooth=3.):
     print fits.shape[1], wave.size
 
     diff = data - fits + 1e-16
-
     shift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),diff[i,:]) for i in range(diff.shape[0])])
-    
+
+    if errfile:
+        err = pyfits.open(errfile)[0].data[:,idx]
+        eshift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),err[i,:]) for i in range(err.shape[0])])
+
     if smooth > 0:
         smoothed = np.vstack([np.convolve(shift[i,:],np.ones(smooth)/smooth,'same') for i in range(diff.shape[0])])
+        if errfile:
+            esmooth = np.vstack([np.convolve(eshift[i,:],np.ones(smooth)/smooth,'same') for i in range(err.shape[0])])
     else:
         smoothed = shift
+        if errfile:
+            esmooth = eshift
 
     header.update('CRVAL1', 3800.)
     #os.system('rm tmp'+output)
     os.system('rm '+output)
     pyfits.PrimaryHDU(smoothed*1e17,header).writeto(output,clobber=True)
+
+    if errfile:
+        errout = output.replace('ms','me')
+        pyfits.PrimaryHDU(esmooth*1e17,header).writeto(errout,clobber=True)
 
     # iraf.continuum('tmp'+output,output,
     #                type='ratio',
@@ -67,6 +78,62 @@ def prep_spectra(datafile, fitfile, output, velocity, smooth=3.):
     #                order=33,
     #                low_rej=2,
     #                high_rej=2)
+
+    return
+
+def get_err_stats():
+
+    dlist = []
+    elist = []
+
+    for p in range(6):
+        datafile = 'P{}_contsub.ms.fits'.format(p+1)
+        errfile = 'P{}_contsub.me.fits'.format(p+1)
+        hdu = pyfits.open(datafile)[0]
+        data = hdu.data
+        err = pyfits.open(errfile)[0].data
+        header = hdu.header
+    
+        cdelt = header['CDELT1']
+        crpix = header['CRPIX1']
+        crval = header['CRVAL1']
+        
+        wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
+        idx = np.where((wave > rlist[0][0]) & (wave < rlist[0][1]))[0]
+        
+        dlist.append(np.mean(data[:,idx],axis=1))
+        elist.append(np.mean(err[:,idx],axis=1))
+
+
+    data = np.hstack(dlist)
+    err = np.hstack(elist)
+    sqerr = err**2
+
+    print data.shape, err.shape
+
+    pf = np.polyfit(data, sqerr, 0)
+    poly = np.poly1d(pf)
+    # model = pf[0]*data# - 10*pf[0] + pf[1]
+    # print pf[0], pf[1]# - 10*pf[0]
+    print pf
+    model = data*pf[0] + 0
+
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.set_xlabel('Signal')
+    ax.set_ylabel('Err^2')
+    ax.plot(data,sqerr, 'k.')
+    ax.plot(data,poly(data-10),'r-')
+#    ax.plot(data,model, 'b-')
+
+    ax1 = fig.add_subplot(212)
+    ax1.plot(data, sqerr/poly(data-10), 'k.')
+    pf2 = np.polyfit(data, sqerr/poly(data-10),1)
+    p2 = np.poly1d(pf2)
+    print pf2
+    ax1.plot(data, p2(data),'r-')
+
+    fig.show()
 
     return
 
@@ -103,6 +170,7 @@ def do_fitprof(datafile, pointing):
             print 'Removing ' + proffile
             os.system('rm '+proffile)
             os.system('rm {}P{}_{}_fits.fits'.format(dirn,pointing,l))
+            os.system('rm {}P{}_{}_fits.pt'.format(dirn,pointing,l))
         try:
             iraf.fitprofs(datafile,
                           region='{:4.0f} {:4.0f}'.format(*r),
@@ -110,12 +178,12 @@ def do_fitprof(datafile, pointing):
                           logfile='{}P{}_{}.fitp'.format(dirn,pointing,l),
                           fitpositions='single',
                           fitgfwhm='single',
-#                          plotfile='test_{}.pt'.format(l),
+                          plotfile='{}P{}_{}_fits.pt'.format(dirn,pointing,l),
                           output='{}P{}_{}_fits.fits'.format(dirn,pointing,l),
                           option='fit',
                           nerrsam=100,
-                          sigma0=0.3,
-                          invgain=0.)
+                          sigma0=0.41,
+                          invgain=0.0)
         except Exception as e:
             print 'IRAF died:'
             print e
@@ -148,9 +216,10 @@ def get_results(pointing, output):
     print 'Consolidating measurements'
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_ylabel(r'$\tau_{\mathrm{V,balm}}')
+    ax.set_ylabel(r'$\tau_{\mathrm{V,balm}}$')
     ax.set_xlabel('Aperture number')
     ax.set_title(time.asctime())
+    ax.set_ylim(-10,15)
 
     tHad = i2p.parse_fitprofs('P{}_Ha.fitp'.format(pointing),3)
     Haf = tHad[4][:,0]
@@ -158,6 +227,25 @@ def get_results(pointing, output):
     tHBd = i2p.parse_fitprofs('P{}_HB.fitp'.format(pointing),1)
     HBf = tHBd[4][:,0]
     HBfe = tHBd[5][:,0]
+    
+    #Correct for error over/under-estimateion
+    datafile = 'P{}_contsub.ms.fits'.format(pointing)
+    hdu = pyfits.open(datafile)[0]
+    data = hdu.data
+    header = hdu.header
+    
+    cdelt = header['CDELT1']
+    crpix = header['CRPIX1']
+    crval = header['CRVAL1']
+    
+    wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
+    idx = np.where((wave > rlist[1][0]) & (wave < rlist[1][1]))[0]
+    tflux = np.mean(data[:,idx],axis=1)
+    ecorr = np.sqrt(0.289*tflux - 2.811)
+    print tflux, ecorr
+#    raw_input()
+    # Hafe *= ecorr
+    # HBfe *= ecorr
 
     #Correct for underfit [NII] line
     Hacorr = tHad[4][:,1] - tHad[4][:,2]/3.
@@ -185,7 +273,7 @@ def get_results(pointing, output):
         for i in range(tauV.size):
             f.write('{:4}{:10.2f}{:10.2f}\n'.format(i+1,tauV[i],tauV_e[i]))
 
-    return
+    return Haf, Hafe, HBf, HBfe, ratio, ratio_e
     
 def make_balmer_model(Hafitp, location, velocities, output, tauV_coeffs=[-1.06,3.78], #for ma11
                       dispdata = '/d/monk/eigenbrot/WIYN/14B-0456/anal/disp/GP_disp_batch_avg_int.fits'):
@@ -312,7 +400,12 @@ def Pbatch(balmer=False, tauV_coeffs=bc_coeffs):
         print fit
         print vel
         
-        do_all(data,fit,vel,loc,balmer=balmer,tauV_coeffs=tauV_coeffs)
+        try:
+            do_all(data,fit,vel,loc,balmer=balmer,tauV_coeffs=tauV_coeffs)
+        except Exception as e:
+            print e
+            raw_input('P{} failed. Enter to continue'.format(i+1))
+            continue
 
     return
 
