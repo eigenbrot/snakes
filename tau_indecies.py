@@ -378,7 +378,8 @@ def eat_index(index):
                      FeAvg, MgFe, index[4]])
 
 def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
-                    ma11 = False, plotlabels=True, isochrones=False):
+                    ma11 = False, plotlabels=True, SSP=False,
+                    isochrones=False,isofers=False):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -387,13 +388,21 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
     fraclist = np.sort(fraclist)
     
     tausf_list = np.array(deftlst)
-    mlwa_list = np.array(deftmlwa)
+
+    if SSP:
+        mlwa_list = np.array([  5.00000000e+06,   2.50000000e+07,   1.00000000e+08,
+                                2.86000000e+08,   6.40000000e+08,   9.04000000e+08,
+                                1.43400000e+09,   2.50000000e+09,   5.00000000e+09,
+                                1.00000000e+10])/1e9
+    else:
+        mlwa_list = np.array(deftmlwa)
 
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
 
     if isochrones:
         colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d']
+        ## colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a']
         for t in range(numtau)[::-1]:
             ax.plot(modeldata[t,:,band1],
                     modeldata[t,:,band2],
@@ -410,6 +419,27 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                 ax.text(modeldata[3,-2,band1],
                         modeldata[3,-2,band2],
                         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=10,ha='right',va='center')
+
+    elif isofers:
+        colors = ['#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177']
+        for z in range(numZ):
+            ax.plot(modeldata[:,z,band1],
+                    modeldata[:,z,band2],
+                    '-',alpha=alpha,zorder=0,color=colors[z],lw=1.4)
+            # ax.scatter(modeldata[-1,z,band1], modeldata[-1,z,band2], color=colors[z], s=25)
+            # ax.scatter(modeldata[0,z,band1], modeldata[0,z,band2], color=colors[z], s=25)            
+        if ax.get_subplotspec().get_geometry()[2] == 2 and z == numZ - 1:
+            ax.text(modeldata[0,z,band1],
+                    modeldata[0,z,band2],
+                    '{:3.2f} Gyr'.format(mlwa_list[0]), fontsize=10, ha='left', va='center')
+            ax.text(modeldata[-1,z,band1],
+                    modeldata[-1,z,band2],
+                    '{:3.2f} Gyr'.format(mlwa_list[-1]), fontsize=10, ha='left', va='center')
+        if ax.get_subplotspec().get_geometry()[2] == 0:
+            for zz in range(numZ):
+                ax.text(0.1,0.9 - 0.1*zz, '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[zz]), color=colors[zz],
+                        fontsize=10, ha='left', transform=ax.transAxes)
+
     else:
         for t in range(numtau)[::-1]:
             ax.plot(modeldata[t,:,band1],
@@ -710,7 +740,8 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
-              isochrones=False,multires=True, plotfid=False):
+              isochrones=False, isofers=False, multires=True, plotfid=False, plotdata=True,
+              SSP=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
@@ -754,10 +785,11 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     band2 = band_d[y]['num']
 
                 print data_file
-                scat = plot_quick_on_grid(data_file, ax, band1, band2, spy=spy, 
-                                          exclude=exclude[p], nocolor=True, err=err,
-                                          marker='o', size=40, plot_r=False, 
-                                          zcut=zc, rcut=rc, basedir=basedir)
+                if plotdata:
+                    scat = plot_quick_on_grid(data_file, ax, band1, band2, spy=spy, 
+                                              exclude=exclude[p], nocolor=True, err=err,
+                                              marker='o', size=40, plot_r=False, 
+                                              zcut=zc, rcut=rc, basedir=basedir)
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])
             
@@ -801,7 +833,10 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     if multires:
                         model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
                     else:
-                        model_file = '{}/BC03_spy.fits'.format(basedir)
+                        if SSP:
+                            model_file = '{}/BC03_SSP_spy.fits'.format(basedir)
+                        else:
+                            model_file = '{}/BC03_spy.fits'.format(basedir)
                     print model_file
                     band1 = band_d[x]['spynum']/2
                     band2 = band_d[y]['spynum']/2
@@ -811,7 +846,8 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     band1 = band_d[x]['num']
                     band2 = band_d[y]['num']
                 plot_model_grid(model_file,ax,band1,band2,alpha=0.5,
-                                plotlabels=plotlabels, isochrones=isochrones)
+                                plotlabels=plotlabels, isochrones=isochrones,
+                                isofers=isofers)
             if plotfid:
                 plot_mgb_tracks_on_grid('mgb_parse.dat', ax)
 
