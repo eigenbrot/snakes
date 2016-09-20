@@ -500,7 +500,7 @@ def plot_yanny_on_grid(parfile, ax, band1, band2):
     
     return scat
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False, spy=False,
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r=False, spy=False, rphi=True,
                        err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.8):
     
     if spy:
@@ -514,6 +514,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     fullr = r
     r = np.abs(r)
     z = np.abs(z)
+    if rphi:
+        phifile = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir,pointing)
+        r = np.loadtxt(phifile,usecols=(1,),unpack=True)
 
     exar = np.array(exclude) - 1
     res = np.delete(res,exar,axis=0)
@@ -741,7 +744,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
               isochrones=False, isofers=False, multires=True, plotfid=False, plotdata=True,
-              SSP=False):
+              SSP=False, rphi=True):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
@@ -788,7 +791,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 if plotdata:
                     scat = plot_quick_on_grid(data_file, ax, band1, band2, spy=spy, 
                                               exclude=exclude[p], nocolor=True, err=err,
-                                              marker='o', size=40, plot_r=False, 
+                                              marker='o', size=40, plot_r=False, rphi=rphi,
                                               zcut=zc, rcut=rc, basedir=basedir)
             ax.set_ylim(*band_d[y]['lim'])
             ax.set_xlim(*band_d[x]['lim'])

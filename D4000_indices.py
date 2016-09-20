@@ -477,7 +477,7 @@ def get_mab_data(prefix=None,
 
     return z, Dres, Tres
 
-def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, spy=False,
+def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot_r = False, spy=False, rphi=True,
                        err=True, nocolor=False, zcut=[-99,99], rcut=[-99,99], size=40, marker='o', alpha=0.8):
     
     if spy:
@@ -491,6 +491,9 @@ def plot_quick_on_grid(datafile, ax, band1, band2, exclude=[], basedir='.', plot
     fullr = r
     r = np.abs(r)
     z = np.abs(z)
+    if rphi:
+        phifile = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir,pointing)
+        r = np.loadtxt(phifile,usecols=(1,),unpack=True)
 
     exar = np.array(exclude) - 1
     res = np.delete(res,exar,axis=0)
@@ -635,7 +638,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
     return
 
 def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
-                    grid=False, spy=False, err=True, multires=True):
+                    grid=False, spy=False, err=True, multires=True, rphi=True):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -667,7 +670,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                     data_file = glob('{}/NGC_891_P{}_bin30*.msoz.Dn4000.dat'.format(basedir,p+1))[0]
                     band1, band2 = 2, 0
                 print data_file
-                scat = plot_quick_on_grid(data_file, ax, band1, band2, exclude=exclude[p], nocolor=True, spy=spy,
+                scat = plot_quick_on_grid(data_file, ax, band1, band2, exclude=exclude[p], nocolor=True, spy=spy, rphi=rphi,
                                           err=err, marker='o', size=40, plot_r=False, zcut=zc, rcut=rc, basedir=basedir)
 #            ax.text(2.5,8,'${}\leq |z| <{}$ kpc\n${}\leq |r| <{}$ kpc'.format(*(zc+rc)),ha='right',va='center')
             ax.set_ylim(-3.3,8.4)
