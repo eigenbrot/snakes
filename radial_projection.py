@@ -11,7 +11,7 @@ from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
 def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
-                 dvdz = 15.789, output=False, dV=120.):
+                 dvdz = 15.789, output=False, dV=23.):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
     V = np.loadtxt(velocity, usecols=(1,), unpack=True) #km/s
