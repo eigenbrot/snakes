@@ -818,6 +818,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 tax.set_ylabel('${}\leq |z| <{}$ kpc'.format(*zc))
                 #rotation='horizontal',labelpad=20)
                 tax.set_ylim(*ax.get_ylim())
+                tax.set_yticks(ax.get_yticks())
                 tax.set_yticklabels([])
 
             if i <= len(rcuts) + 1:
@@ -825,7 +826,8 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 tax.set_xlabel('${}\leq |r| <{}$ kpc'.format(*rc))
                 #rotation='horizontal',labelpad=20)
                 tax.set_xlim(*ax.get_xlim())
-                tax.set_xticklabels([]) 
+                tax.set_xticks(ax.get_xticks())
+                tax.set_xticklabels([])
             
             if i <= (len(zcuts)) * (len(rcuts) + 1):
                 ax.set_xticklabels([])
