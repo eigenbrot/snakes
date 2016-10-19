@@ -744,7 +744,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
               isochrones=False, isofers=False, multires=True, plotfid=False, plotdata=True,
-              SSP=False, rphi=True):
+              SSP=False, rphi=True, addl_tracks=None):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
@@ -861,6 +861,11 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 xpos = band_d[x]['lim'][1] - repxerr*2
                 ypos = band_d[y]['lim'][1] - repyerr*2
                 ax.errorbar(xpos,ypos,xerr=repxerr,yerr=repyerr,fmt='none',capsize=0,ecolor='k')
+
+            if addl_tracks is not None:
+                track_group = addl_tracks[3-z]
+                for track in track_group:
+                    ax.plot(track[0], track[1], **track[2])
 
             i += 1
 
