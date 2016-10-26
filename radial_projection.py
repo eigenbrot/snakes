@@ -111,7 +111,7 @@ def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
     return ax, scat
 
 def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
-                componentfile=None):
+                componentfile=None, exclude=[[],[],[],[],[],[]]):
 
     rr = np.array([])
     pphi = np.array([])
@@ -127,11 +127,12 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
             coef = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir, i+1)
             r, phi = compute_rphi_tau(loc,coef)
         else:
-            r, phi = compute_rphi(loc,vel)
+            r, phi, _ = compute_rphi(loc,vel)
 
-        rr = np.r_[rr,r]
-        pphi = np.r_[pphi, phi]
-        zz = np.r_[zz,z]
+        exarr = np.array(exclude[i]) - 1
+        rr = np.r_[rr,np.delete(r,exarr)]
+        pphi = np.r_[pphi, np.delete(phi,exarr)]
+        zz = np.r_[zz,np.delete(z,exarr)]
 
         plims.append([-1*rho.min(),-1*np.mean(rho),-1*rho.max()])
 
