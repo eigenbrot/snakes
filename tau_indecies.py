@@ -768,7 +768,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
     lax.tick_params(axis='both',pad=20,length=0)
 
     bigz = [0] + zcuts + [2.6]
-    bigr = [0] + rcuts + [11]
+    bigr = [0] + rcuts + [22]
     
     i = 1
     for z in range(len(zcuts) + 1):

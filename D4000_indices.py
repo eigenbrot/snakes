@@ -653,7 +653,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
     lax.tick_params(axis='both',pad=20,length=0)
 
     bigz = [0] + zcuts + [2.6]
-    bigr = [0] + rcuts + [11]
+    bigr = [0] + rcuts + [22]
     
     i = 1
     for z in range(len(zcuts) + 1):
