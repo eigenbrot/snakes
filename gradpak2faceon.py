@@ -1,0 +1,115 @@
+import time
+import numpy as np
+
+def bin_r(datatable, rbins, rrange, zbins, hz):
+    '''Take a data table and bin it by radius. For each radius call
+    do_height() to compute the face-on integrated values
+
+    '''
+
+    data = np.loadtxt(datatable)
+
+    h, bin_edge = np.histogram(data[:,5], bins=rbins, range=rrange)
+    
+    #get rid of bins with nobody in them
+    zero_idx = np.where(h == 0)[0]
+    bin_edge = np.delete(bin_edge, zero_idx + 1)
+    numbins = rbins - zero_idx.size
+
+    #we do this so we can keep the < bin_edge[i+1] constraint
+    bin_edge[-1] *= 1.1
+
+    # -4 because we don't need running seq, pointing, apnum, r_proj, or phi
+    results = np.zeros((numbins, data.shape[1] - 5))
+    
+    for i in range(numbins):
+        idx = np.where((data[:,5] >= bin_edge[i]) &
+                       (data[:,5] < bin_edge[i+1]))[0]
+        res = do_height(data[idx,:], zbins, hz)
+        print '#', i, idx.size, res.size
+        results[i,:] = res
+
+    return results
+
+def do_height(data, zbins=10, hz=0.42):
+    '''Take in a numpy array and bin into an equal number of vertical
+    slices, average across these slices. Finally average everything
+    together while weighting for height
+
+    '''
+
+    #which columns of the original array will we keep?
+    keep_idx = [4,5,6,8,9,10,11,12,13,14,15]
+
+    #which columns (of the new array) are uncertainties?
+    err_idx = [4,7,10]
+
+    # rounding to 0.1 kpc helps us find the midplane
+    roundz = np.round(data[:,4],1)
+    z = np.array(data[:,4])
+    
+    # the first row in each pointing is actually below the plane, so
+    # we'll multiply that by -1 so it doesn't get grouped with row 3
+    zid = np.argmin(roundz)
+    z[:zid] *= -1
+
+    h, bin_edge = np.histogram(z, bins=zbins)
+
+    #get rid of bins with nobody in them
+    zero_idx = np.where(h == 0)[0]
+    bin_edge = np.delete(bin_edge, zero_idx + 1)
+    numbins = zbins - zero_idx.size
+
+    #we do this so we can keep the < bin_edge[i+1] constraint
+    bin_edge[-1] *= 1.1
+
+    tmpres = np.zeros((numbins, data.shape[1]))
+
+    for i in range(numbins):
+        idx = np.where((z >= bin_edge[i]) & (z < bin_edge[i+1]))[0]
+        print '\t', bin_edge[i], bin_edge[i+1], idx.size
+        tmpres[i,:] = np.mean(data[idx,:], axis=0)
+
+    #now, collapse along z with a scale-height weighting
+    weight = np.exp(-tmpres[:,4]/hz)
+    res = np.sum(tmpres[:,keep_idx] * weight[:,None], axis=0)/np.sum(weight)
+
+    #divide errors by root N
+    res[err_idx] /= np.sqrt(tmpres.shape[0])
+
+    return res
+
+def write_header(f):
+
+    f.write('# Generated on {}\n#\n'.format(time.asctime()))
+    f.write("""#  1. Running sequence
+#  2. |z| (kpc)
+#  3. r (kpc) - Velocity-derived cylindrical radius
+#  4. dr (kpc) -Uncertainty on r
+#  5. MLWA
+#  6. dMLWA
+#  7. MMWA
+#  8. MLWZ
+#  9. dMLWZ
+# 10. MMWZ
+# 11. A_V
+# 12. dA_V
+#
+""")
+    f.write(('#{:4n}'+'{:10n}'*11+'\n#\n').format(*np.arange(12)+1))
+    
+    return
+
+def main(datatable, output, rbins=30, zbins=10, rrange=(0,22), hz=0.42):
+
+    fmt = '{:5n}' + '{:10.3f}'*11 + '\n'
+
+    results = bin_r(datatable, rbins, rrange, zbins, hz)
+
+    with open(output,'w') as f:
+        write_header(f)
+        for i in range(results.shape[0]):
+            f.write(fmt.format(*([i+1] + results[i,:].tolist())))
+
+
+    return
