@@ -20,7 +20,7 @@ def bin_r(datatable, rbins, rrange, zbins, hz):
     bin_edge[-1] *= 1.1
 
     # -4 because we don't need running seq, pointing, apnum, r_proj, or phi
-    results = np.zeros((numbins, data.shape[1] - 5))
+    results = np.zeros((numbins, data.shape[1] - 4))
     
     for i in range(numbins):
         idx = np.where((data[:,5] >= bin_edge[i]) &
@@ -77,6 +77,8 @@ def do_height(data, zbins=10, hz=0.42):
     #divide errors by root N
     res[err_idx] /= np.sqrt(tmpres.shape[0])
 
+    res = np.append(res, np.log10(res[8]))
+
     return res
 
 def write_header(f):
@@ -94,15 +96,16 @@ def write_header(f):
 # 10. MMWZ
 # 11. A_V
 # 12. dA_V
+# 13. log(MMWZ)
 #
 """)
-    f.write(('#{:4n}'+'{:10n}'*11+'\n#\n').format(*np.arange(12)+1))
+    f.write(('#{:4n}'+'{:10n}'*12+'\n#\n').format(*np.arange(13)+1))
     
     return
 
 def main(datatable, output, rbins=30, zbins=10, rrange=(0,22), hz=0.42):
 
-    fmt = '{:5n}' + '{:10.3f}'*11 + '\n'
+    fmt = '{:5n}' + '{:10.3f}'*12 + '\n'
 
     results = bin_r(datatable, rbins, rrange, zbins, hz)
 
