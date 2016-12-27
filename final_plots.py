@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 
 exclude = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
+DFK_MODEL_FILE='/Users/Arthur/Documents/School/891_research/models/DFK/DFK_allZ_vardisp.fits'
+
+#DFK_MODEL_FILE='/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits'
+
 
 def combine_err():
 
@@ -389,7 +393,7 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False, massweight=False
         Psub, Asub = np.loadtxt(componentfile, usecols=(1,2), unpack=True)
 
     if massweight:
-        m = pyfits.open('/d/monk/eigenbrot/WIYN/14B-0456/anal/DFK/models/DFK_allZ_vardisp.fits')[1].data[0]
+        m = pyfits.open(DFK_MODEL_FILE)[1].data[0]
         mass_norm = np.mean(m['NORM'],axis=1) #average across all fiber sizes. Good enough.
 
     i = 1
@@ -430,13 +434,19 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False, massweight=False
                     z = np.delete(z, exarr)
                     if massweight:
                         lw = np.delete(coefs['LIGHT_FRAC']/mass_norm, exarr, axis=0)
-                        lwe = np.delete(coefs['LIGHT_FRAC']/mass_norm, exarr, axis=0)
+                        lwe = np.delete(coefs['LIGHT_FRAC_ERR']/mass_norm, exarr, axis=0)
                         
                     else:
                         lw = np.delete(coefs['LIGHT_WEIGHT'], exarr, axis=0)
-                        lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
-
-                norm = np.sum(lw,axis=1)[:,None]
+                        try:
+                            lwe = np.delete(coefs['LIGHT_WEIGHT_ERR'], exarr, axis=0)
+                        except KeyError:
+                            lwe = np.ones(lw.shape)*0.5
+                            
+                # Normalize each aperture to a total weight sum of 1,
+                # this is so brighter aps don't overwhelm less bright
+                # aps.
+                norm = np.sum(lw,axis=1)[:,None] # Sum of all weights in each aperture
                 lw /= norm
                 lwe /= norm
 
@@ -449,6 +459,10 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False, massweight=False
                 lwe = np.reshape(lwe,(idx.size,numZ,numAge))
                 print lw.shape
                 print '$$', np.sum(lw,axis=(1,2))
+
+                # Collapse along the Z dimension. We use a sum because
+                # we want to add up all the (normalized) light weight
+                # in each metallicity bin.
                 bigD_list.append(np.sum(lw,axis=1))
                 bigE_list.append(np.sqrt(np.sum(lwe**2,axis=1)))
                 bigZ_list.append(np.sum(lw * Zvals[None,:,None],axis=1)/(np.sum(lw,axis=1)))
@@ -459,6 +473,9 @@ def SFH_cuts(output, basedir='.', exclude=exclude, rtrue=False, massweight=False
             print bigDarr.shape, bigEarr.shape, bigZarr.shape
             print np.mean(bigDarr,axis=0)
             print np.sum(np.mean(bigDarr,axis=0))
+
+            #Average (normalized) light weight across all apertures in
+            #(r,z) bin
             bigD = np.mean(bigDarr,axis=0)
             bigE = np.sqrt(np.sum(bigEarr**2,axis=0))/(bigEarr.shape[0])
 
