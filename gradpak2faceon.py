@@ -170,11 +170,16 @@ def M31_comp(output, faceonfile='paper2_faceon.dat', offset=0.3):
     model_dex = model_r * -0.02 + offset# From Gregerson+ '15 Figure 9
     model_dexp = model_r * -0.024 + offset
     model_dexm = model_r * -0.016 + offset
+
+    NGC_dex = model_r * -0.0095 + 0.27
+
+    print np.polyfit(data[2], data[12], 1)
     
     ax.plot(model_r/5.26, model_dex, '-k', label="-0.02 dex/kpc (Gregerson+ '15) + {}".format(offset))
     ax.fill_between(model_r/5.26, model_dexp, model_dexm, color='k', alpha=0.2, interpolate=True)
 
     ax.plot(data[2]/5.48, data[12], ls='None', color='r', marker='o', mec='none')
+    ax.plot(model_r/5.48, NGC_dex, '-r', label='-0.0095 dex/kpc + 0.27')
     ax.legend(loc=0, frameon=False)
     
     pp = PDF(output)
