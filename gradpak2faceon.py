@@ -138,7 +138,7 @@ def write_header(f):
     
     return
 
-def main(datatable, output, rbins=300, zbins=10, rrange=(0,22), hz=0.42, zerr=0.1):
+def main(datatable='paper2_table.txt', output='paper2_faceon.dat', rbins=300, zbins=10, rrange=(0,22), hz=0.42, zerr=0.1):
 
     fmt = '{:5n}' + '{:10.3f}'*12 + '\n'
 
@@ -153,3 +153,34 @@ def main(datatable, output, rbins=300, zbins=10, rrange=(0,22), hz=0.42, zerr=0.
 
 
     return
+
+#########
+
+def M31_comp(output, faceonfile='paper2_faceon.dat', offset=0.3):
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    
+    data = np.loadtxt(faceonfile).T
+
+    ax = plt.figure().add_subplot(111)
+    ax.set_xlabel(r'$r/h_r$ (Deprojected)')
+    ax.set_ylabel('[M/H]')
+
+    model_r = np.linspace(0,20,50)
+    model_dex = model_r * -0.02 + offset# From Gregerson+ '15 Figure 9
+    model_dexp = model_r * -0.024 + offset
+    model_dexm = model_r * -0.016 + offset
+    
+    ax.plot(model_r/5.26, model_dex, '-k', label="-0.02 dex/kpc (Gregerson+ '15) + {}".format(offset))
+    ax.fill_between(model_r/5.26, model_dexp, model_dexm, color='k', alpha=0.2, interpolate=True)
+
+    ax.plot(data[2]/5.48, data[12], ls='None', color='r', marker='o', mec='none')
+    ax.legend(loc=0, frameon=False)
+    
+    pp = PDF(output)
+    pp.savefig(ax.figure)
+    pp.close()
+    plt.close(ax.figure)
+
+    return
+    
