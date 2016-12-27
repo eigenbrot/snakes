@@ -1,35 +1,67 @@
 import time
 import numpy as np
 
-def bin_r(datatable, rbins, rrange, zbins, hz):
+def bin_r(datatable, rbins, rrange, zbins, hz, zerr):
     '''Take a data table and bin it by radius. For each radius call
     do_height() to compute the face-on integrated values
 
     '''
 
     data = np.loadtxt(datatable)
-
+    print data.shape
     h, bin_edge = np.histogram(data[:,5], bins=rbins, range=rrange)
     
-    #get rid of bins with nobody in them
-    zero_idx = np.where(h == 0)[0]
-    bin_edge = np.delete(bin_edge, zero_idx + 1)
-    numbins = rbins - zero_idx.size
+    # #get rid of bins with nobody in them
+    # zero_idx = np.where(h == 0)[0]
+    # bin_edge = np.delete(bin_edge, zero_idx + 1)
+    # numbins = rbins - zero_idx.size
 
     #we do this so we can keep the < bin_edge[i+1] constraint
     bin_edge[-1] *= 1.1
-
-    # -4 because we don't need running seq, pointing, apnum, r_proj, or phi
-    results = np.zeros((numbins, data.shape[1] - 4))
     
-    for i in range(numbins):
+    #choose a sensible widening value
+    add_r = np.mean(np.diff(bin_edge))/3.
+    rlimit = bin_edge[-1]
+    
+    # -4 because we don't need running seq, pointing, apnum, r_proj, or phi
+    results = np.zeros((rbins, data.shape[1] - 4))
+
+    j = 0
+    for i in range(rbins):
         idx = np.where((data[:,5] >= bin_edge[i]) &
                        (data[:,5] < bin_edge[i+1]))[0]
+        if idx.size == 0:
+            continue
+        print bin_edge[i], '<= r < ', bin_edge[i+1]
         res = do_height(data[idx,:], zbins, hz)
-        print '#', i, idx.size, res.size
-        results[i,:] = res
 
-    return results
+        # In a perfect world the average, weighted height should be
+        # close to the scale height, let's make sure it's close, and
+        # widen the radial bin if necessary
+        if np.abs(res[0] - hz) > zerr:
+            print 'Widening radial bin... [{}, {})'.format(bin_edge[i], bin_edge[i+1])
+            while np.abs(res[0] - hz) > zerr:
+                bin_edge[i+1:] += add_r
+                
+                idx = np.where((data[:,5] >= bin_edge[i]) & (data[:,5] < bin_edge[i+1]))[0]
+                print '\t {} [{}, {})...'.format(i, bin_edge[i], bin_edge[i+1])
+                res = do_height(data[idx,:], zbins, hz)
+
+                if bin_edge[i+1] > rlimit:
+                    print "\t reached rlimit"
+                    break
+                
+            print 'OK!'
+                
+        print '#', i, idx.size, res.size, res[0]
+
+        results[j,:] = res
+        j += 1
+        
+        if bin_edge[i+1] > rlimit:
+            break
+        
+    return results[:j,:]
 
 def do_height(data, zbins=10, hz=0.42):
     '''Take in a numpy array and bin into an equal number of vertical
@@ -67,16 +99,19 @@ def do_height(data, zbins=10, hz=0.42):
 
     for i in range(numbins):
         idx = np.where((z >= bin_edge[i]) & (z < bin_edge[i+1]))[0]
-        print '\t', bin_edge[i], bin_edge[i+1], idx.size
+        print '\t\t', bin_edge[i], bin_edge[i+1], idx.size
         tmpres[i,:] = np.mean(data[idx,:], axis=0)
 
     #now, collapse along z with a scale-height weighting
     weight = np.exp(-tmpres[:,4]/hz)
+    # print tmpres[:,4]
     res = np.sum(tmpres[:,keep_idx] * weight[:,None], axis=0)/np.sum(weight)
-
+    # print res[0]
+    
     #divide errors by root N
     res[err_idx] /= np.sqrt(tmpres.shape[0])
 
+    #Throw a log(MMWZ) at the end for the fans
     res = np.append(res, np.log10(res[8]))
 
     return res
@@ -87,7 +122,7 @@ def write_header(f):
     f.write("""#  1. Running sequence
 #  2. |z| (kpc)
 #  3. r (kpc) - Velocity-derived cylindrical radius
-#  4. dr (kpc) -Uncertainty on r
+#  4. dr (kpc) - Uncertainty on r
 #  5. MLWA
 #  6. dMLWA
 #  7. MMWA
@@ -103,12 +138,14 @@ def write_header(f):
     
     return
 
-def main(datatable, output, rbins=30, zbins=10, rrange=(0,22), hz=0.42):
+def main(datatable, output, rbins=300, zbins=10, rrange=(0,22), hz=0.42, zerr=0.1):
 
     fmt = '{:5n}' + '{:10.3f}'*12 + '\n'
 
-    results = bin_r(datatable, rbins, rrange, zbins, hz)
+    results = bin_r(datatable, rbins, rrange, zbins, hz, zerr)
 
+    print results.shape
+    
     with open(output,'w') as f:
         write_header(f)
         for i in range(results.shape[0]):
