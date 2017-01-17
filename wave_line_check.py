@@ -43,6 +43,8 @@ def do_fitprof(datafile):
 
         iraf.fitprofs(datafile,
                       region=r,
+                      nerrsample=100,
+                      sigma0=0.3,
                       positio='{}.lines'.format(l),
                       logfile='{}.fitp'.format(l))
 
@@ -102,6 +104,7 @@ def get_results(output, threshold=3., filename=''):
             outstr = '{:} ({:}):\n\t{:>7}: {:}\n\t{:>7}: {:}\n\t{:>7}: {:}\n\t{:>7}: {:}\n'.\
                      format(l,c,'numrej',i,'mean',mean,'diff',diff,'std',std)
             prtstr = ''
+            print c, diff, std
             for j in range(len(c)):
                 prtstr += '{} {} {}\n'.format(c[j],diff[j],std[j])
 
@@ -268,6 +271,78 @@ def all_nights_fibsize(output = 'Wave_err_fibsize.pdf'):
     
     return allnight_d
 
+def each_night_fibsize(output = 'Wave_err_fibsize_nightly.pdf'):
+    from matplotlib import rc
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    from glob import glob as glob
+
+    gw = 0.5
+    gsize = 5
+    rc('path', simplify=True)
+    rc('figure', figsize=(gsize*1.718,gsize))
+    rc('font', family='serif', weight=100, size=14)
+    rc('mathtext', default='regular')
+    rc('xtick', labelsize=16)
+    rc('ytick', labelsize=16)
+    rc('xtick.major', size=8, width=gw)
+    rc('ytick.major', size=8, width=gw)
+    rc('xtick.minor', size=4, width=gw, visible=True)
+    rc('ytick.minor', size=4, width=gw, visible=True)
+    rc('lines', markeredgewidth=1)
+    rc('figure.subplot', top=0.95, bottom=0.15)#, right=0.95, left=0.15)
+    rc('legend', numpoints=1, scatterpoints=1, frameon=False, handletextpad=0.3)
+    rc('axes', linewidth=gw, labelweight=100, labelsize=24)
+    
+    cents = [4047,4358,3933.57,3968.53,5461]
+    night_list = glob('n*')
+    
+    big_results = []
+    for night in night_list:
+        inputdir = '{}/best_rdx'.format(night)
+        print inputdir
+
+        big_results.append(fiber_size_seg(inputdir))
+
+    big_stack = np.stack(big_results, axis=0)
+    print big_stack.shape #Should be (numnights, numsize, numline, 2)
+
+    colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02']
+    labels = [200, 300, 400, 500, 600]
+
+    fig = plt.figure(figsize=(gsize*1.718,gsize*1.3))
+    acax = fig.add_subplot(211)
+    acax.set_xticklabels([])
+    acax.set_ylabel('Mismatch [km/s]', fontsize=12)
+    
+    stax = fig.add_subplot(212)
+    stax.set_xlabel('Wavelength')
+    stax.set_ylabel('Fibse size stddev (across IFU on 1 night)', fontsize=12)
+
+    for i in range(big_stack.shape[1]):
+        for j in range(big_stack.shape[0]):
+            acax.scatter(cents,big_stack[j,i,:,0]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, s=30)
+            if j == 0:
+                stax.scatter(cents,big_stack[j,i,:,1]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, label=labels[i], s=30)
+            else:
+                stax.scatter(cents,big_stack[j,i,:,1]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, s=30)
+
+    fig.subplots_adjust(hspace=0.0001)
+    acax.axhline(0,ls='--',alpha=0.7,color='k')
+    acax.set_ylim(-200,400)
+    stax.set_ylim(0,241)
+    acax.text(3951,320,'Ca H&K',fontsize=15,va='bottom',ha='center')
+    acax.text(4047+30,50,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.set_xlim(*stax.get_xlim())
+    stax.legend(loc=0, frameon=False, numpoints=1)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+    
+    return big_stack
+
 def fib_difference(allnight_d, output):
     from matplotlib.backends.backend_pdf import PdfPages as PDF
     
@@ -285,9 +360,8 @@ def fib_difference(allnight_d, output):
     
     means = np.mean(allnight_d/np.array(cents)[None,:,None]*3e5, axis=1)
     
-    for i in range(allnight_d.shape[0]):
-        acax.plot(sizes,means[:,0], '.k')
-        stax.plot(sizes,means[:,1], '.k')
+    acax.plot(sizes,means[:,0], '.k')
+    stax.plot(sizes,means[:,1], '.k')
 
     fig.subplots_adjust(hspace=0.0001)
     acax.axhline(0,ls='--',alpha=0.7,color='k')
@@ -303,6 +377,196 @@ def fib_difference(allnight_d, output):
 
     pp = PDF(output)
     pp.savefig(fig)
+    pp.close()
+
+    return
+
+def each_fib_difference(big_stack, output):
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    
+    cents = [4047,4358,3933.57,3968.53,5461]
+    sizes = [200, 300, 400, 500, 600]
+    
+    fig = plt.figure(figsize=(5*1.718,5*1.3))
+    acax = fig.add_subplot(211)
+    acax.set_xticklabels([])
+    acax.set_ylabel('<Mismatch> [km/s]', fontsize=12)
+    
+    stax = fig.add_subplot(212)
+    stax.set_xlabel('Fiber size [microns]')
+    stax.set_ylabel('<Stddev>', fontsize=12)
+    
+    means = np.mean(big_stack/np.array(cents)[None,None,:,None]*3e5, axis=2)
+    
+    for i in range(big_stack.shape[0]):
+        acax.plot(sizes,means[i,:,0], '.k')
+        stax.plot(sizes,means[i,:,1], '.k')
+
+    fig.subplots_adjust(hspace=0.0001)
+    acax.axhline(0,ls='--',alpha=0.7,color='k')
+    acax.text(3951,320,'Ca H&K',fontsize=15,va='bottom',ha='center')
+    acax.text(4047+30,50,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
+    acax.set_xticks(sizes)
+    stax.set_xticks(sizes)
+    stax.set_xlim(150,650)
+    acax.set_xlim(*stax.get_xlim())
+    stax.legend(loc=0, frameon=False, numpoints=1)
+
+    pp = PDF(output)
+    pp.savefig(fig)
+    pp.close()
+
+    return
+
+def mab_panels(outpre = 'Wave_err_mab_panels'):
+    from matplotlib import rc
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    from glob import glob as glob
+
+    gw = 0.5
+    gsize = 5
+    rc('path', simplify=True)
+    rc('figure', figsize=(gsize*1.718,gsize))
+    rc('font', family='serif', weight=100, size=14)
+    rc('mathtext', default='regular')
+    rc('xtick', labelsize=16)
+    rc('ytick', labelsize=16)
+    rc('xtick.major', size=8, width=gw)
+    rc('ytick.major', size=8, width=gw)
+    rc('xtick.minor', size=4, width=gw, visible=True)
+    rc('ytick.minor', size=4, width=gw, visible=True)
+    rc('lines', markeredgewidth=1)
+    rc('figure.subplot', top=0.95, bottom=0.15)#, right=0.95, left=0.15)
+    rc('legend', numpoints=1, scatterpoints=1, frameon=False, handletextpad=0.3)
+    rc('axes', linewidth=gw, labelweight=100, labelsize=24)
+    
+    cents = [4047,4358,3933.57,3968.53,5461]
+    night_list = glob('n*')
+    
+    big_results = []
+    for night in night_list:
+        inputdir = '{}/best_rdx'.format(night)
+        print inputdir
+
+        big_results.append(fiber_size_seg(inputdir))
+
+    big_stack = np.stack(big_results, axis=0)
+    print big_stack.shape #Should be (numnights, numsize, numline, 2)
+
+    colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02']
+    labels = [200, 300, 400, 500, 600]
+
+    pp1 = PDF('{}_nightly.pdf'.format(outpre))
+    pp2 = PDF('{}_all.pdf'.format(outpre))
+
+    for i in range(big_stack.shape[1]):
+    
+        fig1 = plt.figure(figsize=(gsize*1.718,gsize*1.3))
+        acax1 = fig1.add_subplot(211)
+        acax1.set_xticklabels([])
+        acax1.set_ylabel('Mismatch [km/s]', fontsize=12)
+    
+        stax1 = fig1.add_subplot(212)
+        stax1.set_xlabel('Wavelength')
+        stax1.set_ylabel('Fib size stddev (across IFU on 1 night)', fontsize=12)
+
+        for j in range(big_stack.shape[0]):
+            acax1.plot(cents,big_stack[j,i,:,0]/cents*3e5,'.')
+            if j == 0:
+                stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.',label=labels[i])
+            else:
+                stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.')
+            # acax1.scatter(cents,big_stack[j,i,:,0]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, s=30)
+            # if j == 0:
+            #     stax1.scatter(cents,big_stack[j,i,:,1]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, label=labels[i], s=30)
+            # else:
+            #     stax1.scatter(cents,big_stack[j,i,:,1]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, s=30)
+
+        fig1.subplots_adjust(hspace=0.0001)
+        acax1.axhline(0,ls='--',alpha=0.7,color='k')
+        acax1.set_ylim(-200,400)
+        stax1.set_ylim(0,241)
+        acax1.text(3951,320,'Ca H&K',fontsize=15,va='bottom',ha='center')
+        acax1.text(4047+30,50,'HgI',fontsize=15,va='bottom',ha='center')
+        acax1.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
+        acax1.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
+        acax1.set_xlim(*stax1.get_xlim())
+        stax1.legend(loc=0, frameon=False, numpoints=1)
+
+        pp1.savefig(fig1)
+        plt.close(fig1)
+
+        ###########
+
+        fig2 = plt.figure(figsize=(5*1.718,5*1.3))
+        acax2 = fig2.add_subplot(211)
+        acax2.set_xticklabels([])
+        acax2.set_ylabel('<Mismatch>_w [km/s]', fontsize=12)
+        
+        stax2 = fig2.add_subplot(212)
+        stax2.set_xlabel('Wavelength')
+        stax2.set_ylabel('<Fib size stddev>_w', fontsize=12)
+
+        kms = big_stack/np.array(cents)[None,None,:,None]*3e5
+        weight = 1/kms[:,:,:,1][:,:,:,None]
+        avg = np.sum(kms*weight, axis=0)/np.sum(weight,axis=0)
+        
+        acax2.scatter(cents,avg[i,:,0], c=colors[i], s=30, alpha=0.6, edgecolors='none')
+        stax2.scatter(cents,avg[i,:,1], c=colors[i], s=30, alpha=0.6, edgecolors='none', label=labels[i])
+            
+        fig2.subplots_adjust(hspace=0.0001)
+        acax2.set_ylim(-200,400)
+        acax2.axhline(0,ls='--',alpha=0.7,color='k')
+        acax2.text(3951,320,'Ca H&K',fontsize=15,va='bottom',ha='center')
+        acax2.text(4047+30,50,'HgI',fontsize=15,va='bottom',ha='center')
+        acax2.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
+        acax2.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
+        acax2.set_xlim(*stax2.get_xlim())
+        stax2.legend(loc=0, frameon=False, numpoints=1)
+
+        pp2.savefig(fig2)
+        plt.close(fig2)
+        
+    pp1.close()
+    pp2.close()
+    
+    return big_stack
+
+def night_plot(big_stack, output = 'night_by_night.pdf'):
+    from matplotlib.backends.backend_pdf import PdfPages as PDF
+    gsize = 5
+    pp = PDF(output)
+
+    colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02']
+    labels = [200, 300, 400, 500, 600]
+    cents = [4047,4358,3933.57,3968.53,5461]
+    
+    for i in range(big_stack.shape[2]):
+        fig = plt.figure(figsize=(gsize*1.718,gsize*1.3))
+        acax = fig.add_subplot(211)
+        acax.set_xticklabels([])
+        acax.set_ylabel('Mismatch [km/s]', fontsize=12)
+        acax.set_title(cents[i])
+        
+        stax = fig.add_subplot(212)
+        stax.set_xlabel('Night')
+        stax.set_ylabel('stddev', fontsize=12)
+        
+        kms = big_stack/np.array(cents)[None,None,:,None]*3e5
+        
+        for j in range(big_stack.shape[1]):
+            acax.scatter(np.arange(big_stack.shape[0])+1, kms[:,j,i,0], c=colors[j], s=30, edgecolors='none')
+            stax.scatter(np.arange(big_stack.shape[0])+1, kms[:,j,i,1], c=colors[j], s=30, edgecolors='none', label=labels[j])
+
+        stax.legend(loc=0, frameon=False)
+        fig.subplots_adjust(hspace=0.0001)
+        acax.set_ylim(-200,400)
+        stax.set_ylim(0,241)
+        pp.savefig(fig)
+        plt.close(fig)
+
     pp.close()
 
 if __name__ == '__main__':
