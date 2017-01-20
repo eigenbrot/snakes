@@ -5,12 +5,37 @@ import time
 import numpy as np
 import ir2py_lines as i2p
 import matplotlib.pyplot as plt
+from pyraf import iraf
+
+iraf.noao(_doprint=0)
+iraf.onedspec(_doprint=0)
 plt.ioff()
 
-llist = ['4047','4358','HK','5461']
-rlist = ['4020 4075','4325 4400','3910 4010','5437 5480']
-centlist = [[4047],[4358],[3933.57,3968.53],[5461]]
-numlist = [1,1,2,1]
+llist = ['4047','4358','HK','5461','5577','NaD','OI','OH1','OH2','OH3','OH4']
+rlist = ['4020 4075',
+         '4325 4400',
+         '3910 4010',
+         '5437 5480',
+         '5555 5597',
+         '5875 5910',
+         '6264 6392',
+         '6440 6520',
+         '6585 6620',
+         '6850 6880',
+         '7030 7065']
+#centlist = [[4047],[4358],[3933.57,3968.53],[5461],[5577.5],[5892.9565],[6300.3, 6363.8]]
+centlist = [[4046.563],
+            [4358.328],
+            [3933.57,3968.53],
+            [5460.735],
+            [5577.5],
+            [5892.9565],
+            [6300.3, 6363.8],
+            [6465.901, 6498.729],
+            [6604.135],
+            [6863.955],
+            [7047.846]]
+numlist = [1,1,2,1,1,1,2,2,1,1,1]
 
 def do_fitprof(datafile):
     """Run IRAF fitprof routine to measure line centers and widths.
@@ -30,10 +55,6 @@ def do_fitprof(datafile):
         Nothing is returned. Instead, IRAF writes the results to a file.
 
     """
-    from pyraf import iraf
-
-    iraf.noao(_doprint=0)
-    iraf.onedspec(_doprint=0)
     
     for l, cl, r in zip(llist,centlist,rlist):
         with open('{}.lines'.format(l),'w') as f:
@@ -43,8 +64,10 @@ def do_fitprof(datafile):
 
         iraf.fitprofs(datafile,
                       region=r,
+                      fitgfwhm='single',
                       nerrsample=100,
                       sigma0=0.3,
+                      invgain=0,
                       positio='{}.lines'.format(l),
                       logfile='{}.fitp'.format(l))
 
@@ -152,7 +175,7 @@ def fiber_size_seg(inputdir='.'):
     colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02']
     labels = [200, 300, 400, 500, 600]
 
-    results = np.zeros((5,len(llist)+1,2))
+    results = np.zeros((5,np.hstack(centlist).size,2))
     
     fig = plt.figure()
     acax = fig.add_subplot(211)
@@ -174,11 +197,12 @@ def fiber_size_seg(inputdir='.'):
             
             diff = mean - c
             
-            if len(c) == 2:
-                results[i,j,0] = diff[0]
-                results[i,j,1] = std[0]
-                results[i,j+1,0] = diff[1]
-                results[i,j+1,1] = std[1]
+            if len(c) > 1:
+                for k in range(len(c)):
+                    results[i,j+k,0] = diff[k]
+                    results[i,j+k,1] = std[k]
+                # results[i,j+1,0] = diff[1]
+                # results[i,j+1,1] = std[1]
             else:
                 results[i,j,0] = diff
                 results[i,j,1] = std
@@ -189,8 +213,8 @@ def fiber_size_seg(inputdir='.'):
                     acax.plot(c,diff,'.', color=colors[i])
                     stax.plot(c,std,'.', color=colors[i])
                     
-        if len(c) == 2:
-            j += 2
+        if len(c) > 1:
+            j += len(c)
         else:
             j += 1
                 
@@ -293,12 +317,13 @@ def each_night_fibsize(output = 'Wave_err_fibsize_nightly.pdf'):
     rc('legend', numpoints=1, scatterpoints=1, frameon=False, handletextpad=0.3)
     rc('axes', linewidth=gw, labelweight=100, labelsize=24)
     
-    cents = [4047,4358,3933.57,3968.53,5461]
+    #cents = [4047,4358,3933.57,3968.53,5461]
+    cents = [4047,4358,3933.57,3968.53,5461,5577.5,5892.9565,6300.3, 6363.8]
     night_list = glob('n*')
     
     big_results = []
     for night in night_list:
-        inputdir = '{}/best_rdx'.format(night)
+        inputdir = '{}/best_rdx/more_lines'.format(night)
         print inputdir
 
         big_results.append(fiber_size_seg(inputdir))
@@ -442,12 +467,14 @@ def mab_panels(outpre = 'Wave_err_mab_panels'):
     rc('legend', numpoints=1, scatterpoints=1, frameon=False, handletextpad=0.3)
     rc('axes', linewidth=gw, labelweight=100, labelsize=24)
     
-    cents = [4047,4358,3933.57,3968.53,5461]
+    #cents = [4047,4358,3933.57,3968.53,5461]
+    #cents = [4047,4358,3933.57,3968.53,5461,5577.5,5892.9565,6300.3, 6363.8]
+    cents = np.hstack(centlist)
     night_list = glob('n*')
     
     big_results = []
     for night in night_list:
-        inputdir = '{}/best_rdx'.format(night)
+        inputdir = '{}/best_rdx/more_lines'.format(night)
         print inputdir
 
         big_results.append(fiber_size_seg(inputdir))
@@ -462,7 +489,7 @@ def mab_panels(outpre = 'Wave_err_mab_panels'):
     pp2 = PDF('{}_all.pdf'.format(outpre))
 
     for i in range(big_stack.shape[1]):
-    
+        print i
         fig1 = plt.figure(figsize=(gsize*1.718,gsize*1.3))
         acax1 = fig1.add_subplot(211)
         acax1.set_xticklabels([])
