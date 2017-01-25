@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 import os
+from glob import glob as glob
 import time
 import numpy as np
 import ir2py_lines as i2p
@@ -64,6 +65,7 @@ def do_fitprof(datafile):
 
         iraf.fitprofs(datafile,
                       region=r,
+                      fitpositions='single',
                       fitgfwhm='single',
                       nerrsample=100,
                       sigma0=0.3,
@@ -142,7 +144,8 @@ def get_results(output, threshold=3., filename=''):
     acax.set_xlim(*stax.get_xlim())
     plt.savefig('WLC.png')
 
-    return
+    return 
+
 def fiber_size_seg(inputdir='.'):
     """Parse fitprof output and display results
 
@@ -225,6 +228,56 @@ def fiber_size_seg(inputdir='.'):
 
     return results
 
+def fiber_seg_bin(binfile, inputdir='.'):
+    import pyfits
+    
+    results = np.zeros((5,np.hstack(centlist).size,2))
+    hdu = pyfits.open(binfile)[0]
+    header = hdu.header
+    numaps = hdu.data.shape[0]
+
+    fib2_idx = []
+    fib3_idx = []
+    fib4_idx = []
+    fib5_idx = []
+    fib6_idx = []
+    
+    for i in range(numaps):
+        if header['BIN{:03}S'.format(i+1)] == 200: fib2_idx.append(i)
+        if header['BIN{:03}S'.format(i+1)] == 300: fib3_idx.append(i)
+        if header['BIN{:03}S'.format(i+1)] == 400: fib4_idx.append(i)
+        if header['BIN{:03}S'.format(i+1)] == 500: fib5_idx.append(i)
+        if header['BIN{:03}S'.format(i+1)] == 600: fib6_idx.append(i)
+
+    j = 0
+    for l, n, c in zip(llist,numlist,centlist):
+        proffile = '{}/{}.fitp'.format(inputdir, l)
+        d = i2p.parse_fitprofs(proffile,n)[1]
+        for i, idx in enumerate([fib2_idx, fib3_idx, fib4_idx, fib5_idx, fib6_idx]):
+            mean = np.mean(d[idx],axis=0)
+            std = np.std(d[idx],axis=0)
+            if len(idx) == 1:
+                #Sometimes there is only 1 aperture for a particular
+                #size, in this case we don't want std = 0
+                std = mean*0 + 1
+            
+            diff = mean - c
+            
+            if len(c) > 1:
+                for k in range(len(c)):
+                    results[i,j+k,0] = diff[k]
+                    results[i,j+k,1] = std[k]
+            else:
+                results[i,j,0] = diff
+                results[i,j,1] = std
+                                    
+        if len(c) > 1:
+            j += len(c)
+        else:
+            j += 1
+
+    return results
+            
 def all_nights_fibsize(output = 'Wave_err_fibsize.pdf'):
     from matplotlib import rc
     from matplotlib.backends.backend_pdf import PdfPages as PDF
@@ -445,10 +498,10 @@ def each_fib_difference(big_stack, output):
 
     return
 
-def mab_panels(outpre = 'Wave_err_mab_panels'):
+def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='n*', dirstruct='/best_rdx/more_lines',
+               binstr = None):
     from matplotlib import rc
     from matplotlib.backends.backend_pdf import PdfPages as PDF
-    from glob import glob as glob
 
     gw = 0.5
     gsize = 5
@@ -470,14 +523,18 @@ def mab_panels(outpre = 'Wave_err_mab_panels'):
     #cents = [4047,4358,3933.57,3968.53,5461]
     #cents = [4047,4358,3933.57,3968.53,5461,5577.5,5892.9565,6300.3, 6363.8]
     cents = np.hstack(centlist)
-    night_list = glob('n*')
+    night_list = glob(searchstr)
     
     big_results = []
     for night in night_list:
-        inputdir = '{}/best_rdx/more_lines'.format(night)
+        inputdir = '{}{}'.format(night,dirstruct)
         print inputdir
-
-        big_results.append(fiber_size_seg(inputdir))
+        if binstr is not None:
+            binfile = glob('{}/{}'.format(inputdir,binstr))[0]
+            print '\t', binfile
+            big_results.append(fiber_seg_bin(binfile, inputdir))
+        else:
+            big_results.append(fiber_size_seg(inputdir))
 
     big_stack = np.stack(big_results, axis=0)
     print big_stack.shape #Should be (numnights, numsize, numline, 2)
@@ -502,6 +559,7 @@ def mab_panels(outpre = 'Wave_err_mab_panels'):
         for j in range(big_stack.shape[0]):
             acax1.plot(cents,big_stack[j,i,:,0]/cents*3e5,'.')
             if j == 0:
+                print "Labeling", labels[i]
                 stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.',label=labels[i])
             else:
                 stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.')
@@ -520,7 +578,7 @@ def mab_panels(outpre = 'Wave_err_mab_panels'):
         acax1.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
         acax1.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
         acax1.set_xlim(*stax1.get_xlim())
-        stax1.legend(loc=0, frameon=False, numpoints=1)
+        stax1.legend(loc=7, frameon=False, numpoints=1)
 
         pp1.savefig(fig1)
         plt.close(fig1)
