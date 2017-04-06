@@ -6,13 +6,19 @@ import time
 import numpy as np
 import ir2py_lines as i2p
 import matplotlib.pyplot as plt
-from pyraf import iraf
 
-iraf.noao(_doprint=0)
-iraf.onedspec(_doprint=0)
-plt.ioff()
-
-llist = ['4047','4358','HK','5461','5577','NaD','OI','OH1','OH2','OH3','OH4']
+llist = ['4047',
+         '4358',
+         'HK',
+         '5461',
+         '5577',
+         'NaD',
+         'OI',
+         'OH1',
+         # 'OH2',
+         'OH3',
+         'OH3_2',
+         'OH4']
 rlist = ['4020 4075',
          '4325 4400',
          '3910 4010',
@@ -21,8 +27,9 @@ rlist = ['4020 4075',
          '5875 5910',
          '6264 6392',
          '6440 6520',
-         '6585 6620',
-         '6850 6880',
+         # '6585 6620',
+         '6800 6900',
+         '6900 7030',
          '7030 7065']
 #centlist = [[4047],[4358],[3933.57,3968.53],[5461],[5577.5],[5892.9565],[6300.3, 6363.8]]
 centlist = [[4046.563],
@@ -30,13 +37,25 @@ centlist = [[4046.563],
             [3933.57,3968.53],
             [5460.735],
             [5577.5],
-            [5892.9565],
+            [5889.95, 5895.92],
             [6300.3, 6363.8],
-            [6465.901, 6498.729],
-            [6604.135],
-            [6863.955],
-            [7047.846]]
-numlist = [1,1,2,1,1,1,2,2,1,1,1]
+            [6465.847, 6465.954, 6498.729],
+            # [6604.135],
+            [6829.53, 6832.7, 6834.2, 6841.945, 6863.955],
+            [6912.623, 6923.220, 6939.521, 6949.04, 6969.930, 6978.135],
+            [7047.846, 7048.376]]
+numlist = [1,
+           1,
+           2,
+           1,
+           1,
+           2,
+           2,
+           3,
+           # 1,
+           5,
+           6,
+           2]
 
 def do_fitprof(datafile):
     """Run IRAF fitprof routine to measure line centers and widths.
@@ -56,6 +75,11 @@ def do_fitprof(datafile):
         Nothing is returned. Instead, IRAF writes the results to a file.
 
     """
+    from pyraf import iraf
+
+    iraf.noao(_doprint=0)
+    iraf.onedspec(_doprint=0)
+    plt.ioff()
     
     for l, cl, r in zip(llist,centlist,rlist):
         with open('{}.lines'.format(l),'w') as f:
@@ -65,7 +89,7 @@ def do_fitprof(datafile):
 
         iraf.fitprofs(datafile,
                       region=r,
-                      fitpositions='single',
+                      fitpositions='all. ',
                       fitgfwhm='single',
                       nerrsample=100,
                       sigma0=0.3,
@@ -259,7 +283,7 @@ def fiber_seg_bin(binfile, inputdir='.'):
             if len(idx) == 1:
                 #Sometimes there is only 1 aperture for a particular
                 #size, in this case we don't want std = 0
-                std = mean*0 + 1
+                std = mean*0 + 0.01
             
             diff = mean - c
             
@@ -498,8 +522,10 @@ def each_fib_difference(big_stack, output):
 
     return
 
-def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='n*', dirstruct='/best_rdx/more_lines',
-               binstr = None):
+def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='P*', dirstruct='',
+               binstr = '*bin30.ms_lin*'):
+# def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='n*', dirstruct='/best_rdx/more_lines',
+#                binstr = None):
     from matplotlib import rc
     from matplotlib.backends.backend_pdf import PdfPages as PDF
 
@@ -560,9 +586,8 @@ def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='n*', dirstruct='/best_
             acax1.plot(cents,big_stack[j,i,:,0]/cents*3e5,'.')
             if j == 0:
                 print "Labeling", labels[i]
-                stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.',label=labels[i])
-            else:
-                stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.')
+                acax1.set_title(labels[i])
+            stax1.plot(cents,big_stack[j,i,:,1]/cents*3e5, '.',label='P{}'.format(j+1))
             # acax1.scatter(cents,big_stack[j,i,:,0]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, s=30)
             # if j == 0:
             #     stax1.scatter(cents,big_stack[j,i,:,1]/cents*3e5, c=colors[i], edgecolors='none', alpha=0.6, label=labels[i], s=30)
@@ -578,7 +603,7 @@ def mab_panels(outpre = 'Wave_err_mab_panels', searchstr='n*', dirstruct='/best_
         acax1.text(4358,120,'HgI',fontsize=15,va='bottom',ha='center')
         acax1.text(5461,90,'HgI',fontsize=15,va='bottom',ha='center')
         acax1.set_xlim(*stax1.get_xlim())
-        stax1.legend(loc=7, frameon=False, numpoints=1)
+        stax1.legend(loc=0, frameon=False, numpoints=1, fontsize=9)
 
         pp1.savefig(fig1)
         plt.close(fig1)
