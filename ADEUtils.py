@@ -701,18 +701,18 @@ def splineclip(x, y0, k=3, w=None, bbox=[None,None], s=None,
 
     return spi.UnivariateSpline(x,y,w=w,bbox=bbox,s=s,k=k)
 
-def eplot(x,y=None):
+def eplot(x,y=None,**kwargs):
     '''a simple script for quickly plotting some data.
     It avoids all the tedious calls to create figures and axes, etc.
     '''
     fig = plt.figure()
     ax = fig.add_subplot(111)
     if y is not None:
-        ax.plot(x,y)
+        ax.plot(x,y,**kwargs)
     else:
-        ax.plot(np.arange(x.size),x)
+        ax.plot(np.arange(x.size),x,**kwargs)
     fig.show()
-    return
+    return ax
 
 def fit_line(x, y, error):
     '''finds a slope and intercept such that
