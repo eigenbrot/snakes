@@ -6,7 +6,7 @@ import pyfits
 import tau_model as tm
 from pyraf import iraf
 import time
-import prep_balmer as pb
+#import prep_balmer as pb
 import scipy.stats as ss
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF

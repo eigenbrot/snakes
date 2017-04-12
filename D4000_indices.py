@@ -2,12 +2,11 @@ from glob import glob
 import os
 import re
 import numpy as np
-import bottleneck as bn
 import pyfits
 import tau_model as tm
 from pyraf import iraf
 import time
-import prep_balmer as pb
+#import prep_balmer as pb
 import scipy.stats as ss
 import scipy.signal as ssig
 import scipy.ndimage as spnd
