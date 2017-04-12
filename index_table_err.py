@@ -13,7 +13,7 @@ def write_header(f):
 #  4. r_proj (kpc) - Projected radius
 #  5. |z| (kpc)
 #  6. r (kpc) - Velocity-derived cylindrical radius
-#  7. dr (kpc) -Uncertainty on r
+#  7. dr (kpc) - Uncertainty on r
 #  8. phi (deg) - Velocity-derived cylindical angle.
 #                  phi = 0 is tangent of -r_proj side of galaxy (approaching)
 #  9. Dn4000
@@ -32,21 +32,21 @@ def write_header(f):
     
     return
 
-def get_indices(pointing, basedir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/indecies/D4000/py_sbands'):
+def get_indices(pointing, basedir = '/Users/Arthur/Documents/School/891_research/final_results'):
 
     spy = '{}/NGC_891_P{}_bin30.msoz.spy.dat'.format(basedir,pointing)
     res = np.loadtxt(spy)
 
     return res
 
-def get_rphi(pointing, basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/final_results'):
+def get_rphi(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
     
     rpfile = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir, pointing)
     r, phi, dr = np.loadtxt(rpfile, usecols=(1,2,3), unpack=True)
     
     return r, phi, dr
 
-def get_rhoz(pointing, basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/final_results'):
+def get_rhoz(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
 
     loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)

@@ -23,7 +23,7 @@ def write_header(f):
     
     return
 
-def get_starV(pointing, basedir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/final_results'):
+def get_starV(pointing, basedir = '/Users/Arthur/Documents/School/891_research/final_results'):
 
     vel_file = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir,pointing)
     vel = np.loadtxt(vel_file, usecols=(1,), unpack=True)
@@ -47,14 +47,14 @@ def get_gasV(pointing, gasdir='/d/monk/eigenbrot/WIYN/14B-0456/anal/HA_lines'):
     
     return vel
 
-def get_rphi(pointing, basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/final_results'):
+def get_rphi(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
     
     rpfile = '{}/NGC_891_P{}_bin30_rphi.dat'.format(basedir, pointing)
     r, phi, dr = np.loadtxt(rpfile, usecols=(1,2,3), unpack=True)
     
     return r, phi, dr
 
-def get_rhoz(pointing, basedir='/d/monk/eigenbrot/WIYN/14B-0456/anal/final_results'):
+def get_rhoz(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
 
     loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir,pointing)
     r, z = np.loadtxt(loc, usecols=(4,5), unpack=True)
