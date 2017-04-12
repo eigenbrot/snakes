@@ -60,7 +60,7 @@ def main(offset=[64.129, 70.318, 100.0125, 106.035, 111.2615]):
 
     return
 
-def shift_data_files(offset=74.):
+def shift_data_files(offset=[64.129, 70.318, 100.0125, 106.035, 111.2615]):
     import numpy as np
 
     base = 'NGC_891_P{}_bin30'
@@ -68,6 +68,8 @@ def shift_data_files(offset=74.):
     for p in range(6):
         for suff in ['.ms','.me']:
             hdu = pyfits.open(base.format(p+1)+suff+'.fits')[0]
+            location = base.format(p+1)+'_locations.dat'
+            size = np.loadtxt(location, usecols=(1,), unpack=True)
             data = hdu.data
             header = hdu.header
 
@@ -77,7 +79,13 @@ def shift_data_files(offset=74.):
     
             wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
 
-            shift = np.vstack([np.interp(wave,wave*(1 + offset/3e5),data[i,:]*1e17) for i in range(data.shape[0])])
+            newstack = []
+            for i in range(data.shape[0]):
+                oidx = np.where(np.array([0.937, 1.406, 1.875, 2.344, 2.812]) == size[i])[0][0]
+                print i, oidx
+                newstack.append(np.interp(wave,wave*(1 + offset[oidx]/3e5),data[i,:]*1e17))
+            
+            shift = np.vstack(newstack)
             
             new = base.format(p+1)+suff+'o.fits'
             print base.format(p+1)+suff+'.fits', '-->', new
