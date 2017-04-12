@@ -1,30 +1,37 @@
 import time
+import pickle
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.transforms import Affine2D
 from matplotlib.projections import PolarAxes
-from axisartist import angle_helper
-from axisartist.grid_finder import MaxNLocator
-from axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
+from mpl_toolkits.axisartist import angle_helper
+from mpl_toolkits.axisartist.grid_finder import MaxNLocator
+from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
-def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
-                 dvdz = 15.789, output=False, dV=23., chidV_file=None):
+def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
+                 Vcfitfile='/Users/Arthur/Documents/School/891_research/final_results/Vc_fit.pk'):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
-    V = np.loadtxt(velocity, usecols=(1,), unpack=True) #km/s
+    V, dV = np.loadtxt(velocity, usecols=(1,2), unpack=True) #km/s
+    with open(Vcfitfile,'rb') as f:
+        Vcfit = pickle.load(f)
     if chidV_file is not None:
         chidV = pyfits.open(chidV_file)[1].data['VSYS_ERROR']
         print 'loaded chi vel err from ', chidV_file
     else:
         chidV = 0.
 
-    Vcvec = np.interp(np.abs(rho),[0,rflat,15],[0,Vc,Vc])
-    Vcvec -= dvdz*np.abs(z)
-
     V -= Vsys
+
+    Vcvec = Vcfit(np.abs(rho))
+
+    dVdz = np.max(np.vstack((np.zeros(rho.size) + 15,
+                             45. - 35.*rho/15.)),axis=0)
+    Vcvec -= dVdz*np.abs(z)
+    
 
     idx = np.where(np.abs(V/Vcvec) > 1)
     V[idx] = Vcvec[idx]*np.sign(V[idx])
@@ -33,7 +40,7 @@ def compute_rphi(location, velocity, Vsys=528., Vc=225., rflat=3.3,
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
                                 #side
 
-    dr = np.abs(Vcvec/V**2) * np.abs(rho) * np.sqrt(dV**2 + chidV**2)
+    dr = np.abs(Vcvec/V**2) * np.abs(rho) * dV
 
     if output:
         with open(output,'w') as f:
@@ -116,7 +123,7 @@ def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
     return ax, scat
 
 def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
-                chidV_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166',                
+                #chidV_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166',                
                 componentfile=None, exclude=[[],[],[],[],[],[]]):
 
     rr = np.array([])
@@ -127,14 +134,14 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
     for i in range(6):
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(basedir, i+1)
         vel = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir, i+1)
-        chidV_file = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(chidV_dir, i+1)
+        # chidV_file = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(chidV_dir, i+1)
         rho, z = np.loadtxt(loc,usecols=(4,5),unpack=True)
         z = np.abs(z)
         if tau:
             coef = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir, i+1)
             r, phi = compute_rphi_tau(loc,coef)
         else:
-            r, phi, _ = compute_rphi(loc,vel,chidV_file=chidV_file)
+            r, phi, _ = compute_rphi(loc,vel)
 
         exarr = np.array(exclude[i]) - 1
         rr = np.r_[rr,np.delete(r,exarr)]
@@ -204,9 +211,9 @@ def create_rphi_files():
     for p in range(6):
         loc = 'NGC_891_P{}_bin30_locations.dat'.format(p+1)
         vel = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
-        chidV_file='/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(p+1)
+        #chidV_file='/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(p+1)
         out = 'NGC_891_P{}_bin30_rphi.dat'.format(p+1)
-        compute_rphi(loc,vel,output=out,chidV_file=chidV_file)
+        compute_rphi(loc,vel,output=out)
 
     return
 
