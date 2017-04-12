@@ -50,9 +50,9 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
 #     {}
 #
 """.format(time.asctime(),location,velocity))
-            f.write('#{:>6}{:>10}{:>10}{:>10}\n#\n'.format('Apnum','r (kpc)', 'phi (deg)', 'dr (kpc)'))
+            f.write('#{:>6}{:>12}{:>12}{:>12}\n#\n'.format('Apnum','r (kpc)', 'phi (deg)', 'dr (kpc)'))
             for i in range(r.size):
-                f.write('{:7n}{:10.3f}{:10.3f}{:10.3f}\n'.format(i,r[i],phi[i]*180./np.pi,dr[i]))
+                f.write('{:7n}{:12.3f}{:12.3f}{:12.3f}\n'.format(i,r[i],phi[i]*180./np.pi,dr[i]))
 
 
     return r, phi*180./np.pi, dr
