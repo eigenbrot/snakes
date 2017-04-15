@@ -28,6 +28,12 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
 
     Vcvec = Vcfit(np.abs(rho))
 
+    dax = plt.figure().add_subplot(111)
+    dax.plot(np.arange(0,22,0.1), Vcfit(np.arange(0,22,0.1)), 'r-')
+    dax.plot(np.abs(rho), Vcvec, 'x')
+    dax.set_ylim(0,300)
+    dax.set_title(location)
+    
     dVdz = np.max(np.vstack((np.zeros(rho.size) + 15,
                              45. - 35.*rho/15.)),axis=0)
     Vcvec -= dVdz*np.abs(z)
@@ -36,6 +42,9 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
     idx = np.where(np.abs(V/Vcvec) > 1)
     V[idx] = Vcvec[idx]*np.sign(V[idx])
 
+    dax.plot(np.abs(rho), np.abs(V), '.')
+    dax.figure.show()
+    
     r = np.abs(Vcvec/V) * np.abs(rho)
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
                                 #side
@@ -212,7 +221,7 @@ def create_rphi_files():
         loc = 'NGC_891_P{}_bin30_locations.dat'.format(p+1)
         vel = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
         #chidV_file='/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(p+1)
-        out = 'NGC_891_P{}_bin30_rphi.dat'.format(p+1)
+        out = 'NGC_891_P{}_bin30_rphi2.dat'.format(p+1)
         compute_rphi(loc,vel,output=out)
 
     return
@@ -283,3 +292,40 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(30, 0.2),
         auxa.add_artist(plt.Circle([0, 0], radius=r, ls=ls, lw=lw, color=color, fill=False,
                         transform=auxa.transData._b, zorder=-1))
     return auxa
+
+def vel_check():
+
+    gasdir = '/Users/Arthur/Documents/School/891_research/mab_velocities'
+    offset = [64.129, 70.318, 100.0125, 106.035, 111.2615]
+    ax = plt.figure().add_subplot(111)
+    ax2 = plt.figure().add_subplot(111)
+
+    for p in range(6):
+        vel = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
+        print vel
+        loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(gasdir,p+1)
+        print loc
+        Sdat = '{}/star_data/NGC_891_P{}_bin30_allz2.dat'.format(gasdir,p+1)
+        print Sdat
+        chivdat = '{}/star_data/NGC_891_P{}_bin30_allz2.vel.dat'.format(gasdir,p+1)
+        print chivdat
+
+        size, r, z = np.loadtxt(loc, usecols=(1,2,5), unpack=True)
+        z = np.abs(z)
+        
+        Sv = np.loadtxt(Sdat, usecols=(65,), unpack=True)
+        cv = np.loadtxt(chivdat, usecols=(1,), unpack=True)
+        Sv += cv
+
+        vVel = np.loadtxt(vel, usecols=(1,), unpack=True)
+        
+        for i, s in enumerate([0.937, 1.406, 1.875, 2.344, 2.812]):
+            idx = np.where(size == s)
+            Sv[idx] += offset[i]
+
+        l = ax.plot(r, Sv, '.')
+        ax.plot(r, vVel, 'x', color=l[0].get_color())
+        ax2.plot(r, Sv - vVel, '.', color=l[0].get_color())
+
+    ax.figure.show()
+    ax2.figure.show()
