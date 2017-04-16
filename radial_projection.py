@@ -15,7 +15,11 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
                  Vcfitfile='/Users/Arthur/Documents/School/891_research/final_results/Vc_fit.pk'):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
-    V, dV = np.loadtxt(velocity, usecols=(1,2), unpack=True) #km/s
+    try:
+        V, dV = np.loadtxt(velocity, usecols=(1,2), unpack=True) #km/s
+    except IndexError:
+        V = np.loadtxt(velocity,usecols=(1,), unpack=True)
+        dV = V*0
     with open(Vcfitfile,'rb') as f:
         Vcfit = pickle.load(f)
     if chidV_file is not None:
@@ -296,7 +300,8 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(30, 0.2),
 def vel_check():
 
     gasdir = '/Users/Arthur/Documents/School/891_research/mab_velocities'
-    offset = [64.129, 70.318, 100.0125, 106.035, 111.2615]
+    finaldir = '/Users/Arthur/Documents/School/891_research/final_results'
+    offset = [-7.88,-11.93,26.34,31.85,45.63]
     ax = plt.figure().add_subplot(111)
     ax2 = plt.figure().add_subplot(111)
 
@@ -305,16 +310,16 @@ def vel_check():
         print vel
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(gasdir,p+1)
         print loc
-        Sdat = '{}/star_data/NGC_891_P{}_bin30_allz2.dat'.format(gasdir,p+1)
+        Sdat = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(finaldir,p+1)
         print Sdat
-        chivdat = '{}/star_data/NGC_891_P{}_bin30_allz2.vel.dat'.format(gasdir,p+1)
+        chivdat = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(finaldir,p+1)
         print chivdat
 
         size, r, z = np.loadtxt(loc, usecols=(1,2,5), unpack=True)
         z = np.abs(z)
         
-        Sv = np.loadtxt(Sdat, usecols=(65,), unpack=True)
-        cv = np.loadtxt(chivdat, usecols=(1,), unpack=True)
+        Sv = pyfits.open(Sdat)[1].data['VSYS']
+        cv = pyfits.open(chivdat)[1].data['VSYS']
         Sv += cv
 
         vVel = np.loadtxt(vel, usecols=(1,), unpack=True)

@@ -1,4 +1,5 @@
 import numpy as np
+import pyfits
 from matplotlib import rc
 import matplotlib.pyplot as plt
 from scipy.misc import imread
@@ -43,7 +44,7 @@ def format_mab_HbO(filename):
 
     return
 
-def get_data(workingdir='.',velstr='_mab_vel'):
+def get_data(workingdir='.',velstr='_mab_vel', final_results='../final_results'):
 
     #Read in velocity data
     Glist = []
@@ -54,10 +55,10 @@ def get_data(workingdir='.',velstr='_mab_vel'):
     for p in range(6):
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(workingdir,p+1)
         print loc
-        Sdat = '{}/star_data/NGC_891_P{}_bin30_allz2.dat'.format(workingdir,p+1)
-        print Sdat
-        chivdat = '{}/star_data/NGC_891_P{}_bin30_allz2.vel.dat'.format(workingdir,p+1)
-        print chivdat
+        Sfits = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(final_results,p+1)
+        print Sfits
+        chivfits = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(final_results,p+1)
+        print chivfits
         Gdat = '{}/P{}{}.txt'.format(workingdir,p+1,velstr)
         print Gdat
         Gv, Ge = np.loadtxt(Gdat,usecols=(0,1),unpack=True)
@@ -65,11 +66,12 @@ def get_data(workingdir='.',velstr='_mab_vel'):
         size, r, z = np.loadtxt(loc, usecols=(1,4,5), unpack=True)
         z = np.abs(z)
         
-        Sv = np.loadtxt(Sdat, usecols=(65,), unpack=True)
-        cv = np.loadtxt(chivdat, usecols=(1,), unpack=True)
+        Sv = pyfits.open(Sfits)[1].data['VSYS']
+        cv = pyfits.open(chivfits)[1].data['VSYS']
         Sv += cv
         print Gv.size, Sv.size
         if Gv.size != Sv.size:
+            raw_input("WHAAA?")
             Sv = Sv[:Gv.size]
             size = size[:Gv.size]
             r = r[:Gv.size]
@@ -98,9 +100,9 @@ def compute_single_offset(workingdir='.',velstr='_mab_vel'):
 
     return G, S, np.median(diff), r, z
 
-def compute_fibsize_offset(workingdir='.',velstr='_mab_vel'):
+def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',final_results='../final_results'):
 
-    G, S, Size, r, z = get_data(workingdir,velstr)
+    G, S, Size, r, z = get_data(workingdir,velstr,final_results)
 
     diff = G - S
     offset = np.zeros(diff.size)
@@ -113,7 +115,7 @@ def compute_fibsize_offset(workingdir='.',velstr='_mab_vel'):
 
     return G, S, offset, r, z
 
-def compute_fibsize_pointing_offset(workingdir='.',velstr='_mab_vel'):
+def compute_fibsize_pointing_offset(workingdir='.',velstr='_mab_vel',final_results='../final_results'):
 
     Glist = []
     Slist = []
@@ -124,9 +126,9 @@ def compute_fibsize_pointing_offset(workingdir='.',velstr='_mab_vel'):
         print p+1
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(workingdir,p+1)
         print loc
-        Sdat = '{}/star_data/NGC_891_P{}_bin30_allz2.dat'.format(workingdir,p+1)
+        Sdat = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(final_results,p+1)
         print Sdat
-        chivdat = '{}/star_data/NGC_891_P{}_bin30_allz2.vel.dat'.format(workingdir,p+1)
+        chivdat = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(final_results,p+1)
         print chivdat
         Gdat = '{}/P{}{}.txt'.format(workingdir,p+1,velstr)
         print Gdat
@@ -135,11 +137,12 @@ def compute_fibsize_pointing_offset(workingdir='.',velstr='_mab_vel'):
         size, r, z = np.loadtxt(loc, usecols=(1,2,5), unpack=True)
         z = np.abs(z)
         
-        Sv = np.loadtxt(Sdat, usecols=(65,), unpack=True)
-        cv = np.loadtxt(chivdat, usecols=(1,), unpack=True)
+        Sv = pyfits.open(Sdat)[1].data['VSYS']
+        cv = pyfits.open(chivdat)[1].data['VSYS']
         Sv += cv
 
         if Gv.size != Sv.size:
+            raw_input('WHAA?')
             Sv = Sv[:Gv.size]
             size = size[:Gv.size]
             r = r[:Gv.size]
