@@ -11,7 +11,7 @@ from mpl_toolkits.axisartist.grid_finder import MaxNLocator
 from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 plt.ioff()
 
-def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
+def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528., debug=False,
                  Vcfitfile='/Users/Arthur/Documents/School/891_research/final_results/Vc_fit.pk'):
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
@@ -32,11 +32,6 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
 
     Vcvec = Vcfit(np.abs(rho))
 
-    dax = plt.figure().add_subplot(111)
-    dax.plot(np.arange(0,22,0.1), Vcfit(np.arange(0,22,0.1)), 'r-')
-    dax.plot(np.abs(rho), Vcvec, 'x')
-    dax.set_ylim(0,300)
-    dax.set_title(location)
     
     dVdz = np.max(np.vstack((np.zeros(rho.size) + 15,
                              45. - 35.*rho/15.)),axis=0)
@@ -46,8 +41,14 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528.,
     idx = np.where(np.abs(V/Vcvec) > 1)
     V[idx] = Vcvec[idx]*np.sign(V[idx])
 
-    dax.plot(np.abs(rho), np.abs(V), '.')
-    dax.figure.show()
+    if debug:
+        dax = plt.figure().add_subplot(111)
+        dax.plot(np.arange(0,22,0.1), Vcfit(np.arange(0,22,0.1)), 'r-')
+        dax.plot(np.abs(rho), Vcvec, 'x')
+        dax.set_ylim(0,300)
+        dax.set_title(location)
+        dax.plot(np.abs(rho), np.abs(V), '.')
+        dax.figure.show()
     
     r = np.abs(Vcvec/V) * np.abs(rho)
     phi = np.arccos(-1*V/Vcvec) #-1 b/c we define phi=0 to be the approaching
@@ -137,7 +138,7 @@ def plot_rphi(r,phi,data,rlim=(0,12),thlim=(0,180)):
 
 def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
                 #chidV_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166',                
-                componentfile=None, exclude=[[],[],[],[],[],[]]):
+                componentfile=None, exclude=[[],[],[],[],[],[]], debug=False):
 
     rr = np.array([])
     pphi = np.array([])
@@ -154,7 +155,7 @@ def plot_galaxy(rlim=(0,12),thlim=(0,180),tau=False,basedir='.',
             coef = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(basedir, i+1)
             r, phi = compute_rphi_tau(loc,coef)
         else:
-            r, phi, _ = compute_rphi(loc,vel)
+            r, phi, _ = compute_rphi(loc,vel,debug=debug)
 
         exarr = np.array(exclude[i]) - 1
         rr = np.r_[rr,np.delete(r,exarr)]
@@ -225,7 +226,7 @@ def create_rphi_files():
         loc = 'NGC_891_P{}_bin30_locations.dat'.format(p+1)
         vel = 'NGC_891_P{}_bin30_velocities.dat'.format(p+1)
         #chidV_file='/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(p+1)
-        out = 'NGC_891_P{}_bin30_rphi2.dat'.format(p+1)
+        out = 'NGC_891_P{}_bin30_rphi.dat'.format(p+1)
         compute_rphi(loc,vel,output=out)
 
     return
