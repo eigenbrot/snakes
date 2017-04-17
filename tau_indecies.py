@@ -379,7 +379,7 @@ def eat_index(index):
 
 def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     ma11 = False, plotlabels=True, SSP=False,
-                    isochrones=False,isofers=False):
+                    isochrones=False,isofers=False, labelframe=1):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -409,7 +409,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     '-',alpha=alpha,zorder=0,color=colors[t],lw=1.4)
             ax.scatter(modeldata[t,-2,band1],modeldata[t,-2,band2],color=colors[t],s=25,
                        zorder=2*(numtau-t)+1,alpha=alpha,linewidth=0)
-            if ax.get_subplotspec().get_geometry()[2] == 2 and t == numtau - 1:
+            if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and t == numtau - 1:
                 ax.text(modeldata[0,0,band1],
                         modeldata[0,0,band2],
                         '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=10,ha='left',va='center')
@@ -428,7 +428,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     '-',alpha=alpha,zorder=0,color=colors[z],lw=1.4)
             # ax.scatter(modeldata[-1,z,band1], modeldata[-1,z,band2], color=colors[z], s=25)
             # ax.scatter(modeldata[0,z,band1], modeldata[0,z,band2], color=colors[z], s=25)            
-        if ax.get_subplotspec().get_geometry()[2] == 2 and z == numZ - 1:
+        if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and z == numZ - 1:
             ax.text(modeldata[0,z,band1],
                     modeldata[0,z,band2],
                     '{:3.2f} Gyr'.format(mlwa_list[0]), fontsize=10, ha='left', va='center')
@@ -446,7 +446,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     modeldata[t,:,band2],
                     '-k',alpha=alpha,zorder=0)
         
-            if ax.get_subplotspec().get_geometry()[2] == 2 and plotlabels:
+            if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and plotlabels:
                 if t < 2:
                     ax.text(modeldata[t,-1,band1],
                             modeldata[t,-1,band2]+0.25*(2-t),
@@ -461,7 +461,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     modeldata[:,z,band2],
                     ':k',alpha=alpha,zorder=0)
 
-            if ax.get_subplotspec().get_geometry()[2] == 2 and plotlabels:
+            if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and plotlabels:
                 ax.text(modeldata[-1,z,band1],
                         modeldata[-1,z,band2],
                         '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8,ha='right',va='top')
@@ -744,7 +744,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
               isochrones=False, isofers=False, multires=True, plotfid=False, plotdata=True,
-              SSP=False, rphi=True, addl_tracks=None):
+              SSP=False, rphi=True, addl_tracks=None, labelframe=7):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
@@ -852,7 +852,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     band2 = band_d[y]['num']
                 plot_model_grid(model_file,ax,band1,band2,alpha=0.5,
                                 plotlabels=plotlabels, isochrones=isochrones,
-                                isofers=isofers)
+                                isofers=isofers, labelframe=labelframe)
             if plotfid:
                 plot_mgb_tracks_on_grid('mgb_parse.dat', ax)
 
@@ -870,7 +870,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     ax.plot(track[0], track[1], **track[2])
 
                 #This is so gross, I'm sorry
-                if i == 4:
+                if i == labelframe:
                     ax.text(3.1,1.6, '2.5 Gyr', ha='left', fontsize=10)
                     ax.text(0.05,0.06, '0.01 Gyr', ha='left', fontsize=10)
                     ax.text(2.22, 0.8, '0.71 Gyr', ha='left', color='b', fontsize=10)

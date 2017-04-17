@@ -400,7 +400,7 @@ def eat_index(index):
     return np.array([HdA,HdF,Dn4])
 
 def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, 
-                    alpha=0.7, labelZ = True):
+                    alpha=0.7, labelZ = True, labelframe=1):
 
     if ma11:
         fraclist = ma11_fraclist
@@ -423,7 +423,7 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
         #the zsol dots
         ax.scatter(modeldata[t,-2,band1],modeldata[t,-2,band2],color=colors[t],s=25,
                    zorder=2*(numtau-t)+1,alpha=alpha,linewidth=0)
-        if ax.get_subplotspec().get_geometry()[2] == 0:
+        if ax.get_subplotspec().get_geometry()[2] == labelframe-1:
             ax.text(0.9,0.9 - t*0.072, '{:4.1f} Gyr'.format(mlwa_list[t]),
                     transform=ax.transAxes,fontsize=14,ha='right',color=colors[t])
         
@@ -637,7 +637,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
     return
 
 def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
-                    grid=False, spy=False, err=True, multires=True, rphi=True):
+                    grid=False, spy=False, err=True, multires=True, rphi=True, labelframe=1):
 
     fig = plt.figure()
     lax = fig.add_subplot(111, label='bigax')
@@ -710,7 +710,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                     band1 = 2
                     band2 = 0
                 print band1, band2
-                plot_model_grid(model_file, ax, band1, band2, alpha=0.5, labelZ=False)
+                plot_model_grid(model_file, ax, band1, band2, alpha=0.5, labelZ=False, labelframe=labelframe)
 
             if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
                 res = np.loadtxt(data_file)
