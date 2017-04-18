@@ -51,7 +51,7 @@ def fit_YimOos(order, savepick=False):
     return fit
     
 
-def plot_Vc(fit, output, oosfig=False, swatfig=False, yimfig=False):
+def plot_Vc(fit, output, oosfig=False, swatfig=False, yimfig=False, basedir='.'):
 
     r = np.linspace(0,20,50)
     Vc0 = fit(r)
@@ -61,15 +61,17 @@ def plot_Vc(fit, output, oosfig=False, swatfig=False, yimfig=False):
     zlist = np.linspace(0,3.0,5)
 
     ax = plt.figure().add_subplot(111)
-    ax.set_xlabel('r [kpc]')
-    ax.set_ylabel('Vc [km/s]')
+    ax.set_xlabel(r'$r_\mathrm{proj}\ \mathrm{[kpc]}$')
+    ax.set_ylabel(r'$V_c\ \mathrm{[km/s]}$')
 
-    for z in zlist:
+    colorlist = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
+    
+    for z, c in zip(zlist,colorlist):
         Vc = Vc0 - corr*z
-        ax.plot(r,Vc,label='{:3.1f}'.format(z))
+        ax.plot(r,Vc,color=c,label='{:3.1f}'.format(z))
 
-    add_oos(ax)
-    add_yim(ax)
+    add_oos(ax, basedir=basedir)
+    add_yim(ax, basedir=basedir)
 
     if oosfig:
         add_oosfig(ax)
@@ -80,26 +82,27 @@ def plot_Vc(fit, output, oosfig=False, swatfig=False, yimfig=False):
     if yimfig:
         add_yimfig(ax)
     
-    ax.legend(loc=0, numpoints=1, scatterpoints=1, title='z [kpc]')
+    ax.set_ylim(0,300)
+    ax.legend(loc=4, numpoints=1, scatterpoints=1, title=r'$z\ \mathrm{[kpc]}$')
 
     ax.figure.savefig(output)
     
     return
 
-def add_oos(ax):
+def add_oos(ax, basedir='.'):
 
-    r, Vc0, Vc15 = np.loadtxt('Oos_Vc.dat', usecols=(0,2,5), unpack=True)
+    r, Vc0, Vc15 = np.loadtxt('{}/Oos_Vc.dat'.format(basedir), usecols=(0,2,5), unpack=True)
 
     idx = np.where(r < 13.)
     
-    ax.plot(r,Vc0,'xb')
-    ax.plot(r[idx],Vc15[idx],'xr')
+    ax.plot(r,Vc0,'x',color='#e41a1c')
+    ax.plot(r[idx],Vc15[idx],'x', color='#4daf4a')
 
     return
 
-def add_yim(ax):
+def add_yim(ax, basedir='.'):
 
-    r, Vc = np.loadtxt('Yim_Vc.dat', usecols=(0,1), unpack=True)
+    r, Vc = np.loadtxt('{}/Yim_Vc.dat'.format(basedir), usecols=(0,1), unpack=True)
 
     ax.plot(r,Vc,'.k')
 
