@@ -1,10 +1,10 @@
 import numpy as np
 import pyfits
 
-def compare(file1, file2):
+def compare(file1, file2, chi=True):
 
     if file1[-5:] == ".fits":
-        vel1 = read_fits(file1)
+        vel1 = read_fits(file1, chi=chi)
     elif file1[-4:] == ".dat":
         vel1 = read_dat(file1)
     else:
@@ -12,7 +12,7 @@ def compare(file1, file2):
         return
 
     if file2[-5:] == ".fits":
-        vel2 = read_fits(file2)
+        vel2 = read_fits(file2, chi=chi)
     elif file2[-4:] == ".dat":
         vel2 = read_dat(file2)
     else:
@@ -24,14 +24,17 @@ def compare(file1, file2):
     print '\t', np.mean(diff), np.std(diff)
     return
 
-def read_fits(filename):
+def read_fits(filename, chi=True):
 
-    chifile = filename[:-5] + '.vel.fits'
-    try:
-        chivel = pyfits.open(chifile)[1].data['VSYS']
-    except IOError:
-        print "WARNING: Could not find chivel file associated with", filename
-        print "         continuing without a chivel file"
+    if chi:
+        chifile = filename[:-5] + '.vel.fits'
+        try:
+            chivel = pyfits.open(chifile)[1].data['VSYS']
+        except IOError:
+            print "WARNING: Could not find chivel file associated with", filename
+            print "         continuing without a chivel file"
+            chivel = 0
+    else:
         chivel = 0
         
     vel = pyfits.open(filename)[1].data['VSYS']
