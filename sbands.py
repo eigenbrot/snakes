@@ -339,3 +339,76 @@ def run_SSPs(output):
     outhdu.writeto(output,clobber=True)
     
     return
+
+def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
+    
+    wavemin=3800.
+    wavemax=6800.
+
+    vel = np.loadtxt(velocity,usecols=(1,),unpack=True)
+
+    hdu = pyfits.open(datafile)[0]
+    data = hdu.data
+    header = hdu.header
+    
+    if isdata:
+        cdelt = header['CDELT1']
+        crpix = header['CRPIX1']
+        crval = header['CRVAL1']
+
+        if emcorr:
+            #WARNING: The emission correction done below only corrects Ha and
+            # HB, to get all the balmer lines check out
+            # prep_balmer.do_all(*args,balmer=True)
+
+            print "Correcting for Ha and HB emission"
+            base = os.path.basename(datafile)
+            dirn = os.path.dirname(datafile)
+            pointing = int(re.search('_P([1-6])_',base).groups()[0])
+            fitfile = os.path.join(dirn,'{}_allz2.fit.fits'.format(base.split('.')[0]))
+            contsub = os.path.join(dirn,'{}_contsub.ms.fits'.format(base.split('.')[0]))
+            pb.prep_spectra(datafile, fitfile, contsub, velocity)
+            pb.do_fitprof(contsub, pointing)
+            emline = pyfits.open(os.path.join(dirn,'P{}_HB_fits.fits'.format(pointing)))[0].data
+    else:
+        #Hacky hack for fit files. These values should not really change, so I think it's OK
+        cdelt = 2.1
+        crpix = 1
+        crval = 3800.
+        header.update('CDELT1',cdelt)
+        header.update('CRPIX',crpix)
+
+    wave = (np.arange(data.shape[1]) + crpix-1)*cdelt + crval
+    idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
+    
+    wave = wave[idx]
+    data = data[:,idx]
+
+    shift = np.vstack([np.interp(wave,wave*(1 - vel[i]/3e5),data[i,:]) for i in range(data.shape[0])])
+
+    if isdata and emcorr:
+#        emline = emline[:,idx]
+        print shift.shape
+        print emline.shape
+        shift -= emline/1e17
+
+    header.update('CRVAL1', 3800.)
+    pyfits.PrimaryHDU(shift,header).writeto(output,clobber=True)
+
+    return
+
+def prep_all_data(bs='', err=False):
+
+    
+    for i in range(6):
+        
+        output = 'NGC_891_P{}_bin30{}.msoz.fits'.format(i+1,bs)
+        data_prep('NGC_891_P{}_bin30{}.mso.fits'.format(i+1,bs),
+                  'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=False)
+
+        if err:
+            output = 'NGC_891_P{}_bin30{}.meoz.fits'.format(i+1,bs)
+            data_prep('NGC_891_P{}_bin30{}.meo.fits'.format(i+1,bs),
+                      'NGC_891_P{}_bin30_velocities.dat'.format(i+1),output,emcorr=False)
+
+    return
