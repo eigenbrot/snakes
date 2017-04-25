@@ -4,15 +4,12 @@ import re
 import numpy as np
 import pyfits
 import tau_model as tm
-from pyraf import iraf
 import time
 #import prep_balmer as pb
 import scipy.stats as ss
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
-iraf.noao(_doprint=0)
-iraf.onedspec(_doprint=0)
 
 deftlst = [-1,-3,-9,13,5,3,1]
 deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
@@ -148,7 +145,10 @@ def prep_all_fits():
 def run_sbands(findstr, 
                bands='/d/monk/eigenbrot/WIYN/14B-0456/anal/LICK.bands', 
                clobber=True):
-    
+    from pyraf import iraf
+    iraf.noao(_doprint=0)
+    iraf.onedspec(_doprint=0)
+
     inputlist = glob(findstr)
     
     for data in inputlist:
