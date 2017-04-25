@@ -44,7 +44,7 @@ def format_mab_HbO(filename):
 
     return
 
-def get_data(workingdir='.',velstr='_mab_vel', final_results='../final_results'):
+def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
 
     #Read in velocity data
     Glist = []
@@ -55,11 +55,11 @@ def get_data(workingdir='.',velstr='_mab_vel', final_results='../final_results')
     for p in range(6):
         loc = '{}/NGC_891_P{}_bin30_locations.dat'.format(workingdir,p+1)
         print loc
-        Sfits = '{}/NGC_891_P{}_bin30_allz2.coef.fits'.format(final_results,p+1)
+        Sfits = '{}/NGC_891_P{}_bin30_allz2.coef.prechi.fits'.format(velocity_dir,p+1)
         print Sfits
-        chivfits = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(final_results,p+1)
+        chivfits = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(velocity_dir,p+1)
         print chivfits
-        Gdat = '{}/P{}{}.txt'.format(workingdir,p+1,velstr)
+        Gdat = '{}/P{}{}.txt'.format(velocity_dir,p+1,velstr)
         print Gdat
         Gv, Ge = np.loadtxt(Gdat,usecols=(0,1),unpack=True)
 
@@ -100,9 +100,9 @@ def compute_single_offset(workingdir='.',velstr='_mab_vel'):
 
     return G, S, np.median(diff), r, z
 
-def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',final_results='../final_results'):
+def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
 
-    G, S, Size, r, z = get_data(workingdir,velstr,final_results)
+    G, S, Size, r, z = get_data(workingdir,velstr,velocity_dir)
 
     diff = G - S
     offset = np.zeros(diff.size)
