@@ -283,8 +283,8 @@ def make_balmer_model(Hafitp, location, velocities, output, tauV_coeffs=[-1.06,3
     # tauV = np.loadtxt(balmerD, usecols=(1,), unpack=True)
     tauV = np.poly1d(tauV_coeffs)
     sizes, z = np.loadtxt(location, usecols=(1,5), unpack=True)
-    vels = np.loadtxt(velocities, usecols=(1,), unpack=True)
-    numap = vels.size
+    vels = np.loadtxt(velocities, usecols=(1,), unpack=True) #The col is 0 if using gas velocity file
+    numap = z.size
     Ha_data = i2p.parse_fitprofs(Hafitp,3)
     Ha_flux = Ha_data[4][:,0]/1e17 #- 1e-16
 
@@ -321,7 +321,7 @@ def make_balmer_model(Hafitp, location, velocities, output, tauV_coeffs=[-1.06,3
     final_model = np.zeros((numap,wave.size))
     for i in range(numap):
         print i
-        wave_red = wave * (1 + vels[i]/3e5)
+        m_wave_red = m_wave * (1 + vels[i]/3e5)
         if np.isnan(tauV[i]):
             red = np.ones(m_wave.size)
         else:
@@ -339,8 +339,8 @@ def make_balmer_model(Hafitp, location, velocities, output, tauV_coeffs=[-1.06,3
         mHa_flux = np.sum(balmer_flux[i,Haid])
         print Ha_flux[i], mHa_flux
         balmer_flux[i,:] *= Ha_flux[i]/mHa_flux
-        final_model[i,:] = np.interp(wave,m_wave,balmer_flux[i,:])
-        final_model[i,:] = np.interp(wave,wave_red,final_model[i,:])
+        final_model[i,:] = np.interp(wave,m_wave_red,balmer_flux[i,:])
+        #final_model[i,:] = np.interp(wave,wave_red,final_model[i,:])
 
     final_hdu = pyfits.PrimaryHDU(final_model)
     final_hdu.header.update('CRPIX1',1)
@@ -371,13 +371,14 @@ def do_all(datafile, fitfile, velocity, location, smooth=3.,
     prepped = 'P{}_contsub.ms.fits'.format(pointing)
     output = 'P{}_balmerD'.format(pointing)
 
-    prep_spectra(datafile, fitfile, prepped, velocity, smooth=smooth)
-    do_fitprof(prepped,pointing)
-    get_results(pointing,output)
+    # prep_spectra(datafile, fitfile, prepped, velocity, smooth=smooth)
+    # do_fitprof(prepped,pointing)
+    # get_results(pointing,output)
 
     if balmer:
         bal_out = 'NGC_891_P{}_bin30_balmer_model.ms.fits'.format(pointing)
         sub_out = 'NGC_891_P{}_bin30_balmsub.mso.fits'.format(pointing)
+        gas_vel = '/d/monk/eigenbrot/WIYN/14B-0456/anal/HA_lines/P{}_Ha_vel.txt'.format(pointing)
         make_balmer_model('P{}_Ha.fitp'.format(pointing),location, 
                           velocity, bal_out, tauV_coeffs=tauV_coeffs)
         data = pyfits.open(datafile)[0]
