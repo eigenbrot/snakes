@@ -48,7 +48,7 @@ crpix = float(sxpar(header,'CRPIX1'))
 print, 'CDELT1 = ',cdelt
 print, 'CRVAL1 = ',crval
 print, 'CRPIX1 = ',crpix
-wave = (DINDGEN(wavesize) - crpix) * cdelt + crval
+wave = (DINDGEN(wavesize) - (crpix - 1)) * cdelt + crval
 ;vdisp = 377. ; measured velocity dispersion
 
 if keyword_set(location) then begin
