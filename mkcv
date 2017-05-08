@@ -75,7 +75,7 @@ if [[ $S>1 ]]; then
     echo $plotcmd "-s $S" >> $scrfile
 fi
 
-if [[ $B==1 ]]; then
+if [[ $B -eq 1 ]]; then
     echo $plotcmd "-b" >> $scrfile
     if [[ $S>1 ]]; then
 	echo $plotcmd "-b -s $S" >> $scrfile
