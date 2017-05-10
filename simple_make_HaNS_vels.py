@@ -28,11 +28,12 @@ def consolidate(OGcoef_file, velcoef_file, location_file, HaNS_file, output,
         f.write('# {}\n# {}\n'.format(OGcoef_file, velcoef_file))
         f.write('# Offset (by fiber size) = {} km/s\n'.format(offset))
         f.write('# Everything in km/s\n#\n')
-        f.write('#{:2}{:>10}{:>10}{:>10}{:>10}{:>10}\n\n'.format('Ap','V_obs','dV_obs', 'V_*^c', 'V_HaNS', 'dV_HaNS'))
+        f.write('#{:2}{:>10}{:>10}{:>10}{:>10}{:>10}{:>10}\n\n'.format('Ap','V_obs','dV_obs', 'V_*', 'V_*^c', 'V_HaNS', 'dV_HaNS'))
         for i in range(outvel.size):
-            f.write('{:3n}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}\n'.format(i+1,outvel[i],velerr[i],
-                                                                             (OGcoefs['VSYS'] + velcoefs['VSYS'])[i],
-                                                                             HaNS[i], HaNS_e[i]))
+            f.write('{:3n}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}\n'.format(i+1,outvel[i],velerr[i],
+                                                                                     (OGcoefs['VSYS'] + velcoefs['VSYS'])[i],
+                                                                                     starvel[i],
+                                                                                     HaNS[i], HaNS_e[i]))
 
     return
 
