@@ -63,7 +63,7 @@ def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Docum
         print Gdat
         Gv, Ge = np.loadtxt(Gdat,usecols=(0,1),unpack=True)
 
-        size, r, z = np.loadtxt(loc, usecols=(1,4,5), unpack=True)
+        size, r, z = np.loadtxt(loc, usecols=(1,2,5), unpack=True)
         z = np.abs(z)
         
         Sv = pyfits.open(Sfits)[1].data['VSYS']
