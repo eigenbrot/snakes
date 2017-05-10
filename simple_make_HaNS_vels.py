@@ -5,7 +5,7 @@ import sys
 from glob import glob
 
 def consolidate(OGcoef_file, velcoef_file, location_file, HaNS_file, output,
-                offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+                offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
 
     OGcoefs = pyfits.open(OGcoef_file)[1].data
     velcoefs = pyfits.open(velcoef_file)[1].data
@@ -36,7 +36,7 @@ def consolidate(OGcoef_file, velcoef_file, location_file, HaNS_file, output,
 
     return
 
-def main(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+def main(offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
 
     baseOG = 'NGC_891_P{}_bin30_allz2.coef.prechi.fits'
     basevel = 'NGC_891_P{}_bin30_allz2.coef.vel.fits'
@@ -60,7 +60,7 @@ def main(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
 
     return
 
-def shift_data_files(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+def shift_data_files(offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
     import numpy as np
 
     base = 'NGC_891_P{}_bin30'
