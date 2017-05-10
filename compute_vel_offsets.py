@@ -44,7 +44,7 @@ def format_mab_HbO(filename):
 
     return
 
-def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
+def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Documents/School/891_research/4166_velocity_dir'):
 
     #Read in velocity data
     Glist = []
@@ -100,7 +100,7 @@ def compute_single_offset(workingdir='.',velstr='_mab_vel'):
 
     return G, S, np.median(diff), r, z
 
-def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
+def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',velocity_dir='/Users/Arthur/Documents/School/891_research/4166_velocity_dir'):
 
     G, S, Size, r, z = get_data(workingdir,velstr,velocity_dir)
 
