@@ -392,7 +392,7 @@ def data_prep(datafile, velocity, output, isdata=True, emcorr=False):
         print emline.shape
         shift -= emline/1e17
 
-    header.update('CRVAL1', 3800.)
+    header.update({'CRVAL1': 3800.})
     pyfits.PrimaryHDU(shift,header).writeto(output,clobber=True)
 
     return
