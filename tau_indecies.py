@@ -871,10 +871,10 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
 
                 #This is so gross, I'm sorry
                 if i == labelframe:
-                    ax.text(3.1,1.6, '2.5 Gyr', ha='left', fontsize=10)
-                    ax.text(0.05,0.06, '0.01 Gyr', ha='left', fontsize=10)
-                    ax.text(2.22, 0.8, '0.71 Gyr', ha='left', color='b', fontsize=10)
-                    ax.text(1,1.05, '0.25 Gyr', ha='right', color='r', fontsize=10)
+                    ax.text(3.1,1.6, '12 Gyr', ha='left', fontsize=10)
+                    ax.text(0.05,0.06, '0.35 Gyr', ha='left', fontsize=10)
+                    ax.text(2.22, 0.8, '3 Gyr', ha='left', color='b', fontsize=10)
+                    ax.text(1,1.05, '0.6 Gyr', ha='right', color='r', fontsize=10)
 
             i += 1
 
