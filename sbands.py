@@ -284,6 +284,87 @@ def run_models_multires(output,group=1):
     
     return
 
+def run_MILES_multires(output,alpha,group=1):
+    dirlistd = {1: ['29377','24192','19958','18738','17947'],
+                2: ['39180','34356','25751','24995','24471'],
+                3: ['47014','42806','31304','30267','29751']}
+    agelst = [0.35, 0.6, 1, 3, 4, 8, 12]
+    fraclist = np.array([-0.35,0.4])
+    fraclist = np.sort(fraclist)
+    print fraclist
+
+    HdAlims = [[4084.5, 4123.3], [4041.65, 4079.75], [4128.55, 4161.05]]
+    Mgblims = [[5160.15, 5192.65], [5142.6, 5161.4], [5191.4, 5206.4]]
+    Fe5270lims = [[5245.7, 5285.7], [5233.2, 5248.2], [5285.65, 5318.15]]
+    Fe5335lims = [[5312.1, 5352.1], [5304.65, 5315.95], [5353.4, 5363.4]]
+
+    results = np.zeros((len(agelst),fraclist.size,5))
+
+    for f, frac in enumerate(fraclist):
+        reslist = []
+        if frac < 0:
+            pm = 'm'
+            strmetal = frac * -1
+        else:
+            pm = 'p'
+            strmetal = frac
+        for resdir in dirlistd[group]:
+            modelfile = '{}/MILES_MH{}{}_Ep{}.fits'.format(resdir,pm,strmetal,alpha)
+            print modelfile
+        
+            wave, data = read_fits(modelfile)
+            aplist = []
+            for i in range(data.shape[0]):
+                D = compute_Dn4000(wave,data[i,:],None,doerr=False)            
+                H = compute_index(wave, data[i,:], None,
+                                  HdAlims[0], HdAlims[1], HdAlims[2],
+                                  doerr=False)
+                M = compute_index(wave, data[i,:], None,
+                                  Mgblims[0], Mgblims[1], Mgblims[2],
+                                  doerr=False)
+                F2 = compute_index(wave, data[i,:],None,
+                                   Fe5270lims[0], Fe5270lims[1], Fe5270lims[2],
+                                   doerr=False)
+                F3 = compute_index(wave, data[i,:],None,
+                                   Fe5335lims[0], Fe5335lims[1], Fe5335lims[2],
+                                   doerr=False)
+                
+                aplist.append([D,H,M,F2,F3])
+                
+            reslist.append(aplist)
+
+        #allres = [tausf (ap),index,resolution]
+        allres = np.dstack(reslist)
+        print allres.shape
+        tmp = np.zeros(allres.shape[:-1])
+        print tmp.shape
+        
+        #Dn4000
+        tmp[:,0] = allres[:,0,0]
+        #HdA
+        tmp[:,1] = allres[:,1,1]
+        #Mgb
+        tmp[:,2] = allres[:,2,2]
+        #<Fe>
+        tmp[:,3] = 0.5*(allres[:,3,3] + allres[:,4,4])
+        #[MgFe]
+        tmp[:,4] = np.sqrt(allres[:,2,2] * (0.72*allres[:,3,3] + 0.28*allres[:,4,4]))
+        
+        results[:,f,:] = tmp
+
+    outhdu = pyfits.PrimaryHDU(results)
+    outhdu.header.update(d0='aperture')
+    outhdu.header.update(d1='Z')
+    outhdu.header.update(d2='index')
+    outhdu.header.update(i0='Dn4000')
+    outhdu.header.update(i1='HdA')
+    outhdu.header.update(i2='Mgb')
+    outhdu.header.update(i3='<Fe>')
+    outhdu.header.update(i4='MgFe')
+    outhdu.writeto(output,clobber=True)
+    
+    return
+
 def run_SSPs(output):
 
     HdAlims = [[4084.5, 4123.3], [4041.65, 4079.75], [4128.55, 4161.05]]
