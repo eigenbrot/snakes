@@ -9,7 +9,7 @@ def read_fits(fitsfile):
     hdu = pyfits.open(fitsfile)[0]
     data = hdu.data
 
-    wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CDELT1'] + hdu.header['CRVAL1']
+    wave = (np.arange(data.shape[1]) - (hdu.header['CRPIX1'] - 1))*hdu.header['CDELT1'] + hdu.header['CRVAL1']
 
     return wave, data
 
