@@ -27,11 +27,13 @@ def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
         modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/MA11_models/ma11_cha_{}.fits'.format(i) for i in ['0005Z','005Z','05Z','1Z','2Z']]
     elif MILES:
         fraclist = MILES_fraclist
-        modellist = ['/Users/Arthur/Documents/School/891_research/models/MILES_tau/MILES_{}_E0.0.fits'.format(i) for i in ['0005Z','0015Z','02Z','04Z','1Z','2Z']]
+        modellist = ['/Users/Arthur/Documents/School/891_research/MILES/MILES_IDL_{}_E0.0.fits'.format(i) for i in ['0005Z','0015Z','02Z','04Z','099Z','2Z']]
+        moddisp = 58.4
     else:
         fraclist = bc03_fraclist
         # modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
         modellist = ['/Users/Arthur/Documents/School/891_research/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+        moddisp = 75.0
     
     for z in range(len(modellist)):
         #get the length of the wavelength vector
@@ -48,7 +50,7 @@ def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
                 galname = 'bc03_gal_t{}'.format(t)
             gal = tm.make_galaxy(galname,tau_sf = t,
                                  SSPs=modellist[z],makeplot=False,
-                                 writeoutput=False,vdisp=vdisp)
+                                 writeoutput=False,vdisp=vdisp,moddisp=moddisp)
             output[i,:] = gal['flux']/np.mean(gal['flux'])
             outhdu.header.update({'TSF{:02n}'.format(i+1):t})
 

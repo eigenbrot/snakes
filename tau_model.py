@@ -12,6 +12,7 @@ def make_galaxy(output,
                 SSPs = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_solarZ_ChabIMF.fits',
                 sigma = '/d/monk/eigenbrot/WIYN/14B-0456/anal/pre_ind/SN_realization/Noise.fits',
                 vdisp = 209.34,
+                moddisp = 75.0,
                 tau_sf = 8.0,
                 t_form = 12.0,
                 tau_V = 1.5,
@@ -79,16 +80,22 @@ def make_galaxy(output,
 
 #    linwave = np.linspace(wave.min(),wave.max(),wave.size)
     linwave = np.arange(wave.min(),wave.max(),2.1)
-    lingal = np.interp(linwave, wave, galaxy)
-    
-    bc03_pix = 70.0
-    bc03_vdisp = 75.0
+    # lingal = np.interp(linwave, wave, galaxy)
 
-    if vdisp > bc03_vdisp:
-        vdisp_add = np.sqrt(vdisp**2 - bc03_vdisp**2)
-        sigma_pix = vdisp_add / bc03_pix
-        lingal = spnd.filters.gaussian_filter1d(lingal,sigma_pix)
-    
+    npix = np.round((np.log10(wave.max()) - np.log10(wave.min())) / 1e-4)
+    logwave = 10**(np.arange(npix) * 1e-4 + np.log10(wave.min()))
+    loggal = np.interp(logwave, wave, galaxy)
+
+    mpix = np.mean(np.diff(logwave)/logwave[1:]*3e5)
+
+    if vdisp > moddisp:
+        vdisp_add = np.sqrt(vdisp**2 - moddisp**2)
+        sigma_pix = vdisp_add / mpix
+        print mpix, sigma_pix
+        loggal = spnd.filters.gaussian_filter1d(loggal,sigma_pix)
+
+    lingal = np.interp(linwave, logwave, loggal)
+        
     if np.isfinite(SN):
         linwave, lingal, error = add_noise(linwave, lingal, sigma, SN,
                                            SNmin = SNmin, 
