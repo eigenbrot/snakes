@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pyfits
 import time
@@ -11,6 +12,64 @@ def read_fits(fitsfile):
     wave = (np.arange(data.shape[1]) - hdu.header['CRPIX1'] - 1)*hdu.header['CDELT1'] + hdu.header['CRVAL1']
 
     return wave, data
+
+def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
+    #Copied from tau_indices on 7.21.17
+    import tau_model as tm
+    tausf_list = [-1,-3,-9,13,5,3,1]
+
+    ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
+    bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+    MILES_fraclist = np.array([0.0001,0.0003,0.004,0.008,0.0198,0.04])/0.02
+    
+    if ma11:
+        fraclist = ma11_fraclist
+        modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/MA11_models/ma11_cha_{}.fits'.format(i) for i in ['0005Z','005Z','05Z','1Z','2Z']]
+    elif MILES:
+        fraclist = MILES_fraclist
+        modellist = ['/Users/Arthur/Documents/School/891_research/models/MILES_tau/MILES_{}_E0.0.fits'.format(i) for i in ['0005Z','0015Z','02Z','04Z','1Z','2Z']]
+    else:
+        fraclist = bc03_fraclist
+        # modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+        modellist = ['/Users/Arthur/Documents/School/891_research/models/bc03_{}_ChabIMF.fits'.format(i) for i in ['solarZ','004Z','0004Z','0001Z','008Z','05Z']]
+    
+    for z in range(len(modellist)):
+        #get the length of the wavelength vector
+        tmp = tm.make_galaxy('tmp',SSPs=modellist[z],makeplot=False,writeoutput=False)
+        nwave = tmp['wave'].size
+        output = np.zeros((len(tausf_list), nwave))
+        outhdu = pyfits.PrimaryHDU()
+        for i, t in enumerate(tausf_list):
+            if ma11:
+                galname = 'ma11_gal_t{}'.format(t)
+            elif MILES:
+                galname = 'MILES_gal_t{}'.format(t)
+            else:
+                galname = 'bc03_gal_t{}'.format(t)
+            gal = tm.make_galaxy(galname,tau_sf = t,
+                                 SSPs=modellist[z],makeplot=False,
+                                 writeoutput=False,vdisp=vdisp)
+            output[i,:] = gal['flux']/np.mean(gal['flux'])
+            outhdu.header.update({'TSF{:02n}'.format(i+1):t})
+
+        outhdu.data = output
+        outhdu.header.update(Z=fraclist[z])
+        outhdu.header.update(CTYPE1='LINEAR')
+        outhdu.header.update(CRPIX1=1)
+        outhdu.header.update(CRVAL1=gal['wave'].min())
+        outhdu.header.update(CDELT1=np.mean(np.diff(gal['wave'])))
+        outhdu.header.update(CTYPE2='LINEAR')
+        outhdu.header.update(CRPIX2=1)
+        outhdu.header.update(CRVAL2=len(tausf_list))
+        outhdu.header.update(CDELT2=1)
+        if ma11:
+            outhdu.writeto('{}/MA11_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
+        elif MILES:
+            outhdu.writeto('{}/MILES_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
+        else:
+            outhdu.writeto('{}/BC03_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
+        
+    return
 
 def compute_Dn4000(wave, spec, err, doerr=True):
 
@@ -209,6 +268,20 @@ def run_models(output):
     
     return
 
+def make_models_multires(ma11=False, MILES=False):
+
+    vdisplst = [293.77,241.92,199.58,187.38,179.47,
+                391.80,343.56,257.51,249.95,244.71,
+                470.14,428.06,313.04,302.67,297.51]
+
+    for vd in vdisplst:
+        outdir = ''.join(('{:6.2f}'.format(vd)).split('.'))
+        if not os.path.exists(outdir):
+            os.system('mkdir {}'.format(outdir))
+        make_galaxies(ma11 = ma11, MILES = MILES, vdisp=vd, outdir=outdir)
+
+    return
+        
 def run_models_multires(output,group=1):
     dirlistd = {1: ['29377','24192','19958','18738','17947'],
                 2: ['39180','34356','25751','24995','24471'],
@@ -272,14 +345,14 @@ def run_models_multires(output,group=1):
         results[:,f,:] = tmp
 
     outhdu = pyfits.PrimaryHDU(results)
-    outhdu.header.update('d0','aperture')
-    outhdu.header.update('d1','Z')
-    outhdu.header.update('d2','index')
-    outhdu.header.update('i0','Dn4000')
-    outhdu.header.update('i1','HdA')
-    outhdu.header.update('i2','Mgb')
-    outhdu.header.update('i3','<Fe>')
-    outhdu.header.update('i4','MgFe')
+    outhdu.header.update(d0='aperture')
+    outhdu.header.update(d1='Z')
+    outhdu.header.update(d2='index')
+    outhdu.header.update(i0='Dn4000')
+    outhdu.header.update(i1='HdA')
+    outhdu.header.update(i2='Mgb')
+    outhdu.header.update(i3='<Fe>')
+    outhdu.header.update(i4='MgFe')
     outhdu.writeto(output,clobber=True)
     
     return
@@ -289,6 +362,12 @@ def run_MILES_multires(output,alpha,group=1):
                 2: ['39180','34356','25751','24995','24471'],
                 3: ['47014','42806','31304','30267','29751']}
     agelst = [0.35, 0.6, 1, 3, 4, 8, 12]
+    agelst = [00.03, 00.04, 00.05, 00.06, 00.07, 00.08, 00.09, 00.10,
+    00.15, 00.20, 00.25, 00.30, 00.35, 00.40, 00.45, 00.50, 00.60, 00.70,
+    00.80, 00.90, 01.00, 01.25, 01.50, 01.75, 02.00, 02.25, 02.50, 02.75,
+    03.00, 03.25, 03.50, 03.75, 04.00, 04.50, 05.00, 05.50, 06.00, 06.50,
+    07.00, 07.50, 08.00, 08.50, 09.00, 09.50, 10.00, 10.50, 11.00, 11.50,
+    12.00, 12.50, 13.00, 13.50, 14.00]
     fraclist = np.array([-0.35,0.4])
     fraclist = np.sort(fraclist)
     print fraclist
