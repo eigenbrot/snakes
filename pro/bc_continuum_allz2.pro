@@ -150,6 +150,10 @@ endif else begin
    fixedVBool = 1
 endelse
 
+print, parinfo.fixed
+print, parinfo.value
+;stop
+
 ;Put in some age/metallicity priors
 ;default: don't fit
 ;; parinfo[2:*].fixed = 1
@@ -302,7 +306,7 @@ fitcoefs = mpfitfun('bc_mcombine_allz2', fitwave, fitflux, fiterr, $
 ;iterproc = 'savestep', iterargs = savedata, $
                     functargs = {mlib: fitlib}, $
                     perror=perror, niter=niter, status=status, $
-                    errmsg=errmsg, maxiter = 50000, xtol=1d-50, ftol=1d-50, /NAN)
+                    errmsg=errmsg, maxiter = 3000, xtol=1d-10, ftol=1d-10, /NAN)
 
 print, 'CONTINUUM FIT ITERATIONS: ', strtrim(niter, 2)
 print, 'CONTINUUM_FIT EXIT STATUS: ', strtrim(status, 2)

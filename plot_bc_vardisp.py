@@ -3,6 +3,8 @@ import time
 import numpy as np
 import pyfits
 import scipy.ndimage as spnd
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
@@ -29,7 +31,7 @@ def plot_bc(coeffile, fitfile, datafile, errorfile, model, output=None,
     print 'CRVAL1 = ', crval
     print 'CRPIX1 = ', crpix
 
-    wave = (np.arange(wavesize) - crpix-1) * cdelt + crval
+    wave = (np.arange(wavesize) - (crpix-1)) * cdelt + crval
 
     idx = np.where((wave >= wavemin) & (wave <= wavemax))[0]
     restwl = wave[idx]

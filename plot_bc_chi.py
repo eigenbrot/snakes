@@ -3,6 +3,8 @@ import time
 import numpy as np
 import pyfits
 import scipy.ndimage as spnd
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages as PDF
 plt.ioff()
