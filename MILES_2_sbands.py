@@ -140,7 +140,7 @@ def convert_to_IDL_fmt(MH, agelst=full_age, alpha=0.0):
     flux = flux.reshape(1,nage,npix)
     wave = wave.reshape(1,npix)
     norm = norm.reshape(1,nage)
-    age = age.reshape(1,nage)
+    age = age.reshape(1,nage)*1e9
     
     print npix, nage, flux.shape, norm.shape, age.shape, wave.shape
     
