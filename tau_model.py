@@ -39,7 +39,7 @@ def make_galaxy(output,
     ssp_age = model['AGE'][0]/1e9 #in Gyr
     norm = model['NORM'][0]
     flux *= norm[:,None]
-
+    
     logt = np.log10(np.r_[1e-99,ssp_age,t_form])
     tdiff = np.diff(logt)
     borders = 10**(logt[1:] - tdiff/2.)
@@ -91,7 +91,6 @@ def make_galaxy(output,
     if vdisp > moddisp:
         vdisp_add = np.sqrt(vdisp**2 - moddisp**2)
         sigma_pix = vdisp_add / mpix
-        print mpix, sigma_pix
         loggal = spnd.filters.gaussian_filter1d(loggal,sigma_pix)
 
     lingal = np.interp(linwave, logwave, loggal)
