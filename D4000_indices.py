@@ -15,9 +15,11 @@ plt.ioff()
 
 deftlst = [-1,-3,-9,13,5,3,1]
 deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
+MILESmlwa = [0.693,2.025,4.133,7.338,8.969,9.975,11.307]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+MILES_fraclist = np.array([0.0001,0.0003,0.004,0.008,0.0198,0.04])/0.02
 
 def make_galaxies(tausf_list = deftlst, ma11 = False):
 
@@ -400,15 +402,18 @@ def eat_index(index):
     return np.array([HdA,HdF,Dn4])
 
 def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False, 
-                    alpha=0.7, labelZ = True, labelframe=1):
+                    alpha=0.7, labelZ = True, labelframe=1, MILES = False):
 
     if ma11:
         fraclist = ma11_fraclist
+    elif MILES:
+        fraclist = MILES_fraclist
+        mlwa_list = np.array(MILESmlwa)
     else:
         fraclist = bc03_fraclist
+        mlwa_list = np.array(deftmlwa)
     fraclist = np.sort(fraclist)
     
-    mlwa_list = np.array(deftmlwa)
 
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
@@ -636,7 +641,7 @@ def plot_all_pointing_D4000(output, exclude=excl, r=False, zcut=[-99,99], rcut=[
 
     return
 
-def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
+def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], MILES=False,
                     grid=False, spy=False, err=True, multires=True, rphi=True, labelframe=1):
 
     fig = plt.figure()
@@ -699,7 +704,10 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
             if grid:
                 if spy:
                     if multires:
-                        model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
+                        if MILES:
+                            model_file = '{}/MILES_tau_group{}_spy.fits'.format(basedir,3-z)
+                        else:
+                            model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
                     else:
                         model_file = '{}/BC03_spy.fits'.format(basedir)
                     print model_file
@@ -710,7 +718,8 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                     band1 = 2
                     band2 = 0
                 print band1, band2
-                plot_model_grid(model_file, ax, band1, band2, alpha=0.5, labelZ=False, labelframe=labelframe)
+                plot_model_grid(model_file, ax, band1, band2, alpha=0.5,
+                                    MILES=MILES, labelZ=False, labelframe=labelframe)
 
             if spy and not err and i == (len(zcuts)+1) * (len(rcuts)+1) - len(rcuts):
                 res = np.loadtxt(data_file)

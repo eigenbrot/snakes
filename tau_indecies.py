@@ -13,9 +13,11 @@ plt.ioff()
 
 deftlst = [-1,-3,-9,13,5,3,1]
 deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
+MILESmlwa = [0.693,2.025,4.133,7.338,8.969,9.975,11.307]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
+MILES_fraclist = np.array([0.0001,0.0003,0.004,0.008,0.0198,0.04])/0.02
 
 def make_galaxies(tausf_list = deftlst, ma11 = False, vdisp=200.0):
 
@@ -378,11 +380,13 @@ def eat_index(index):
                      FeAvg, MgFe, index[4]])
 
 def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
-                    ma11 = False, plotlabels=True, SSP=False,
+                    ma11 = False, plotlabels=True, SSP=False, MILES=False,
                     isochrones=False,isofers=False, labelframe=1):
 
     if ma11:
         fraclist = ma11_fraclist
+    elif MILES:
+        fraclist = MILES_fraclist
     else:
         fraclist = bc03_fraclist
     fraclist = np.sort(fraclist)
@@ -395,7 +399,10 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                                 1.43400000e+09,   2.50000000e+09,   5.00000000e+09,
                                 1.00000000e+10])/1e9
     else:
-        mlwa_list = np.array(deftmlwa)
+        if MILES:
+            mlwa_list = np.array(MILESmlwa)
+        else:
+            mlwa_list = np.array(deftmlwa)
 
     modeldata = pyfits.open(model_data_file)[0].data
     numtau, numZ, numindex = modeldata.shape
@@ -744,7 +751,7 @@ def plot_all_pointing_grid(output, plotdata=True, plotfits=False,
 def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8], 
               spy=False, err=True, grid=False, line=False, plotbreak=True, plotlabels=True,
               isochrones=False, isofers=False, multires=True, plotfid=False, plotdata=True,
-              SSP=False, rphi=True, addl_tracks=None, labelframe=7):
+              SSP=False, rphi=True, addl_tracks=None, labelframe=7, MILES=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
               'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
@@ -836,7 +843,10 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
             if grid and not plotfid:
                 if spy:
                     if multires:
-                        model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
+                        if MILES:
+                            model_file = '{}/MILES_tau_group{}_spy.fits'.format(basedir,3-z)
+                        else:
+                            model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
                     else:
                         if SSP:
                             model_file = '{}/BC03_SSP_spy.fits'.format(basedir)
@@ -850,7 +860,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                     model_file = '{}/BC03_bands.fits'.format(basedir)
                     band1 = band_d[x]['num']
                     band2 = band_d[y]['num']
-                plot_model_grid(model_file,ax,band1,band2,alpha=0.5,
+                plot_model_grid(model_file,ax,band1,band2,alpha=0.5,MILES=MILES,
                                 plotlabels=plotlabels, isochrones=isochrones,
                                 isofers=isofers, labelframe=labelframe)
             if plotfid:
@@ -871,10 +881,10 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
 
                 #This is so gross, I'm sorry
                 if i == labelframe:
-                    ax.text(3.1,1.6, '12 Gyr', ha='left', fontsize=10)
-                    ax.text(0.05,0.06, '0.35 Gyr', ha='left', fontsize=10)
-                    ax.text(2.22, 0.8, '3 Gyr', ha='left', color='b', fontsize=10)
-                    ax.text(1,1.05, '0.6 Gyr', ha='right', color='r', fontsize=10)
+                    ax.text(3.1,1.6, '2.5 Gyr', ha='left', fontsize=10)
+                    ax.text(0.05,0.06, '0.01 Gyr', ha='left', fontsize=10)
+                    ax.text(2.22, 0.8, '0.71 Gyr', ha='left', color='b', fontsize=10)
+                    ax.text(1,1.05, '0.25 Gyr', ha='right', color='r', fontsize=10)
 
             i += 1
 
