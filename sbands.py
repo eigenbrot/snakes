@@ -14,9 +14,13 @@ def read_fits(fitsfile):
 
     return wave, data
 
-def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
+def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.', alpha=0.0):
     #Copied from tau_indices on 7.21.17
-    tausf_list = [-1,-3,-9,13,5,3,1]
+    if MILES:
+        tausf_list = [-0.75,-5,-15,13,7,3,0.75]
+    else:
+        tausf_list = [-1,-3,-9,13,5,3,1]
+
 
     ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
     bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -27,7 +31,7 @@ def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
         modellist = ['/d/monk/eigenbrot/WIYN/14B-0456/anal/MA11_models/ma11_cha_{}.fits'.format(i) for i in ['0005Z','005Z','05Z','1Z','2Z']]
     elif MILES:
         fraclist = MILES_fraclist
-        modellist = ['/Users/Arthur/Documents/School/891_research/MILES/MILES_IDL_{}_E0.0.fits'.format(i) for i in ['0005Z','0015Z','02Z','04Z','099Z','2Z']]
+        modellist = ['/Users/Arthur/Documents/School/891_research/MILES/MILES_IDL_{}_E{}.fits'.format(i,alpha) for i in ['0005Z','0015Z','02Z','04Z','099Z','2Z']]
         moddisp = 58.4
     else:
         fraclist = bc03_fraclist
@@ -68,7 +72,7 @@ def make_galaxies(ma11 = False, MILES = False, vdisp=200.0, outdir='.'):
         if ma11:
             outhdu.writeto('{}/MA11_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
         elif MILES:
-            outhdu.writeto('{}/MILES_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
+            outhdu.writeto('{}/MILES_Z{:04n}_E{}_tau.fits'.format(outdir,fraclist[z]*1000,alpha),clobber=True)
         else:
             outhdu.writeto('{}/BC03_Z{:04n}_tau.fits'.format(outdir,fraclist[z]*1000),clobber=True)
         
@@ -271,7 +275,7 @@ def run_models(output):
     
     return
 
-def make_models_multires(ma11=False, MILES=False):
+def make_models_multires(ma11=False, MILES=False, alpha=0.0):
 
     vdisplst = [293.77,241.92,199.58,187.38,179.47,
                 391.80,343.56,257.51,249.95,244.71,
@@ -281,7 +285,7 @@ def make_models_multires(ma11=False, MILES=False):
         outdir = ''.join(('{:6.2f}'.format(vd)).split('.'))
         if not os.path.exists(outdir):
             os.system('mkdir {}'.format(outdir))
-        make_galaxies(ma11 = ma11, MILES = MILES, vdisp=vd, outdir=outdir)
+        make_galaxies(ma11 = ma11, MILES = MILES, vdisp=vd, outdir=outdir, alpha=alpha)
 
     return
         
@@ -447,7 +451,7 @@ def run_MILES_multires(output,alpha,group=1):
     
     return
 
-def run_MILES_tau_multires(output,group=1):
+def run_MILES_tau_multires(output,group=1,alpha=0.0):
     dirlistd = {1: ['29377','24192','19958','18738','17947'],
                 2: ['39180','34356','25751','24995','24471'],
                 3: ['47014','42806','31304','30267','29751']}
@@ -465,7 +469,7 @@ def run_MILES_tau_multires(output,group=1):
     for f, frac in enumerate(fraclist):
         reslist = []
         for resdir in dirlistd[group]:
-            modelfile = '{}/MILES_Z{:04n}_tau.fits'.format(resdir,frac*1000)
+            modelfile = '{}/MILES_Z{:04n}_E{}_tau.fits'.format(resdir,frac*1000,alpha)
             print modelfile
         
             wave, data = read_fits(modelfile)

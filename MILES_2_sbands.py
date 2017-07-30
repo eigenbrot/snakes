@@ -155,10 +155,10 @@ def convert_to_IDL_fmt(MH, agelst=full_age, alpha=0.0):
 
     return
 
-def all_IDL(MHlst = [-2.27, -1.79, -0.66, -0.35, 0.06, 0.4]):
+def all_IDL(MHlst = [-2.27, -1.79, -0.66, -0.35, 0.06, 0.4], alpha=0.0):
 
     for MH in MHlst:
-        convert_to_IDL_fmt(MH)
+        convert_to_IDL_fmt(MH,alpha=alpha)
 
     return
 
@@ -215,3 +215,43 @@ def spy_to_mab():
             f.write('2.0 '+str('{:8.3f}'*13+'\n').format(*([ages[i]]+Z2_data[i].tolist())))
 
     return solar            
+
+def spy_to_mab_tau():
+
+    MILES_fraclist = np.array([0.0001,0.0003,0.004,0.008,0.0198,0.04])/0.02
+    #ages = np.array([0.35, 0.6, 1, 3, 4, 8, 12])
+    ages = np.array([0.693,2.025,4.133,7.338,8.969,9.975,11.307])
+    
+    Z04_lst = []
+    Z2_lst = []
+    
+    for g in range(3):
+        solar = pyfits.open('MILES_tau_E00_group{}_spy.fits'.format(g+1))[0].data
+        enhanced = pyfits.open('MILES_tau_E04_group{}_spy.fits'.format(g+1))[0].data
+
+        Z04_lst.append(solar[:,3,2])
+        Z04_lst.append(solar[:,3,3])
+        Z04_lst.append(enhanced[:,3,2])
+        Z04_lst.append(enhanced[:,3,3])
+
+        Z2_lst.append(solar[:,5,2])
+        Z2_lst.append(solar[:,5,3])
+        Z2_lst.append(enhanced[:,5,2])
+        Z2_lst.append(enhanced[:,5,3])
+
+    Z04_data = np.vstack(Z04_lst).T
+    Z2_data = np.vstack(Z2_lst).T
+
+    print Z04_data.shape
+    print Z2_data.shape
+
+    print [ages[0]]+Z04_data[0].tolist()
+    with open('mgfe_MILES_tau.dat_Z04','w') as f:
+        for i in range(ages.size):
+            f.write('0.4 '+str('{:8.3f}'*13+'\n').format(*([ages[i]]+Z04_data[i].tolist())))
+
+    with open('mgfe_MILES_tau.dat_Z2','w') as f:
+        for i in range(ages.size):
+            f.write('2.0 '+str('{:8.3f}'*13+'\n').format(*([ages[i]]+Z2_data[i].tolist())))
+
+    return solar   
