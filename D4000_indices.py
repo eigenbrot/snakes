@@ -15,7 +15,7 @@ plt.ioff()
 
 deftlst = [-1,-3,-9,13,5,3,1]
 deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
-MILESmlwa = [0.693,2.025,4.133,7.338,8.969,9.975,11.307]
+MILESmlwa = [0.318,1.29,2.0,3.43,4.38,7.43,11.2]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -432,15 +432,15 @@ def plot_model_grid(model_data_file, ax, band1, band2, ma11 = False,
             ax.text(0.9,0.9 - t*0.072, '{:4.1f} Gyr'.format(mlwa_list[t]),
                     transform=ax.transAxes,fontsize=14,ha='right',color=colors[t])
         
-            if t == numtau - 1:
-                ax.text(modeldata[-1,0,band1],
-                        modeldata[-1,0,band2],
+            if t == numtau - 2:
+                ax.text(modeldata[t,0,band1],
+                        modeldata[t,0,band2],
                         '{:6.3f} Z/Z$_{{\odot}}$'.format(fraclist[0]),fontsize=10,ha='left',va='center')
-                ax.text(modeldata[-1,-1,band1],
-                        modeldata[-1,-1,band2],
+                ax.text(modeldata[t,-1,band1],
+                        modeldata[t,-1,band2],
                         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-1]),fontsize=10,ha='left',va='center')
-                ax.text(modeldata[-1,-2,band1],
-                        modeldata[-1,-2,band2],
+                ax.text(modeldata[t,-2,band1],
+                        modeldata[t,-2,band2],
                         '{:4.1f} Z/Z$_{{\odot}}$'.format(fraclist[-2]),fontsize=10,ha='left',va='center')
             
 
@@ -705,7 +705,7 @@ def plot_cuts_D4000(output, basedir='.', exclude=excl, zcuts=[0.4], rcuts=[3,8],
                 if spy:
                     if multires:
                         if MILES:
-                            model_file = '{}/MILES_tau_group{}_spy.fits'.format(basedir,3-z)
+                            model_file = '{}/MILES_tau_E00_group{}_spy.fits'.format(basedir,3-z)
                         else:
                             model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
                     else:

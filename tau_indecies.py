@@ -13,7 +13,7 @@ plt.ioff()
 
 deftlst = [-1,-3,-9,13,5,3,1]
 deftmlwa = [0.287,0.691,1.31,2.82,4.71,7.17,11.2]
-MILESmlwa = [0.693,2.025,4.133,7.338,8.969,9.975,11.307]
+MILESmlwa = [0.318,1.29,2.0,3.43,4.38,7.43,11.2]
 excl = [[5, 34], [1, 2, 35], [59], [2, 8], [1, 2, 3, 27, 28, 29,5], [35, 36, 38]]
 ma11_fraclist = np.array([0.0001, 0.001, 0.01, 0.02, 0.04])/0.02
 bc03_fraclist = np.array([1,0.2,0.02,0.005,0.4,2.5])
@@ -391,8 +391,6 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
         fraclist = bc03_fraclist
     fraclist = np.sort(fraclist)
     
-    tausf_list = np.array(deftlst)
-
     if SSP:
         mlwa_list = np.array([  5.00000000e+06,   2.50000000e+07,   1.00000000e+08,
                                 2.86000000e+08,   6.40000000e+08,   9.04000000e+08,
@@ -456,9 +454,9 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
             if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and plotlabels:
                 if t < 2:
                     ax.text(modeldata[t,-1,band1],
-                            modeldata[t,-1,band2]+0.25*(2-t),
+                            modeldata[t,-1,band2]+0.2*(2-t),
                             '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
-                else:
+                elif t < 5:
                     ax.text(modeldata[t,-1,band1],
                             modeldata[t,-1,band2],
                             '{:4.1f} Gyr'.format(mlwa_list[t]),fontsize=8,ha='left')
@@ -469,10 +467,15 @@ def plot_model_grid(model_data_file, ax, band1, band2, alpha=1,
                     ':k',alpha=alpha,zorder=0)
 
             if ax.get_subplotspec().get_geometry()[2] == labelframe-1 and plotlabels:
-                ax.text(modeldata[-1,z,band1],
-                        modeldata[-1,z,band2],
-                        '{:4.2f} Z/Z$_{{\odot}}$'.format(fraclist[z]),fontsize=8,ha='right',va='top')
-
+                if fraclist[z] < 0.01:
+                    ax.text(modeldata[-2,z,band1],
+                            modeldata[-2,z,band2],
+                            '{} Z/Z$_{{\odot}}$'.format(str(fraclist[z])),fontsize=8,ha='right',va='top')
+                elif z < 5:
+                    ax.text(modeldata[-1,z,band1],
+                            modeldata[-1,z,band2],
+                            '{} Z/Z$_{{\odot}}$'.format(str(fraclist[z])),fontsize=8,ha='right',va='top')
+                    
     return
 
 def plot_mgb_tracks_on_grid(parsefile, ax):
@@ -754,7 +757,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
               SSP=False, rphi=True, addl_tracks=None, labelframe=7, MILES=False):
 
     band_d = {'Hb': {'label': r'$H\beta$', 'num': 0, 'lim': [-10,5.4]},
-              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.3,8.4], 'spynum': 2}, #break = 2
+              'HdA': {'label': r'$H\delta_A$', 'num': 1, 'lim': [-3.7,8.4], 'spynum': 2}, #break = 2
               'HgA': {'label': r'$H\gamma_A$', 'num': 2, 'lim': [-8,8.4]},
               'HdF': {'label': r'$H\delta_F$', 'num': 3, 'lim': [-2,7.4]},
               'HgF': {'label': r'$H\gamma_F$', 'num': 4, 'lim': [-5,5.4]},
@@ -844,7 +847,7 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
                 if spy:
                     if multires:
                         if MILES:
-                            model_file = '{}/MILES_tau_group{}_spy.fits'.format(basedir,3-z)
+                            model_file = '{}/MILES_tau_E00_group{}_spy.fits'.format(basedir,3-z)
                         else:
                             model_file = '{}/BC03_group{}_spy.fits'.format(basedir,3-z)
                     else:
@@ -881,10 +884,21 @@ def plot_cuts(output, x='Mgb', y='Fe', basedir='.', exclude=excl, zcuts=[0.4], r
 
                 #This is so gross, I'm sorry
                 if i == labelframe:
-                    ax.text(3.1,1.6, '2.5 Gyr', ha='left', fontsize=10)
-                    ax.text(0.05,0.06, '0.01 Gyr', ha='left', fontsize=10)
-                    ax.text(2.22, 0.8, '0.71 Gyr', ha='left', color='b', fontsize=10)
-                    ax.text(1,1.05, '0.25 Gyr', ha='right', color='r', fontsize=10)
+                    #Worthey
+                    # ax.text(3.1,1.6, '2.5 Gyr', ha='left', fontsize=10)
+                    # ax.text(0.05,0.06, '0.01 Gyr', ha='left', fontsize=10)
+                    # ax.text(2.22, 0.8, '0.71 Gyr', ha='left', color='b', fontsize=10)
+                    # ax.text(1,1.05, '0.25 Gyr', ha='right', color='r', fontsize=10)
+                    #MILES tau
+                    ax.text(2.95,2.0, '11.2 Gyr', ha='left', fontsize=10)
+                    ax.text(0.15,0.6, '0.3 Gyr', ha='left', fontsize=10)
+                    ax.text(1.14, 0.7, '2 Gyr', ha='left', color='b', fontsize=10)
+                    ax.text(0.85,1.17, '0.6 Gyr', ha='right', color='r', fontsize=10)
+                    #MILES SSP
+                    # ax.text(2.2,2.1, '14 Gyr', ha='left', fontsize=10)
+                    # ax.text(0.0,0.2, '0.03 Gyr', ha='left', fontsize=10)
+                    # ax.text(2.22, 0.7, '3 Gyr', ha='left', color='b', fontsize=10)
+                    # ax.text(0.85,1.17, '0.6 Gyr', ha='right', color='r', fontsize=10)
 
             i += 1
 
