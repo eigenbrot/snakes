@@ -16,7 +16,7 @@ def compute_rphi(location, velocity, output=False, chidV_file=None, Vsys=528., d
 
     rho, z = np.loadtxt(location, usecols=(4,5), unpack=True) #kpc
     try:
-        V, dV = np.loadtxt(velocity, usecols=(1,2), unpack=True) #km/s
+        V, dV = np.loadtxt(velocity, usecols=(4,2), unpack=True) #km/s
     except IndexError:
         V = np.loadtxt(velocity,usecols=(1,), unpack=True)
         dV = V*0

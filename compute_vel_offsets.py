@@ -44,7 +44,7 @@ def format_mab_HbO(filename):
 
     return
 
-def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
+def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Documents/School/891_research/4166_velocity_dir'):
 
     #Read in velocity data
     Glist = []
@@ -63,7 +63,7 @@ def get_data(workingdir='.',velstr='_mab_vel', velocity_dir='/Users/Arthur/Docum
         print Gdat
         Gv, Ge = np.loadtxt(Gdat,usecols=(0,1),unpack=True)
 
-        size, r, z = np.loadtxt(loc, usecols=(1,4,5), unpack=True)
+        size, r, z = np.loadtxt(loc, usecols=(1,2,5), unpack=True)
         z = np.abs(z)
         
         Sv = pyfits.open(Sfits)[1].data['VSYS']
@@ -100,7 +100,7 @@ def compute_single_offset(workingdir='.',velstr='_mab_vel'):
 
     return G, S, np.median(diff), r, z
 
-def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',velocity_dir='/Users/Arthur/Documents/School/891_research/good_velocity_dir'):
+def compute_fibsize_offset(workingdir='.',velstr='_mab_vel',velocity_dir='/Users/Arthur/Documents/School/891_research/4166_velocity_dir'):
 
     G, S, Size, r, z = get_data(workingdir,velstr,velocity_dir)
 
@@ -248,10 +248,25 @@ def plot_diffs(gas, stars, offset, r, z, size=None, output='test.pdf', title='')
     ax.set_title(title)
 
     colorlist = ['cyan','green','orange','purple','pink']
-    for i, s in enumerate(np.unique(size)):
-        idx = np.where(size == s)
-        ax.scatter(z[idx], (gas - (stars + offset))[idx], c=colorlist[i], linewidth=0)
+    usize = np.unique(size)
 
+    diff = gas - (stars + offset)
+    
+    for c, s in zip(colorlist, usize):
+        sidx = np.where(size == s)
+        pidx = np.where(r[sidx] >= 0)[0]
+        nidx = np.where(r[sidx] < 0)[0]
+
+        ax.scatter(z[sidx][pidx], diff[sidx][pidx], c=c, s=50, edgecolor='none')
+        ax.scatter(z[sidx][nidx], diff[sidx][nidx], c='white', s=50, edgecolor=c, linewidths=1.5)
+        ax.plot([np.min(z[sidx][pidx]), np.max(z[sidx][pidx])], [np.median(diff[sidx][pidx]), np.median(diff[sidx][pidx])],
+                ls='-', color=c, lw=2.5)
+        ax.plot([np.min(z[sidx][nidx]), np.max(z[sidx][nidx])], [np.median(diff[sidx][nidx]), np.median(diff[sidx][nidx])],
+                ls='--', color=c, lw=2.5)
+        print np.median(diff[sidx][pidx]), np.median(diff[sidx][nidx]), np.std(diff[sidx][pidx]), np.std(diff[sidx][nidx])
+
+
+    ax.axhline(y=0, color='k', ls=':')
     ax.set_xscale('log')
 
     ax.set_xlim(0.01, 3)

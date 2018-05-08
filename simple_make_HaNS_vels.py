@@ -5,7 +5,7 @@ import sys
 from glob import glob
 
 def consolidate(OGcoef_file, velcoef_file, location_file, HaNS_file, output,
-                offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+                offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
 
     OGcoefs = pyfits.open(OGcoef_file)[1].data
     velcoefs = pyfits.open(velcoef_file)[1].data
@@ -28,15 +28,16 @@ def consolidate(OGcoef_file, velcoef_file, location_file, HaNS_file, output,
         f.write('# {}\n# {}\n'.format(OGcoef_file, velcoef_file))
         f.write('# Offset (by fiber size) = {} km/s\n'.format(offset))
         f.write('# Everything in km/s\n#\n')
-        f.write('#{:2}{:>10}{:>10}{:>10}{:>10}{:>10}\n\n'.format('Ap','V_obs','dV_obs', 'V_*^c', 'V_HaNS', 'dV_HaNS'))
+        f.write('#{:2}{:>10}{:>10}{:>10}{:>10}{:>10}{:>10}\n\n'.format('Ap','V_obs','dV_obs', 'V_*', 'V_*^c', 'V_HaNS', 'dV_HaNS'))
         for i in range(outvel.size):
-            f.write('{:3n}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}\n'.format(i+1,outvel[i],velerr[i],
-                                                                             (OGcoefs['VSYS'] + velcoefs['VSYS'])[i],
-                                                                             HaNS[i], HaNS_e[i]))
+            f.write('{:3n}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}{:10.3f}\n'.format(i+1,outvel[i],velerr[i],
+                                                                                     (OGcoefs['VSYS'] + velcoefs['VSYS'])[i],
+                                                                                     starvel[i],
+                                                                                     HaNS[i], HaNS_e[i]))
 
     return
 
-def main(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+def main(offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
 
     baseOG = 'NGC_891_P{}_bin30_allz2.coef.prechi.fits'
     basevel = 'NGC_891_P{}_bin30_allz2.coef.vel.fits'
@@ -60,7 +61,7 @@ def main(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
 
     return
 
-def shift_data_files(offset=[64.130, 70.318, 100.013, 106.035, 111.261]):
+def shift_data_files(offset=[-56.672, -35.855, -15.033, -14.381, -4.871]):
     import numpy as np
 
     base = 'NGC_891_P{}_bin30'

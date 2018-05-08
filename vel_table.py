@@ -14,38 +14,41 @@ def write_header(f):
 #  7. dr (kpc) - Uncertainty on r
 #  8. phi (deg) - Velocity-derived cylindical angle.
 #                  phi = 0 is tangent of -r_proj side of galaxy (approaching)
-#  9. Vstars - Velocity from chisq SSP fit + offset of 74 km/s
-# 10. dV - Total uncertainty in Vstars, comes from wavelength solnn and fit
-# 11. Vgas - Velocity from H_alpha centroid
+#  9. V_* - Velocity from chisq SSP fit
+# 10. V_*^c - Velocity from chisq SSP fit + fiber-size-dependent offset
+# 11. V_HaNS - Velocity from fitting Ha, [NII], SII complex
+# 12. dV_HaNS - Uncertainty on above
+# 13. V_obs - mean(V_*^c, V_HaNS)
+# 14. dV_obs - Quadrature sum of dV_HaNS and half the difference between V_HaNS and V_*^c
 #
 """)
-    f.write(('#{:4n}{:4n}{:4n}'+'{:10n}'*8+'\n#\n').format(*np.arange(11)+1))
+    f.write(('#{:4n}{:4n}{:4n}'+'{:10n}'*11+'\n#\n').format(*np.arange(14)+1))
     
     return
 
-def get_starV(pointing, basedir = '/Users/Arthur/Documents/School/891_research/final_results'):
+# def get_starV(pointing, basedir = '/Users/Arthur/Documents/School/891_research/final_results'):
 
-    vel_file = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir,pointing)
-    vel = np.loadtxt(vel_file, usecols=(1,), unpack=True)
+#     vel_file = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir,pointing)
+#     vel = np.loadtxt(vel_file, usecols=(1,), unpack=True)
 
-    return vel
+#     return vel
 
-def get_starE(pointing, dV=23.0,
-              chidV_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166'):
+# def get_starE(pointing, dV=23.0,
+#               chidV_dir = '/d/monk/eigenbrot/WIYN/14B-0456/anal/var_disp/final_disp/chisq_vel/4166'):
 
-    chidV_file = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(chidV_dir, pointing)
-    chidV = pyfits.open(chidV_file)[1].data['VSYS_ERROR']
+#     chidV_file = '{}/NGC_891_P{}_bin30_allz2.coef.vel.fits'.format(chidV_dir, pointing)
+#     chidV = pyfits.open(chidV_file)[1].data['VSYS_ERROR']
     
-    vel_err = np.sqrt(dV**2 + chidV**2)
+#     vel_err = np.sqrt(dV**2 + chidV**2)
 
-    return vel_err
+#     return vel_err
 
-def get_gasV(pointing, gasdir='/d/monk/eigenbrot/WIYN/14B-0456/anal/HA_lines'):
+# def get_gasV(pointing, gasdir='/d/monk/eigenbrot/WIYN/14B-0456/anal/HA_lines'):
     
-    gas_file = '{}/P{}_Ha_vel.txt'.format(gasdir, pointing)
-    vel = np.loadtxt(gas_file, usecols=(0,), unpack=True)
+#     gas_file = '{}/P{}_Ha_vel.txt'.format(gasdir, pointing)
+#     vel = np.loadtxt(gas_file, usecols=(0,), unpack=True)
     
-    return vel
+#     return vel
 
 def get_rphi(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
     
@@ -61,9 +64,16 @@ def get_rhoz(pointing, basedir='/Users/Arthur/Documents/School/891_research/fina
 
     return r, np.abs(z)
 
+def get_Vs(pointing, basedir='/Users/Arthur/Documents/School/891_research/final_results'):
+
+    vel = '{}/NGC_891_P{}_bin30_velocities.dat'.format(basedir, pointing)
+    Vobs, dVobs, Vs, Vsc, Vg, dVg = np.loadtxt(vel, usecols=(1,2,3,4,5,6), unpack=True)
+
+    return Vobs, dVobs, Vs, Vsc, Vg, dVg
+
 def main(output):
 
-    fmt = '{:5n}' + '{:4n}'*2 + '{:10.3f}'*8 + '\n'
+    fmt = '{:5n}' + '{:4n}'*2 + '{:10.3f}'*11 + '\n'
     
     with open(output,'w') as f:
         write_header(f)
@@ -71,16 +81,12 @@ def main(output):
         for p in range(6):
             rho, z = get_rhoz(p+1)
             r, phi, dr = get_rphi(p+1)
-            stars = get_starV(p+1)
-            star_e = get_starE(p+1)
-            gas = get_gasV(p+1)
+            Vobs, dVobs, Vs, Vsc, Vg, dVg = get_Vs(p+1)
             
-            print rho.shape, stars.shape, star_e.shape, gas.shape
+            print rho.shape, r.shape, Vobs.shape
 
-            if gas.size < stars.size:
-                gas = np.r_[gas,[np.nan]*(stars.size - gas.size)]
-
-            data = np.hstack((rho[:,None],z[:,None],r[:,None],dr[:,None],phi[:,None],stars[:,None],star_e[:,None],gas[:,None]))
+            data = np.hstack((rho[:,None],z[:,None],r[:,None],dr[:,None],phi[:,None],
+                              Vs[:,None],Vsc[:,None],Vg[:,None],dVg[:,None],Vobs[:,None],dVobs[:,None]))
             print data.shape
 
             for j in range(data.shape[0]):
