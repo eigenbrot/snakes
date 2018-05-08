@@ -67,7 +67,7 @@ endif
 if n_elements(velstart) eq 0 then velstart = 528.
 
 if keyword_set(velocity) then begin
-   readcol, velocity, apnum, known_V
+   readcol, velocity, apnum, vobs, dvobs, vstar, known_V, vhans, dvhans
    velstart = 12345.
 endif
 
