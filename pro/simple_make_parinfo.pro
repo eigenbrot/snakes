@@ -1,4 +1,4 @@
-function simple_make_parinfo, coeffile, output, fixweights=fixweights, fixtau=fixtau, zeroweights=zeroweights, zerotau=zerotau, fixvec=fixvec
+function simple_make_parinfo, coeffile, output, velocities=velocities, fixweights=fixweights, fixtau=fixtau, zeroweights=zeroweights, zerotau=zerotau, fixvec=fixvec
 
 light_factor = 100.
 vel_factor = 100.
@@ -10,11 +10,18 @@ npars = dims[0] + 2
 
 weights = c.light_frac/light_factor
 
+if keyword_set(velocities) then begin
+   readcol, velocities, apnum, vobs, dvobs, vstar, known_V, vhans, dvhans
+   vels = known_V/vel_factor
+endif else begin
+   vels = c.VSYS/vel_factor
+endelse
+
 parinfo = replicate({value:1.D, fixed:0, limited:[0,0], tied:'', $
                     limits:[0.0,0], step:0, relstep:0}, nap, npars)
 
 ;set all the proper values
-parinfo[*,0].value = c.VSYS/vel_factor
+parinfo[*,0].value = vels
 parinfo[*,1].value = c.TAUV
 parinfo[*,1].limited = [1,1]
 parinfo[*,1].limits = [0., 20.]
