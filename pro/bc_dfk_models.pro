@@ -29,7 +29,8 @@ lambda = 'l'
 
 readcol, dfkfile, ages, weights, dfkgrp
 
-isedpath = '/usr/users/tremonti/models/Padova1994/chabrier/'
+;isedpath = '/usr/users/tremonti/models/Padova1994/chabrier/'
+isedpath = '/d/monk/eigenbrot/WIYN/14B-0456/anal/models/chabrier/'
 numdfk = 4
 
 Z_arr = [0.0001, 0.0004, 0.004, 0.008, 0.02, 0.05]/0.02
@@ -39,18 +40,21 @@ numZ = n_elements(Z)
 npix = round((alog10(8500) - alog10(3400)) / 1e-4)
 logwl = findgen(npix) * 1e-4 + alog10(3400)
 
-; Define output structure
-m = {wave: 10.0^logwl, flux: fltarr(5, npix, numdfk * numZ), $
-     age: fltarr(5, numdfk * numZ), Z: fltarr(5, numdfk * numZ), $
-     id: string('multi metallicity, Chabrier IMF',format='(A14)'), $
-     norm: fltarr(5, numdfk * numZ)}
-
-; normalization wavelengths
-nwl = where(m.wave gt 5450 and m.wave lt 5550)
+print, npix, numdfk, numZ
 
 ; Get dispersion information
 v_data = MRDFITS(dispdata,0,v_header)
 numdisp = n_elements(v_data[0,*])
+
+; Define output structure
+m = {wave: 10.0^logwl, flux: fltarr(numdisp, npix, numdfk * numZ), $
+     age: fltarr(numdisp, numdfk * numZ), Z: fltarr(numdisp, numdfk * numZ), $
+     id: string('multi metallicity, Chabrier IMF',format='(A14)'), $
+     norm: fltarr(numdisp, numdfk * numZ)}
+
+; normalization wavelengths
+nwl = where(m.wave gt 5450 and m.wave lt 5550)
+
 v_wavesize = n_elements(v_data[*,0])
 v_cdelt = float(sxpar(v_header,'CDELT1'))
 v_crval = float(sxpar(v_header,'CRVAL1'))
@@ -58,7 +62,7 @@ v_crpix = float(sxpar(v_header,'CRPIX1'))
 print, 'V_CDELT1 = ',v_cdelt
 print, 'V_CRVAL1 = ',v_crval
 print, 'V_CRPIX1 = ',v_crpix
-v_wave = (FINDGEN(v_wavesize) - v_crpix) * v_cdelt + v_crval
+v_wave = (FINDGEN(v_wavesize) - (v_crpix - 1)) * v_cdelt + v_crval
 vdisp_vec = dblarr(n_elements(m.wave),numdisp)
 for dd = 0, numdisp - 1 do $
    vdisp_vec[*,dd] = interpol(v_data[*,dd],v_wave,m.wave)/2.355
@@ -67,7 +71,7 @@ bc03_pix = 70.0 ; size of 1 model pixel in km/s
 bc03_vdisp = 75.0 ; approximate velocity dispersion of BC03 models
 
 for zz = 0, numZ - 1 do begin
-   for ff = 0, 4 do begin
+   for ff = 0, numdisp - 1 do begin
       for gg = 1, numdfk do begin
          zid = where(Z[zz]*0.02/0.02 eq Z_arr)
          print, 'Zid: ', zid
@@ -96,18 +100,22 @@ for zz = 0, numZ - 1 do begin
          sigma_pix = vdisp_add / bc03_pix
          spec = mconv(tspec,sigma_pix)
          
-         plot, m.wave, spec, xtitle='Wavelength ( '+angstrom+' )', $
-               ytitle = string('F!D!X',lambda,'!N (L',sunsymbol(),$
-                               '/M',sunsymbol(),' ',angstrom,')')
+         if keyword_set(plot) then begin
+            plot, m.wave, spec, xtitle='Wavelength ( '+angstrom+' )', $
+                  ytitle = string('F!D!X',lambda,'!N (L',sunsymbol(),$
+                                  '/M',sunsymbol(),' ',angstrom,')')
+
+            xyouts, 0.5, 0.98, string(dfkage/1e9,' Gyr, ', Z[zz], ' Z/Z_sol, ',$
+                                      ff+2,"'' dfkgrp ",gg,$
+                                      format='(F7.3,A6,F7.3,A10,I1,A10,I1)'), /norm
+
+            hline, median(spec[nwl])
+            vline, m.wave[nwl[0]]
+            vline, m.wave[nwl[-1]]
+         endif
          
-         xyouts, 0.5, 0.98, string(dfkage/1e9,' Gyr, ', Z[zz], ' Z/Z_sol, ',$
-                                   ff+2,"'' dfkgrp ",gg,$
-                                   format='(F7.3,A6,F7.3,A10,I1,A10,I1)'), /norm
-         
-         hline, median(spec[nwl])
-         vline, m.wave[nwl[0]]
-         vline, m.wave[nwl[-1]]
-         
+         print, ff, gg-1 + zz*numdfk
+         print, size(m.age, /dimensions)
          m.age[ff, gg-1 + zz*numdfk] = dfkage
          m.norm[ff, gg-1 + zz*numdfk] = median(spec[nwl])
          m.Z[ff,gg-1 + zz*numdfk] = Z[zz]
